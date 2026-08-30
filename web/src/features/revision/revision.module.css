@@ -392,15 +392,50 @@
   }
 }
 
-/* 실장률 막대 — 기판이 얼마나 덮였는지를 길이로 한 번 더 보여준다. 숫자만 있으면
-   40%가 빽빽한 것인지 헐거운 것인지 감이 안 온다. */
+/* 실장률 막대 — 막대 전체가 기판 면적이고, 채워진 만큼이 부품이 덮은 자리다.
+   숫자만 있으면 40%가 빽빽한 것인지 헐거운 것인지 감이 안 온다. */
 .mountBar {
-  height: 6px;
-  border-radius: 3px;
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
   background: var(--surface-3);
   overflow: hidden;
 }
-.mountFill {
+.mountTop {
   height: 100%;
   background: var(--accent);
+}
+.mountBottom {
+  height: 100%;
+  background: var(--info);
+}
+.mountLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--sp-3);
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.mountLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+/* 범례의 색 표시. 막대와 같은 클래스를 쓰되 여기서는 작은 사각형이 된다. */
+.mountLegend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex: none;
+}
+.mountLegend b {
+  color: var(--ink);
+}
+.mountLegend em {
+  font-style: normal;
+  color: var(--ink-4);
+}
+.mountFree {
+  color: var(--ink-4);
 }

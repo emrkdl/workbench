@@ -94,9 +94,13 @@ export interface RevisionSummary {
   density_per_cm2: number;
   /**
    * 실장률 — 부품 몸통이 덮는 면적이 기판 면적에서 차지하는 비율(%). 부품 수만 세는 밀도와 달리 큰 IC 한 개와 0402 백 개를 다르게 센다. 자리가
-   * 얼마나 남았는지, 리비전을 거치며 얼마나 빽빽해졌는지를 이 값이 말한다.
+   * 얼마나 남았는지, 리비전을 거치며 얼마나 빽빽해졌는지를 이 값이 말한다. TOP과 BOTTOM을 더한 값이다.
    */
   mount_ratio_pct: number;
+  /** TOP 면만의 실장률(%). 분모는 전체와 같은 기판 면적이라 TOP과 BOTTOM을 더하면 전체가 된다. */
+  mount_ratio_top_pct: number;
+  /** BOTTOM 면만의 실장률(%). */
+  mount_ratio_bottom_pct: number;
   net_count: number;
   total_route_length_nm: number;
   diff_pair_count: number;

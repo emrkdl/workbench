@@ -140,10 +140,21 @@ def summarize(design: Design) -> RevisionSummary:
     # 실장률 — 부품 몸통이 기판을 얼마나 덮고 있는가. 개수만 세는 밀도와 달리 14mm BGA
     # 하나와 0402 백 개를 다르게 센다. 몸통 크기를 모르는 부품은 빼고 센다 — 모르는 것을
     # 평균값으로 채우면 실장률이 부품 수를 따라가 버려 밀도와 같은 값이 된다.
-    body_area_mm2 = sum(
-        (c.body_w_nm or 0) * (c.body_h_nm or 0) for c in design.components
-    ) / (NM_PER_MM * NM_PER_MM)
-    mount_ratio = min(body_area_mm2 / area_mm2 * 100.0, 100.0) if area_mm2 > 0 else 0.0
+    # 면별로 따로 센다. 분모는 양쪽 다 같은 기판 면적이라 TOP + BOTTOM = 전체가 되고,
+    # 앞면만 빽빽한 보드와 양면에 고루 퍼진 보드가 같은 전체 값에서도 구분된다.
+    def _covered(side: str) -> float:
+        return sum(
+            (c.body_w_nm or 0) * (c.body_h_nm or 0)
+            for c in design.components
+            if c.side.value == side
+        ) / (NM_PER_MM * NM_PER_MM)
+
+    def _ratio(area: float) -> float:
+        return min(area / area_mm2 * 100.0, 100.0) if area_mm2 > 0 else 0.0
+
+    mount_top = _ratio(_covered("top"))
+    mount_bottom = _ratio(_covered("bottom"))
+    mount_ratio = min(mount_top + mount_bottom, 100.0)
 
     findings = design.drc_findings or []
     rules = design.design_rules
@@ -167,6 +178,8 @@ def summarize(design: Design) -> RevisionSummary:
         package_counts=package_counts,
         density_per_cm2=round(density, 2),
         mount_ratio_pct=round(mount_ratio, 1),
+        mount_ratio_top_pct=round(mount_top, 1),
+        mount_ratio_bottom_pct=round(mount_bottom, 1),
         net_count=len(design.nets),
         total_route_length_nm=sum(n.length_nm for n in design.nets),
         diff_pair_count=sum(1 for n in design.nets if n.diff_partner) // 2,

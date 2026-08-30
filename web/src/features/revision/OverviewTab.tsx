@@ -218,24 +218,40 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
         </Panel>
 
         <Panel title="실장률">
-          <StatGrid cols={2}>
-            <Stat
-              label="덮인 면적"
-              value={sm.mount_ratio_pct.toFixed(1)}
-              unit="%"
-              hint="부품 몸통이 기판을 덮는 비율"
-            />
-            <Stat
-              label="배치 밀도"
-              value={sm.density_per_cm2.toFixed(1)}
-              unit="/cm²"
-              hint="면적당 부품 개수"
-            />
-          </StatGrid>
-          {/* 두 값을 나란히 두는 이유는 서로 다른 것을 말하기 때문이다. 실장률이 낮은데
-              밀도가 높으면 작은 부품이 촘촘한 보드이고, 그 반대면 큰 IC 가 자리를 먹은 보드다. */}
+          <Stat
+            label="전체"
+            value={sm.mount_ratio_pct.toFixed(1)}
+            unit="%"
+            hint="부품 몸통이 기판을 덮는 비율"
+          />
+          {/* 막대의 전체 길이가 기판 면적이다. 두 조각의 합이 실장률이고 남는 자리가 빈 면적 —
+              분모가 양면 다 같은 기판이라 TOP 과 BOTTOM 을 그대로 이어 붙일 수 있다. */}
           <div className={s.mountBar} style={{ marginTop: "var(--sp-3)" }}>
-            <div className={s.mountFill} style={{ width: `${Math.min(sm.mount_ratio_pct, 100)}%` }} />
+            <div
+              className={s.mountTop}
+              style={{ width: `${Math.min(sm.mount_ratio_top_pct, 100)}%` }}
+              title={`TOP ${sm.mount_ratio_top_pct.toFixed(1)}%`}
+            />
+            <div
+              className={s.mountBottom}
+              style={{ width: `${Math.min(sm.mount_ratio_bottom_pct, 100 - sm.mount_ratio_top_pct)}%` }}
+              title={`BOTTOM ${sm.mount_ratio_bottom_pct.toFixed(1)}%`}
+            />
+          </div>
+          <div className={s.mountLegend}>
+            <span>
+              <i className={s.mountTop} />
+              TOP <b className="tnum">{sm.mount_ratio_top_pct.toFixed(1)}%</b>
+              <em>{formatCount(sm.component_top_count)}개</em>
+            </span>
+            <span>
+              <i className={s.mountBottom} />
+              BOTTOM <b className="tnum">{sm.mount_ratio_bottom_pct.toFixed(1)}%</b>
+              <em>{formatCount(sm.component_bottom_count)}개</em>
+            </span>
+            <span className={s.mountFree}>
+              빈 자리 <b className="tnum">{Math.max(100 - sm.mount_ratio_pct, 0).toFixed(1)}%</b>
+            </span>
           </div>
         </Panel>
 
