@@ -391,3 +391,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 실장률 막대 — 기판이 얼마나 덮였는지를 길이로 한 번 더 보여준다. 숫자만 있으면
+   40%가 빽빽한 것인지 헐거운 것인지 감이 안 온다. */
+.mountBar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.mountFill {
+  height: 100%;
+  background: var(--accent);
+}

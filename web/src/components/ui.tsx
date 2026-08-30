@@ -1,29 +1,13 @@
 import type React from "react";
 import type { ReactNode } from "react";
-import type { LifecycleStatus, Severity } from "@/lib/cdm";
+import type { Severity } from "@/lib/cdm";
 import s from "./ui.module.css";
 
 /* ── 상태 표시 ─────────────────────────────── */
 
-const STATUS_LABEL: Record<LifecycleStatus, string> = {
-  draft: "초안",
-  review: "검토",
-  released: "양산",
-  obsolete: "단종",
-};
-
-const STATUS_CLASS: Record<LifecycleStatus, string> = {
-  draft: s.pillDraft,
-  review: s.pillReview,
-  released: s.pillReleased,
-  obsolete: s.pillObsolete,
-};
-
-export function StatusPill({ status }: { status: LifecycleStatus }) {
-  return <span className={`${s.pill} ${STATUS_CLASS[status]}`}>{STATUS_LABEL[status]}</span>;
-}
-
-export const statusLabel = (status: LifecycleStatus) => STATUS_LABEL[status];
+/* 상태(초안·검토·양산·단종)는 화면에서 뺐다. 사람이 손으로 유지해야 하는 값이라 시간이
+   지나면 틀리고, 틀린 상태를 배지로 못박아 보여주면 읽는 사람이 그것을 믿는다.
+   승인 흐름이 붙어 상태가 시스템 안에서 바뀌게 되면 그때 다시 들여온다. */
 
 const SEVERITY_LABEL: Record<Severity, string> = { error: "오류", warning: "경고", info: "참고" };
 const SEVERITY_CLASS: Record<Severity, string> = {

@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { ErrorState, Loading, StatusPill } from "@/components/ui";
+import { ErrorState, Loading } from "@/components/ui";
 import { isTabKey, revisionId, revisionPath, TABS, type TabKey } from "@/lib/routes";
 import type { DisplayUnit } from "@/lib/units";
 import { OverviewTab } from "./OverviewTab";
 import { StackupTab } from "./StackupTab";
 import { ComponentsTab, NetsTab } from "./TableTabs";
-import { FilesTab, ManufacturingTab, RevisionsTab } from "./RecordTabs";
+import { FilesTab, RevisionsTab, ViasTab } from "./RecordTabs";
 import { ViewerTab } from "../viewer/ViewerTab";
 import s from "./revision.module.css";
 
@@ -43,7 +43,6 @@ export function RevisionPage() {
         <div className={s.identity}>
           <span className={s.boardKey}>{revision.board_key}</span>
           <h1 className={s.boardName}>{revision.board_name}</h1>
-          <StatusPill status={revision.status} />
           <span className={s.headSpacer} />
           <div className={s.revPicker}>
             <span className={s.revLabel}>리비전</span>
@@ -62,13 +61,9 @@ export function RevisionPage() {
           </div>
         </div>
 
+        {/* 상태(초안~양산)·설계자·CAD 툴은 사람이 손으로 유지해야 하는 값이라 카탈로그에서
+            뺐다. 여기서만 남겨두면 같은 값을 한쪽은 못 믿어 안 쓰고 한쪽은 보여주는 꼴이 된다. */}
         <div className={s.subline}>
-          <span>{revision.author ?? "담당 미지정"}</span>
-          <span className={s.sep}>·</span>
-          <span>
-            {revision.source_tool} {revision.source_version}
-          </span>
-          <span className={s.sep}>·</span>
           <span>등록 {revision.created_at.slice(0, 10)}</span>
           {revision.note && (
             <>
@@ -100,7 +95,7 @@ export function RevisionPage() {
         {active === "stackup" && <StackupTab detail={detail} />}
         {active === "components" && <ComponentsTab detail={detail} unit={unit} onUnitChange={setUnit} />}
         {active === "nets" && <NetsTab detail={detail} />}
-        {active === "manufacturing" && <ManufacturingTab detail={detail} />}
+        {active === "vias" && <ViasTab detail={detail} />}
         {active === "revisions" && <RevisionsTab detail={detail} />}
         {active === "files" && <FilesTab detail={detail} />}
       </div>

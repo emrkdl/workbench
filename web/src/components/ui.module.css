@@ -1,47 +1,5 @@
 /* 화면 전체에서 재사용하는 작은 조각들. 색은 전부 토큰에서만 온다. */
 
-/* ── 상태 표시 ─────────────────────────────── */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 7px 2px 6px;
-  border-radius: var(--r-sm);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
-.pill::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  flex: none;
-}
-.pillReleased {
-  color: var(--ok);
-  background: var(--ok-wash);
-  border-color: color-mix(in srgb, var(--ok) 22%, transparent);
-}
-.pillReview {
-  color: var(--warn);
-  background: var(--warn-wash);
-  border-color: color-mix(in srgb, var(--warn) 24%, transparent);
-}
-.pillDraft {
-  color: var(--ink-3);
-  background: var(--neutral-wash);
-  border-color: var(--line-2);
-}
-.pillObsolete {
-  color: var(--crit);
-  background: var(--crit-wash);
-  border-color: color-mix(in srgb, var(--crit) 22%, transparent);
-}
-
 .tag {
   display: inline-flex;
   align-items: center;

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchCatalog, fetchInsights } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
-import { ErrorState, Loading, Panel, Stat, StatGrid, StatusPill } from "@/components/ui";
+import { ErrorState, Loading, Panel, Stat, StatGrid } from "@/components/ui";
 import { formatCount, toUm } from "@/lib/units";
 import { revisionPath } from "@/lib/routes";
 import { BarChart, LineChart, type Series } from "./charts";
@@ -209,7 +209,6 @@ export function InsightsPage() {
                 <span className={s.similarName}>
                   <b>{x.board.board_key}</b> {x.board.name}
                 </span>
-                <StatusPill status={x.board.status} />
                 <span className={s.gaps}>
                   {x.gaps
                     .filter((g) => g.gap != null)

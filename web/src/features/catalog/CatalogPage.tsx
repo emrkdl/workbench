@@ -165,12 +165,14 @@ function columns(familyHue: Map<string, number>): Column<Board>[] {
       sort: (a, b) => a.summary.net_count - b.summary.net_count,
     },
     {
-      key: "density",
-      header: "밀도",
+      // 부품 수를 면적으로 나눈 밀도는 14mm BGA 하나와 0402 백 개를 같게 센다.
+      // 실장률은 몸통이 실제로 덮는 면적이라 "자리가 얼마나 남았나"에 답한다.
+      key: "mount",
+      header: "실장률",
       width: "88px",
       align: "right",
-      render: (b) => `${b.summary.density_per_cm2.toFixed(1)}/cm²`,
-      sort: (a, b) => a.summary.density_per_cm2 - b.summary.density_per_cm2,
+      render: (b) => `${b.summary.mount_ratio_pct.toFixed(1)}%`,
+      sort: (a, b) => a.summary.mount_ratio_pct - b.summary.mount_ratio_pct,
     },
     {
       key: "trace",

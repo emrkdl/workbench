@@ -1,15 +1,23 @@
 import { Link } from "react-router-dom";
 import type { RevisionDetail } from "@/lib/cdm";
-import { EmptyState, Field, Fields, Panel, SeverityTag, Tag } from "@/components/ui";
-import { formatBytes, formatCoarse, formatCount, formatFine } from "@/lib/units";
+import { Bar, EmptyState, Panel, Stat, StatGrid, Tag } from "@/components/ui";
+import { formatBytes, formatCount, formatFine } from "@/lib/units";
 import { comparePath, revisionPath } from "@/lib/routes";
 import s from "./revision.module.css";
 
+/** 제조 난이도 순. 카탈로그 표와 뷰어의 비아 색이 같은 순서를 쓴다. */
+const VIA_ORDER = ["through", "blind", "buried", "micro"];
 const VIA_LABEL: Record<string, string> = {
   through: "관통",
   blind: "블라인드",
   buried: "베리드",
   micro: "마이크로",
+};
+const VIA_COLOR: Record<string, string> = {
+  through: "#9aa3ad",
+  blind: "#7f97b0",
+  buried: "#6f8496",
+  micro: "#3fa88c",
 };
 const DRILL_LABEL: Record<string, string> = {
   via: "비아",
@@ -18,53 +26,70 @@ const DRILL_LABEL: Record<string, string> = {
   component: "부품",
 };
 
-export function ManufacturingTab({ detail }: { detail: RevisionDetail }) {
+/**
+ * 비아 탭.
+ *
+ * 예전에는 "제조" 라는 이름으로 설계 룰·비아·드릴·DRC 를 한데 담았는데, 이 시스템은
+ * 제조를 다루지 않는다. 설계 룰과 표면 처리는 요약 탭의 물리 항목이 이미 들고 있으므로,
+ * 남는 것 중 따로 볼 값이 있는 비아와 그 구멍만 여기 모았다.
+ *
+ * 비아는 층을 넘는 유일한 통로이고, 종류가 무엇이냐에 따라 만들 수 있는 업체와 단가가
+ * 갈린다 — 관통만 쓰는 6층과 마이크로비아를 쓰는 6층은 같은 보드가 아니다.
+ */
+export function ViasTab({ detail }: { detail: RevisionDetail }) {
+  const sm = detail.revision.summary;
   const rules = detail.design_rules;
-  const findings = detail.drc_findings ?? [];
+  const byKind = sm.via_by_kind ?? {};
+  const kinds = VIA_ORDER.filter((k) => (byKind[k] ?? 0) > 0);
 
   return (
     <div className={s.col}>
-      <div className={s.twoUp}>
-        <Panel title="설계 룰">
-          <Fields>
-            <Field label="최소 선폭">{formatFine(rules.min_trace_width_nm)}</Field>
-            <Field label="최소 간격">{formatFine(rules.min_clearance_nm)}</Field>
-            <Field label="최소 드릴">{formatFine(rules.min_drill_nm)}</Field>
-            <Field label="최소 애뉼러 링">
-              {rules.min_annular_ring_nm ? formatFine(rules.min_annular_ring_nm) : null}
-            </Field>
-            <Field label="최대 종횡비">{rules.max_aspect_ratio ? `${rules.max_aspect_ratio} : 1` : null}</Field>
-            <Field label="BGA 최소 피치">{rules.min_bga_pitch_nm ? formatFine(rules.min_bga_pitch_nm) : null}</Field>
-            <Field label="보드 두께">{formatCoarse(detail.revision.summary.board_thickness_nm)}</Field>
-            <Field label="표면 처리">{detail.surface_finish}</Field>
-            <Field label="특수 공정">
-              {detail.special_processes.length ? (
-                <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-                  {detail.special_processes.map((p) => (
-                    <Tag key={p} accent>
-                      {p}
-                    </Tag>
-                  ))}
-                </span>
-              ) : null}
-            </Field>
-          </Fields>
-        </Panel>
+      <Panel title="비아 요약">
+        <StatGrid cols={4}>
+          <Stat label="비아 총수" value={formatCount(sm.via_total)} />
+          <Stat label="드릴 홀" value={formatCount(sm.hole_count)} hint="기구홀 포함" />
+          <Stat label="최소 드릴" value={formatFine(rules.min_drill_nm)} />
+          <Stat
+            label="최대 종횡비"
+            value={rules.max_aspect_ratio ? `${rules.max_aspect_ratio} : 1` : "—"}
+            hint="두께 ÷ 드릴 지름"
+          />
+        </StatGrid>
+        {kinds.length > 0 && (
+          <div style={{ marginTop: "var(--sp-4)" }}>
+            <Bar
+              slices={kinds.map((k) => ({
+                label: VIA_LABEL[k] ?? k,
+                value: byKind[k] ?? 0,
+                color: VIA_COLOR[k] ?? "var(--ink-4)",
+              }))}
+            />
+          </div>
+        )}
+      </Panel>
 
-        <Panel title="비아" flush>
+      <Panel title="비아 규격" flush>
+        {detail.vias.length === 0 ? (
+          <EmptyState title="비아 규격이 없습니다" body="이 리비전에는 기록된 비아 사양이 없습니다." />
+        ) : (
           <div className={s.records}>
             {detail.vias.map((v, i) => (
               <div className={s.record} key={i}>
                 <Tag accent={v.kind !== "through"}>{VIA_LABEL[v.kind] ?? v.kind}</Tag>
                 <span className={s.recordMsg}>
                   L{v.from_layer}–L{v.to_layer} · 드릴 {formatFine(v.drill_nm)} · 패드 {formatFine(v.pad_nm)}
+                  {v.pad_nm > v.drill_nm && (
+                    <span style={{ color: "var(--ink-4)" }}>
+                      {" "}· 애뉼러 링 {formatFine(Math.round((v.pad_nm - v.drill_nm) / 2))}
+                    </span>
+                  )}
                 </span>
                 <span className={s.recordMeta}>{formatCount(v.count)}</span>
               </div>
             ))}
           </div>
-        </Panel>
-      </div>
+        )}
+      </Panel>
 
       <Panel title="드릴 표" flush>
         <div className={s.records}>
@@ -78,37 +103,6 @@ export function ManufacturingTab({ detail }: { detail: RevisionDetail }) {
             </div>
           ))}
         </div>
-      </Panel>
-
-      <Panel
-        title="DRC 결과"
-        action={
-          <span style={{ fontSize: "var(--fs-xs)", color: "var(--ink-4)" }}>
-            CAD 툴이 낸 결과를 표시만 합니다 — 재실행하지 않습니다
-          </span>
-        }
-        flush
-      >
-        {findings.length === 0 ? (
-          <EmptyState title="지적 사항 없음" body="이 리비전에는 기록된 DRC 위반이 없습니다." />
-        ) : (
-          <div className={s.records}>
-            {findings.map((f, i) => (
-              <div className={s.record} key={i}>
-                <SeverityTag severity={f.severity} />
-                <span className={s.recordMsg}>
-                  <b style={{ color: "var(--ink)" }}>{f.rule}</b> — {f.message}
-                  {f.refdes && <span className="mono" style={{ color: "var(--ink-4)" }}> · {f.refdes}</span>}
-                  {f.net_name && <span className="mono" style={{ color: "var(--ink-4)" }}> · {f.net_name}</span>}
-                </span>
-                <span className={s.recordMeta}>
-                  {f.layer_index ? `L${f.layer_index}` : ""}
-                  {f.x_nm != null && f.y_nm != null && ` (${formatCoarse(f.x_nm)}, ${formatCoarse(f.y_nm)})`}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </Panel>
     </div>
   );

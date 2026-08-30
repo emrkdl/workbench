@@ -12,7 +12,7 @@ export const TABS = [
   { key: "stackup", label: "적층" },
   { key: "components", label: "부품" },
   { key: "nets", label: "넷" },
-  { key: "manufacturing", label: "제조" },
+  { key: "vias", label: "비아" },
   { key: "revisions", label: "리비전" },
   { key: "files", label: "파일" },
 ] as const;

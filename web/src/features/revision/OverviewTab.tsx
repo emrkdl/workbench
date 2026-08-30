@@ -93,11 +93,7 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
               <Field label="리비전">{revision.label}</Field>
               <Field label="프로젝트">{detail.project_key}</Field>
               <Field label="제품군">{detail.product_family}</Field>
-              <Field label="설계자">{revision.author}</Field>
               <Field label="설계일">{revision.designed_at?.slice(0, 10)}</Field>
-              <Field label="CAD 툴">
-                {revision.source_tool} {revision.source_version}
-              </Field>
               <Field label="파서 버전">
                 <span className="mono">{revision.parser_version}</span>
               </Field>
@@ -161,6 +157,34 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           </Panel>
         </div>
 
+        {/* 제조 탭이 없어지면서 갈 곳을 잃은 DRC 지적 목록. 요약의 지적 건수 옆에
+            "무엇이 걸렸나"가 없으면 그 숫자로 할 수 있는 일이 없다. */}
+        {(detail.drc_findings?.length ?? 0) > 0 && (
+          <Panel
+            title="DRC 지적"
+            action={
+              <span style={{ fontSize: "var(--fs-xs)", color: "var(--ink-4)" }}>
+                CAD 툴이 낸 결과를 표시만 합니다 — 재실행하지 않습니다
+              </span>
+            }
+            flush
+          >
+            <div className={s.records}>
+              {detail.drc_findings!.map((f, i) => (
+                <div className={s.record} key={i}>
+                  <SeverityTag severity={f.severity} />
+                  <span className={s.recordMsg}>
+                    <b style={{ color: "var(--ink)" }}>{f.rule}</b> — {f.message}
+                    {f.refdes && <span className="mono" style={{ color: "var(--ink-4)" }}> · {f.refdes}</span>}
+                    {f.net_name && <span className="mono" style={{ color: "var(--ink-4)" }}> · {f.net_name}</span>}
+                  </span>
+                  <span className={s.recordMeta}>{f.layer_index ? `L${f.layer_index}` : ""}</span>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        )}
+
         {(detail.warnings?.length ?? 0) > 0 && (
           <Panel title="인제스트 경고" flush>
             <div className={s.records}>
@@ -193,12 +217,34 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           </div>
         </Panel>
 
-        <Panel title="층 구성">
-          <Bar slices={layerSlices} />
+        <Panel title="실장률">
+          <StatGrid cols={2}>
+            <Stat
+              label="덮인 면적"
+              value={sm.mount_ratio_pct.toFixed(1)}
+              unit="%"
+              hint="부품 몸통이 기판을 덮는 비율"
+            />
+            <Stat
+              label="배치 밀도"
+              value={sm.density_per_cm2.toFixed(1)}
+              unit="/cm²"
+              hint="면적당 부품 개수"
+            />
+          </StatGrid>
+          {/* 두 값을 나란히 두는 이유는 서로 다른 것을 말하기 때문이다. 실장률이 낮은데
+              밀도가 높으면 작은 부품이 촘촘한 보드이고, 그 반대면 큰 IC 가 자리를 먹은 보드다. */}
+          <div className={s.mountBar} style={{ marginTop: "var(--sp-3)" }}>
+            <div className={s.mountFill} style={{ width: `${Math.min(sm.mount_ratio_pct, 100)}%` }} />
+          </div>
         </Panel>
 
         <Panel title="부품 배치 면">
           <Bar slices={sideSlices} />
+        </Panel>
+
+        <Panel title="층 구성">
+          <Bar slices={layerSlices} />
         </Panel>
       </div>
     </div>
