@@ -399,6 +399,11 @@ export interface ChangeSet {
   parser_version?: string | null;
   /** 이 값 미만의 이동은 변경으로 판정하지 않는다. CAD 재저장만으로도 하위 자릿수는 흔들리기 때문이다. */
   move_threshold_nm: number;
+  /**
+   * 항목 목록(component_changes·net_changes)에 담는 최대 개수. 다른 보드끼리 비교하면 변경이 수천 건이 되는데, 그것을 한 줄씩 읽는
+   * 사람은 없고 응답만 1 MB 를 넘는다. 전체 건수는 stats 가 말하므로 목록이 잘려도 요약은 정확하다. null 이면 자르지 않았다는 뜻이다.
+   */
+  list_limit?: number | null;
   stats: ChangeStats;
   header_changes?: FieldChange[] | null;
   rule_changes?: FieldChange[] | null;

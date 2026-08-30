@@ -19,6 +19,7 @@ import type {
   PortfolioStats,
   RevisionDetail,
 } from "./cdm";
+import { invertChangeSet } from "./invert";
 
 const API_BASE: string = import.meta.env.VITE_API_BASE ?? "";
 export const LIVE = API_BASE !== "";
@@ -93,6 +94,12 @@ async function request<T>(url: string): Promise<T> {
         url,
       );
     }
+    // 개발 서버와 정적 호스팅은 없는 경로에 404 대신 index.html 을 돌려준다(SPA 폴백).
+    // 그대로 JSON 으로 읽으면 "Unexpected token '<'" 이 되어, 없는 자료가 파싱 오류로 둔갑한다.
+    if (!res.headers.get("content-type")?.includes("json")) {
+      inflight.delete(url);
+      throw new ApiError("요청한 데이터를 찾을 수 없습니다.", 404, url);
+    }
     return (await res.json()) as T;
   })();
 
@@ -116,7 +123,22 @@ const endpoint = {
 export const fetchCatalog = () => request<BoardPage>(endpoint.catalog());
 export const fetchRevision = (revisionId: string) => request<RevisionDetail>(endpoint.revision(revisionId));
 export const fetchChangeSetIndex = () => request<ChangeSetIndex>(endpoint.changesetIndex());
-export const fetchChangeSet = (a: string, b: string) => request<ChangeSet>(endpoint.changeset(a, b));
+/**
+ * 두 리비전의 비교.
+ *
+ * 사용자는 A 와 B 를 자유롭게 고르므로 어느 방향이든 요청이 들어온다. 목데이터는 조합마다
+ * 한 방향만 담고 있어서(양방향이면 파일 수가 두 배가 된다) 반대 방향을 찾지 못하면 있는
+ * 쪽을 받아 뒤집는다 — 두 방향은 서로의 거울상이다. 실서버는 어느 방향이든 그 자리에서
+ * 계산하므로 이 되짚기까지 오지 않는다.
+ */
+export const fetchChangeSet = async (a: string, b: string): Promise<ChangeSet> => {
+  try {
+    return await request<ChangeSet>(endpoint.changeset(a, b));
+  } catch (err) {
+    if (!(err instanceof ApiError) || err.status !== 404) throw err;
+    return invertChangeSet(await request<ChangeSet>(endpoint.changeset(b, a)));
+  }
+};
 export const fetchParts = () => request<PartIndex>(endpoint.parts());
 export const fetchPartDetail = (partId: string) => request<PartDetail>(endpoint.part(partId));
 export const fetchInsights = () => request<PortfolioStats>(endpoint.insights());

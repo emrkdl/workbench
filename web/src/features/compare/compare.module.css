@@ -1,6 +1,6 @@
 .page {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
@@ -74,87 +74,82 @@
   text-align: right;
 }
 
-/* ── 좌측: 캐시된 비교 목록 ─────────────────── */
-.picker {
-  border-right: 1px solid var(--line);
-  background: var(--surface);
-  overflow-y: auto;
-  min-height: 0;
-  padding-bottom: var(--sp-6);
-}
-.pickerGroup {
-  border-bottom: 1px solid var(--line);
-}
-.pickerLabel {
+/* ── 비교 대상 선택 ─────────────────────────── */
+.pick {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--sp-2);
-  padding: 9px var(--sp-4) 5px;
+  flex-wrap: wrap;
+}
+.pickSide {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pickSelect {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 5px 7px;
+  max-width: 230px;
+}
+.pickSelect:disabled {
+  color: var(--ink-4);
+}
+/* 리비전은 짧다. 보드 이름과 같은 너비를 주면 목록이 한쪽으로 쏠려 보인다. */
+.pickRev {
+  font-family: var(--font-mono);
+  max-width: 150px;
+}
+.swap {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: var(--r);
+  color: var(--ink-3);
+  padding: 5px 9px;
+  line-height: 1;
+}
+.swap:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--line-strong, var(--line));
+}
+.swap:disabled {
+  color: var(--ink-4);
+}
+
+.recent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+}
+.recentLabel {
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-4);
 }
-.pickerBoard {
-  padding: 8px var(--sp-4) 4px;
+.recentChip {
   font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--ink-2);
-}
-.pickerItem {
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  padding: 6px var(--sp-4) 8px;
-  border-left: 2px solid transparent;
-}
-.pickerItem:hover {
-  background: var(--surface-2);
-}
-.pickerItemOn {
-  background: var(--accent-wash);
-  border-left-color: var(--accent);
-}
-.pickerItemOn:hover {
-  background: var(--accent-wash);
-}
-.pickerPair {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  font-size: var(--fs-base);
-  color: var(--ink);
-  font-family: var(--font-mono);
-}
-/* 세대 비교는 라벨에 보드 코드까지 들어가 280px 를 넘는다. 목록 안에서는 한 단계 줄인다. */
-.pickerPair .side {
   font-size: var(--fs-xs);
-  padding: 2px 6px;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
-.pickerMag {
-  display: flex;
-  height: 3px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--surface-3);
-  margin-top: 5px;
+.recentChip:hover {
+  color: var(--ink);
 }
-.pickerMagSeg {
-  height: 100%;
-}
-.pickerCounts {
-  display: flex;
-  gap: var(--sp-2);
-  margin-top: 4px;
-  font-size: 10px;
-  color: var(--ink-4);
-  font-variant-numeric: tabular-nums;
+.recentChipOn {
+  color: var(--accent-ink);
+  background: var(--accent-wash);
+  border-color: var(--accent-line);
 }
 
 /* ── 본문 ──────────────────────────────────── */
@@ -392,12 +387,6 @@
 }
 
 @media (max-width: 1100px) {
-  .page {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .picker {
-    display: none;
-  }
   .twoUp {
     grid-template-columns: minmax(0, 1fr);
   }

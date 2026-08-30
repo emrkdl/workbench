@@ -205,11 +205,21 @@ export function ErrorState({ error }: { error: Error }) {
   );
 }
 
-export function EmptyState({ title, body }: { title: string; body?: ReactNode }) {
+export function EmptyState({
+  title,
+  body,
+  /** 막다른 길로 두지 않는다 — 여기서 갈 수 있는 곳이 있으면 버튼 하나를 준다. */
+  action,
+}: {
+  title: string;
+  body?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <div className={s.state}>
       <p className={s.stateTitle}>{title}</p>
       {body && <p className={s.stateBody}>{body}</p>}
+      {action}
     </div>
   );
 }

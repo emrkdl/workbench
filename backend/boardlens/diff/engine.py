@@ -34,6 +34,43 @@ from boardlens.units import DEFAULT_MOVE_THRESHOLD_NM, format_length, to_mm
 #: 이름이 바뀌면서 핀도 한둘 달라진 넷을 삭제+추가로 흘려보내지 않기 위한 장치다.
 NET_OVERLAP_THRESHOLD = 0.7
 
+#: 항목 목록의 기본 상한. 다른 보드끼리 비교하면 변경이 수천 건이 되는데, 그것을 한 줄씩
+#: 읽는 사람은 없고 응답만 1 MB 를 넘는다. 통계는 전부 세고 목록만 자른다.
+DEFAULT_LIST_LIMIT = 500
+
+#: 목록을 자를 때 남길 우선순위. 추가·삭제·치환은 몇 건이든 눈으로 봐야 하고,
+#: 단순 이동은 지도에서 보는 편이 빠르다.
+_COMPONENT_RANK = {
+    ChangeKind.REMOVED: 0, ChangeKind.ADDED: 1, ChangeKind.REPLACED: 2,
+    ChangeKind.FLIPPED: 3, ChangeKind.ROTATED: 4, ChangeKind.MOVED: 5,
+}
+_NET_RANK = {
+    ChangeKind.REMOVED: 0, ChangeKind.ADDED: 1, ChangeKind.REWIRED: 2, ChangeKind.RENAMED: 3,
+}
+
+
+def _trim_components(changes: list[ComponentChange], limit: int | None) -> list[ComponentChange]:
+    if limit is None or len(changes) <= limit:
+        return changes
+    # 같은 종류 안에서는 많이 움직인 것부터
+    return sorted(
+        changes,
+        key=lambda c: (_COMPONENT_RANK.get(c.kind, 9), -(c.distance_nm or 0)),
+    )[:limit]
+
+
+def _trim_nets(changes: list[NetChange], limit: int | None) -> list[NetChange]:
+    if limit is None or len(changes) <= limit:
+        return changes
+    # 같은 종류 안에서는 핀이 많이 달라진 것부터
+    return sorted(
+        changes,
+        key=lambda n: (
+            _NET_RANK.get(n.kind, 9),
+            -(len(n.pins_added or []) + len(n.pins_removed or [])),
+        ),
+    )[:limit]
+
 
 def _snapshot(c: Component) -> ComponentSnapshot:
     return ComponentSnapshot(
@@ -300,6 +337,7 @@ def diff(
     revision_a_id: str,
     revision_b_id: str,
     move_threshold_nm: int = DEFAULT_MOVE_THRESHOLD_NM,
+    list_limit: int | None = DEFAULT_LIST_LIMIT,
 ) -> ChangeSet:
     component_changes, ccounts = diff_components(a, b, move_threshold_nm)
     net_changes, ncounts = diff_nets(a, b)
@@ -311,6 +349,8 @@ def diff(
         generated_at=datetime.now().isoformat(timespec="seconds"),
         parser_version=b.parser_version,
         move_threshold_nm=move_threshold_nm,
+        list_limit=list_limit if (len(component_changes) > (list_limit or 1 << 30)
+                                  or len(net_changes) > (list_limit or 1 << 30)) else None,
         stats=ChangeStats(
             components_added=ccounts["added"],
             components_removed=ccounts["removed"],
@@ -329,8 +369,8 @@ def diff(
         ),
         header_changes=diff_header(a, b),
         rule_changes=diff_rules(a, b),
-        component_changes=component_changes,
-        net_changes=net_changes,
+        component_changes=_trim_components(component_changes, list_limit),
+        net_changes=_trim_nets(net_changes, list_limit),
         stackup_changes=stackup_changes,
         geometry_regions=[],
     )

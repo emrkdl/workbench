@@ -447,6 +447,7 @@ class ChangeSet(BaseModel):
     move_threshold_nm: int = Field(description="이 값 미만의 이동은 변경으로 판정하지 않는다. CAD 재저장만으로도 하위 자릿수는 흔들리기 때문이다.")
     stats: ChangeStats
     parser_version: str | None = None
+    list_limit: int | None = Field(default=None, description="항목 목록(component_changes·net_changes)에 담는 최대 개수. 다른 보드끼리 비교하면 변경이 수천 건이 되는데, 그것을 한 줄씩 읽는 사람은 없고 응답만 1 MB 를 넘는다. 전체 건수는 stats 가 말하므로 목록이 잘려도 요약은 정확하다. null 이면 자르지 않았다는 뜻이다.")
     header_changes: list[FieldChange] | None = None
     rule_changes: list[FieldChange] | None = None
     component_changes: list[ComponentChange] | None = None

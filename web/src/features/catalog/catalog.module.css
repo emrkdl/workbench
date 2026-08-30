@@ -200,7 +200,7 @@
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: var(--sp-3);
   padding: var(--sp-4) var(--sp-5) var(--sp-6);
   overflow-y: auto;
@@ -229,11 +229,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 106px;
+  height: 156px;
   padding: var(--sp-3);
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
-  position: relative;
 }
 .cardDims {
   position: absolute;
@@ -246,12 +245,21 @@
 }
 
 .cardBody {
-  padding: var(--sp-3);
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  flex: 1 1 auto;
-  min-height: 0;
+  padding: 9px var(--sp-3) 11px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px var(--sp-2);
+}
+.cardBody .cardKey {
+  grid-column: 1;
+}
+.cardBody .cardName {
+  grid-column: 1;
+}
+.cardBody > span:last-child {
+  grid-column: 2;
+  grid-row: 1 / span 2;
 }
 .cardTop {
   display: flex;

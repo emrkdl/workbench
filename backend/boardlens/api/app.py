@@ -220,41 +220,22 @@ def download(
 # ── 비교 ──────────────────────────────────────
 
 
-def _pair_key(a: str, b: str) -> str:
-    return f"{a}__{b}"
-
-
 @app.get("/api/changesets", response_model=ChangeSetIndex)
 def changeset_index(
-    session: SessionDep,
     _: Annotated[auth.Principal, Depends(require("compare.read"))],
 ) -> ChangeSetIndex:
-    """같은 보드의 인접 리비전 쌍. 실제 계산은 요청받은 시점에 한다."""
-    pairs: list[ChangeSetRef] = []
-    boards = {b.id: b for b in session.scalars(select(m.Board)).all()}
-    by_board: dict[str, list[m.Revision]] = {}
-    for r in session.scalars(
-        select(m.Revision).where(m.Revision.ingest_state == "ready").order_by(m.Revision.created_at)
-    ).all():
-        by_board.setdefault(r.board_id, []).append(r)
+    """이미 계산되어 캐시에 있는 비교 목록.
 
-    for board_id, revs in by_board.items():
-        board = boards[board_id]
-        for i in range(len(revs)):
-            for j in range(i + 1, len(revs)):
-                cs = _changeset(session, revs[i].id, revs[j].id)
-                pairs.append(
-                    ChangeSetRef(
-                        revision_a_id=revs[i].id, revision_b_id=revs[j].id,
-                        board_key=board.board_key, board_name=board.name,
-                        label_a=revs[i].label, label_b=revs[j].label,
-                        kind=ChangeSetKind.REVISION, generated_at=cs.generated_at, stats=cs.stats,
-                    )
-                )
-    return ChangeSetIndex(pairs=pairs, move_threshold_nm=DEFAULT_MOVE_THRESHOLD_NM)
+    비교 대상은 사용자가 두 리비전을 직접 골라 정하고, 그 조합은 요청받은 자리에서
+    계산한다. 여기서 전 조합을 미리 돌면 리비전 1,000장에서 50만 번의 diff 가 되고
+    목록 응답 하나가 몇 분씩 걸린다 — 이 엔드포인트는 "무엇을 이미 계산해 뒀나"만 답한다.
+    """
+    return ChangeSetIndex(pairs=list(_CACHE_META.values()), move_threshold_nm=DEFAULT_MOVE_THRESHOLD_NM)
 
 
 _CACHE: dict[tuple[str, str, str | None], ChangeSet] = {}
+#: 캐시 목록을 돌려줄 때 필요한 이름표. ChangeSet 자체는 보드 이름을 모른다.
+_CACHE_META: dict[tuple[str, str, str | None], ChangeSetRef] = {}
 
 
 def _changeset(session: Session, a: str, b: str) -> ChangeSet:
@@ -271,6 +252,21 @@ def _changeset(session: Session, a: str, b: str) -> ChangeSet:
         raise HTTPException(404, "비교할 리비전을 찾을 수 없습니다")
     result = diff(design_a, design_b, a, b)
     _CACHE[key] = result
+
+    rev_a = session.get(m.Revision, a)
+    board_a = session.get(m.Board, rev_a.board_id) if rev_a else None
+    board_b = session.get(m.Board, rev_b.board_id) if rev_b else None
+    if rev_a and rev_b and board_a and board_b:
+        same = board_a.id == board_b.id
+        _CACHE_META[key] = ChangeSetRef(
+            revision_a_id=a, revision_b_id=b,
+            board_key=board_a.board_key, board_name=board_a.name,
+            board_key_b=None if same else board_b.board_key,
+            label_a=rev_a.label if same else f"{board_a.board_key} {rev_a.label}",
+            label_b=rev_b.label if same else f"{board_b.board_key} {rev_b.label}",
+            kind=ChangeSetKind.REVISION if same else ChangeSetKind.GENERATION,
+            generated_at=result.generated_at, stats=result.stats,
+        )
     return result
 
 
@@ -368,6 +364,7 @@ def reparse(
     count = jobs.enqueue_reparse(session, parser_name=body.parser_name, below_version=body.below_version)
     auth.audit(session, user, "reparse", "parser", body.parser_name, detail=body.model_dump())
     _CACHE.clear()
+    _CACHE_META.clear()
     return {"queued": count}
 
 

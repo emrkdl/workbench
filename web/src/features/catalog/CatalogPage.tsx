@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCatalog } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import type { Board } from "@/lib/cdm";
@@ -168,7 +168,17 @@ export function CatalogPage() {
   const { data, error, loading } = useAsync(fetchCatalog, []);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<SortKey>("updated");
-  const [view, setView] = useState<View>("table");
+  // 보기 방식은 URL 에 둔다 — 표와 카드는 같은 목록을 다르게 읽는 방법이고,
+  // 어느 쪽으로 보라고 링크를 건넬 수 있어야 한다.
+  const [params, setParams] = useSearchParams();
+  const view = (params.get("view") === "cards" ? "cards" : "table") as View;
+  const setView = (next: View) =>
+    setParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (next === "table") p.delete("view");
+      else p.set("view", next);
+      return p;
+    }, { replace: true });
   const navigate = useNavigate();
 
   const boards = data?.items ?? [];

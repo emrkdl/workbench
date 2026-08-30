@@ -1009,16 +1009,19 @@ def build_all(seed: int, out_dir: Path, golden_dir: Path) -> dict:
         if len(golden) < 3:
             golden.append((revisions[0][0], revisions[0][1]))
 
-    # 세대 비교 — 같은 계열의 다음 보드(TTN-MAIN-A1 -> A2)와 맞대어 본다.
-    # 신규 설계 착수 때 "이전 세대에서 무엇이 달라졌나"를 묻는 실제 용법이다.
-    families: dict[str, list[str]] = {}
-    for key in latest_design:
-        families.setdefault(key.rsplit("-", 1)[0], []).append(key)
-    for members in families.values():
-        members.sort()
-        for prev_key, next_key in zip(members, members[1:]):
-            spec_a, id_a, design_a = latest_design[prev_key]
-            spec_b, id_b, design_b = latest_design[next_key]
+    # 보드 간 비교 — 최신 리비전끼리 모든 조합.
+    #
+    # 사용자가 비교할 두 보드를 자유롭게 고르므로 미리 다 만들어 둔다. 리비전까지 전부
+    # 조합하면 2,211쌍에 2.2 GB 라 불가능하고, 실제로 고르는 것은 "같은 보드의 두 리비전"
+    # 아니면 "두 보드의 최신"이다. 실서버는 어느 조합이든 요청받은 자리에서 계산한다.
+    #
+    # 방향은 보드 코드 순으로 고정한다. 양방향을 다 만들면 크기가 두 배가 되고,
+    # A→B 와 B→A 는 서로 뒤집은 것이라 한쪽만 있어도 읽을 수 있다.
+    latest_keys = sorted(latest_design)
+    for i in range(len(latest_keys)):
+        for j in range(i + 1, len(latest_keys)):
+            spec_a, id_a, design_a = latest_design[latest_keys[i]]
+            spec_b, id_b, design_b = latest_design[latest_keys[j]]
             cs = diff(design_a, design_b, id_a, id_b)
             changesets[f"{id_a}__{id_b}"] = cs
             refs.append(ChangeSetRef(
@@ -1139,7 +1142,7 @@ def main() -> int:
     manifest = build_all(args.seed, args.out, args.golden)
     print(f"보드 {manifest['board_count']}개 · 리비전 {manifest['revision_count']}개")
     print(f"부품 누계 {manifest['component_total']:,} · 넷 누계 {manifest['net_total']:,} · 고유 부품 {manifest['part_count']}종")
-    print(f"비교 {manifest['changeset_count']}쌍 (리비전 간 + 세대 간)")
+    print(f"비교 {manifest['changeset_count']}쌍 (같은 보드의 리비전 쌍 + 보드 간 최신 쌍)")
     print(f"픽스처 {manifest['bytes'] / 1_048_576:.1f} MB -> {args.out}")
     return 0
 
