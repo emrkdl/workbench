@@ -160,10 +160,7 @@ def board_page(session: Session, *, projects: tuple[str, ...] = ()) -> BoardPage
         items=items, total=len(items), offset=0, limit=len(items),
         facets=CatalogFacets(
             product_family=tally(b.product_family for b in items),
-            status=tally(b.status.value for b in items),
-            owner=tally(b.owner for b in items),
-            source_tool=tally(b.source_tool for b in items),
-            tags=tally(t for b in items for t in b.tags),
+            year=tally(b.created_at[:4] for b in items),
             layer_count=span(b.summary.layer_count for b in items),
             area_mm2=span(b.summary.area_mm2 for b in items),
             component_count=span(b.summary.component_count for b in items),

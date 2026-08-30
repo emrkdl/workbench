@@ -232,16 +232,14 @@ class RangeFacet(BaseModel):
 
 class CatalogFacets(BaseModel):
     """
-    현재 필터 조건에서 가능한 선택지와 각 선택지의 결과 수. 값이 0인 선택지는 UI에서 비활성으로 보인다.
+    현재 필터 조건에서 가능한 선택지와 각 선택지의 결과 수. 값이 0인 선택지는 UI에서 비활성으로 보인다. 거를 수 있는 것은 설계 파일에서 나온 값뿐이라
+    상태·설계자·CAD 툴·태그는 파셋에 두지 않는다 — 사람이 손으로 유지해야 하는 값이고, 틀린 값으로 거른 목록은 있는 보드를 못 찾게 만든다.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     product_family: dict[str, int]
-    status: dict[str, int]
-    owner: dict[str, int]
-    source_tool: dict[str, int]
-    tags: dict[str, int]
+    year: dict[str, int] = Field(description="등록 연도별 보드 수. 해마다 쌓이는 자료라 '요즘 것'과 '옛날 것'을 가르는 축이다.")
     layer_count: RangeFacet
     area_mm2: RangeFacet
     component_count: RangeFacet

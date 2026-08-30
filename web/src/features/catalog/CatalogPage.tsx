@@ -4,7 +4,7 @@ import { fetchCatalog } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import type { Board } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
-import { EmptyState, ErrorState, Loading, Segmented, StatusPill, Tag } from "@/components/ui";
+import { EmptyState, ErrorState, Loading, Segmented } from "@/components/ui";
 import { formatArea, formatCount, formatDimensions, formatFine } from "@/lib/units";
 import { revisionPath } from "@/lib/routes";
 import { FacetPanel } from "./FacetPanel";
@@ -43,13 +43,6 @@ function columns(): Column<Board>[] {
       search: (b) => b.name,
     },
     {
-      key: "status",
-      header: "상태",
-      width: "84px",
-      render: (b) => <StatusPill status={b.status} />,
-      sort: (a, b) => a.status.localeCompare(b.status),
-    },
-    {
       key: "rev",
       header: "최신",
       width: "72px",
@@ -63,14 +56,6 @@ function columns(): Column<Board>[] {
       render: (b) => b.product_family ?? "—",
       sort: (a, b) => (a.product_family ?? "").localeCompare(b.product_family ?? ""),
       search: (b) => b.product_family ?? "",
-    },
-    {
-      key: "owner",
-      header: "설계자",
-      width: "88px",
-      render: (b) => b.owner ?? "—",
-      sort: (a, b) => (a.owner ?? "").localeCompare(b.owner ?? ""),
-      search: (b) => b.owner ?? "",
     },
     {
       key: "layers",
@@ -138,21 +123,6 @@ function columns(): Column<Board>[] {
       sort: (a, b) => a.summary.complexity_score - b.summary.complexity_score,
     },
     {
-      key: "tool",
-      header: "CAD",
-      width: "96px",
-      render: (b) => b.source_tool,
-      sort: (a, b) => a.source_tool.localeCompare(b.source_tool),
-      search: (b) => b.source_tool,
-    },
-    {
-      key: "tags",
-      header: "태그",
-      width: "minmax(120px, 160px)",
-      render: (b) => (b.tags.length ? b.tags.map((t) => <Tag key={t}>{t}</Tag>) : "—"),
-      search: (b) => b.tags.join(" "),
-    },
-    {
       key: "updated",
       header: "갱신",
       width: "96px",
@@ -200,7 +170,7 @@ export function CatalogPage() {
         <input
           className={s.search}
           type="search"
-          placeholder="보드 코드 · 이름 · 파트넘버 · 설계자"
+          placeholder="보드 코드 · 이름 · 파트넘버"
           aria-label="보드 검색"
           value={filters.q}
           onChange={(e) => setFilters({ ...filters, q: e.target.value })}

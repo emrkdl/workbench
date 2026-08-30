@@ -1,5 +1,3 @@
-import type { LifecycleStatus } from "@/lib/cdm";
-import { statusLabel } from "@/components/ui";
 import { activeFilterCount, EMPTY_FILTERS, type CatalogFilters, type LiveFacets } from "./filters";
 import s from "./catalog.module.css";
 
@@ -89,6 +87,65 @@ function RangeGroup({
   );
 }
 
+/**
+ * 등록 연도 — 한 해씩 누르면 그 해만, 두 해를 누르면 그 사이가 잡힌다.
+ *
+ * 자료가 해마다 쌓이므로 연도는 언젠가 스무 개가 넘는다. 그래서 체크박스 목록이 아니라
+ * 막대로 둔다 — 어느 해에 몇 장이 있는지가 같이 보여야 "그 무렵 것"을 짚을 수 있다.
+ */
+function YearGroup({
+  counts,
+  min,
+  max,
+  onChange,
+}: {
+  counts: Record<string, number>;
+  min: number | null;
+  max: number | null;
+  onChange: (min: number | null, max: number | null) => void;
+}) {
+  const years = Object.keys(counts).map(Number).sort((a, b) => a - b);
+  if (years.length < 2) return null;
+  const peak = Math.max(...Object.values(counts), 1);
+  const lo = years[0]!;
+  const hi = years[years.length - 1]!;
+
+  const click = (y: number) => {
+    // 한 번 누르면 그 해만. 이미 고른 것이 있으면 그 사이를 잡는다.
+    if (min === y && max === y) onChange(null, null);
+    else if (min !== null && max !== null && min === max) onChange(Math.min(min, y), Math.max(min, y));
+    else onChange(y, y);
+  };
+
+  return (
+    <div className={s.group}>
+      <span className={s.groupLabel}>등록 시기</span>
+      <div className={s.years}>
+        {Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).map((y) => {
+          const n = counts[String(y)] ?? 0;
+          const on = min !== null && max !== null && y >= min && y <= max;
+          return (
+            <button
+              key={y}
+              type="button"
+              className={`${s.year} ${on ? s.yearOn : ""}`}
+              aria-pressed={on}
+              title={`${y}년 ${n}건`}
+              onClick={() => click(y)}
+            >
+              <i className={s.yearBar} style={{ height: `${Math.max((n / peak) * 26, 2)}px` }} />
+              <span className={s.yearLabel}>{String(y).slice(2)}</span>
+            </button>
+          );
+        })}
+      </div>
+      <span className={s.rangeHint}>
+        {min !== null && max !== null ? `${min}–${max}년` : "연도를 눌러 기간을 고른다"}
+      </span>
+    </div>
+  );
+}
+
 export function FacetPanel({ filters, facets, onChange }: Props) {
   const toggle = <K extends keyof CatalogFilters>(key: K, value: string) => {
     const current = filters[key] as unknown as string[];
@@ -140,17 +197,14 @@ export function FacetPanel({ filters, facets, onChange }: Props) {
         </div>
       </div>
 
-      <CheckGroup
-        label="상태"
-        counts={facets.statuses}
-        selected={filters.statuses}
-        onToggle={(v) => toggle("statuses", v)}
-        format={(v) => statusLabel(v as LifecycleStatus)}
-      />
       <CheckGroup label="제품군" counts={facets.families} selected={filters.families} onToggle={(v) => toggle("families", v)} />
-      <CheckGroup label="설계자" counts={facets.owners} selected={filters.owners} onToggle={(v) => toggle("owners", v)} />
-      <CheckGroup label="CAD 툴" counts={facets.tools} selected={filters.tools} onToggle={(v) => toggle("tools", v)} />
-      <CheckGroup label="태그" counts={facets.tags} selected={filters.tags} onToggle={(v) => toggle("tags", v)} />
+
+      <YearGroup
+        counts={facets.years}
+        min={filters.yearMin}
+        max={filters.yearMax}
+        onChange={(yearMin, yearMax) => onChange({ ...filters, yearMin, yearMax })}
+      />
 
       <RangeGroup
         label="보드 면적"

@@ -1059,10 +1059,7 @@ def build_all(seed: int, out_dir: Path, golden_dir: Path) -> dict:
         total=len(boards), offset=0, limit=len(boards),
         facets=CatalogFacets(
             product_family=tally(b.product_family for b in boards),
-            status=tally(b.status.value for b in boards),
-            owner=tally(b.owner for b in boards),
-            source_tool=tally(details[b.latest_revision_id].revision.source_tool for b in boards),
-            tags=tally(t for b in boards for t in b.tags),
+            year=tally(b.created_at[:4] for b in boards),
             layer_count=span(b.summary.layer_count for b in boards),
             area_mm2=span(b.summary.area_mm2 for b in boards),
             component_count=span(b.summary.component_count for b in boards),

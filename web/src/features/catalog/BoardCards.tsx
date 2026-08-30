@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import type { Board } from "@/lib/cdm";
-import { StatusPill } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import { revisionPath } from "@/lib/routes";
 import s from "./catalog.module.css";
@@ -28,7 +27,6 @@ function BoardCard({ board }: { board: Board }) {
       <div className={s.cardBody}>
         <span className={s.cardKey}>{board.board_key}</span>
         <span className={s.cardName}>{board.name}</span>
-        <StatusPill status={board.status} />
       </div>
     </Link>
   );

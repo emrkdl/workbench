@@ -244,22 +244,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 상태 배지가 빠지면서 한 칸짜리가 됐다. 코드 한 줄, 이름 한 줄. */
 .cardBody {
   padding: 9px var(--sp-3) 11px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 2px var(--sp-2);
-}
-.cardBody .cardKey {
-  grid-column: 1;
-}
-.cardBody .cardName {
-  grid-column: 1;
-}
-.cardBody > span:last-child {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+  gap: 2px;
 }
 .cardTop {
   display: flex;
@@ -351,4 +340,45 @@
   .facets {
     display: none;
   }
+}
+
+/* 등록 시기 — 연도별 건수를 막대로 같이 보여준다. 목록이면 어느 해가 비었는지 모른다. */
+.years {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+.year {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  border-radius: var(--r-sm);
+}
+.year:hover {
+  background: var(--surface-2);
+}
+.yearBar {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--line-2);
+}
+.yearLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+}
+.yearOn .yearBar {
+  background: var(--accent);
+}
+.yearOn .yearLabel {
+  color: var(--accent-ink);
+  font-weight: 600;
 }
