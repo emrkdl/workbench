@@ -349,3 +349,22 @@
   width: 86px;
   accent-color: var(--accent);
 }
+
+/* 비아 범례 — 층 목록과 달리 켜고 끄는 것이 아니라 색이 무엇을 뜻하는지만 말한다.
+   그래서 체크박스 칸을 비우지 않고 행 자체를 두 칸으로 짠다. */
+.viaRow {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 4px var(--sp-3);
+  font-size: var(--fs-sm);
+}
+/* 화면의 비아와 같은 도넛 모양이라 눈이 바로 잇는다. */
+.viaSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: transparent;
+}

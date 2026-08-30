@@ -15,14 +15,18 @@ CDM Design 하나에서 레이어별 .blg 버퍼를 만든다. 실제 HKP 에는
 from __future__ import annotations
 
 import random
+from collections.abc import Callable
 
-from boardlens.cdm.cdm_v1 import Design, LayerRole
-from boardlens.geometry.blg import NO_NET, LayerGeometry
+from boardlens.cdm.cdm_v1 import Design, LayerRole, StackupLayer, ViaSpec
+from boardlens.geometry.blg import NO_NET, VIA_KIND_CODE, LayerGeometry
 from boardlens.ingest.summarize import is_power_net
 from boardlens.units import NM_PER_MM, NM_PER_UM
 
 CONDUCTOR = (LayerRole.SIGNAL, LayerRole.PLANE_POWER, LayerRole.PLANE_GND, LayerRole.MIXED)
 PLANE = (LayerRole.PLANE_POWER, LayerRole.PLANE_GND)
+
+#: 패드에서 에스케이프 비아까지의 거리. 도그본 하나의 목 길이다.
+ESCAPE_NM = 350 * NM_PER_UM
 
 
 def _pad_size(pitch_nm: int | None, package: str) -> tuple[int, int]:
@@ -72,6 +76,25 @@ def _route(x0: int, y0: int, x1: int, y1: int) -> list[tuple[int, int, int, int]
     return out
 
 
+def _via_picker(design: Design, conductors: list[StackupLayer]) -> Callable[[int, int], ViaSpec | None]:
+    """두 층 사이를 잇는 비아 규격을 고르는 함수를 만든다.
+
+    스팬이 맞는 규격 중 가장 작은 것을 고른다 — L1↔L2 하나 넘는 데 관통 비아를 쓰는
+    설계는 없다. 규격은 보드가 이미 들고 있으므로(design.vias) 여기서 지어내지 않는다.
+    """
+    cond_no = {l.index: i + 1 for i, l in enumerate(conductors)}
+    specs = sorted(design.vias, key=lambda v: v.pad_nm)
+
+    def pick(a: int, b: int) -> ViaSpec | None:
+        lo, hi = sorted((cond_no.get(a, 1), cond_no.get(b, 1)))
+        for v in specs:
+            if v.from_layer <= lo and hi <= v.to_layer:
+                return v
+        return specs[-1] if specs else None
+
+    return pick
+
+
 def synthesize(design: Design, rng: random.Random) -> dict[int, LayerGeometry]:
     conductors = [l for l in design.stackup if l.role in CONDUCTOR]
     if not conductors:
@@ -81,17 +104,21 @@ def synthesize(design: Design, rng: random.Random) -> dict[int, LayerGeometry]:
     top, bottom = conductors[0].index, conductors[-1].index
 
     geo = {l.index: LayerGeometry(layer_index=l.index) for l in conductors}
+    pick_via = _via_picker(design, conductors)
     net_id = {n.name: i for i, n in enumerate(design.nets)}
 
     # ── 패드 — 부품 표의 좌표와 같은 값을 쓴다 ──
     pin_at: dict[tuple[str, str], tuple[int, int]] = {}
     pin_layer: dict[str, int] = {}
+    #: 패드가 놓인 좌표 → 그 층. 배선이 다른 층으로 빠질 때 비아가 필요한 자리를 알려준다.
+    pad_layer_at: dict[tuple[int, int], int] = {}
     for c in design.components:
         layer = top if c.side.value == "top" else bottom
         pin_layer[c.refdes] = layer
         w, h = _pad_size(c.pin_pitch_nm, c.package)
         for p in c.pins:
             pin_at[(c.refdes, p.name)] = (p.x_nm, p.y_nm)
+            pad_layer_at[(p.x_nm, p.y_nm)] = layer
             geo[layer].pads.append((p.x_nm, p.y_nm, w, h, NO_NET))
 
     # 패드에 넷을 붙인다. 연결은 Net.pins 한 곳에서만 선언되므로 여기서 되짚는다.
@@ -123,18 +150,46 @@ def synthesize(design: Design, rng: random.Random) -> dict[int, LayerGeometry]:
             rng.choice(signal_layers)
         ]
         width = net.width_nm or default_width
+        placed: set[tuple[int, int, int, int]] = set()
+
+        def via(x: int, y: int, a: int, b: int, net_id: int = ni) -> None:
+            """a 층과 b 층을 잇는 비아 하나. 두 층 모두에 세운다.
+
+            한쪽 층만 켜 놓고 보아도 "배선이 여기서 층을 바꿨다"가 보여야 하기 때문이다.
+            같은 자리에 같은 층 쌍을 두 번 세우지는 않는다 — 에스케이프 비아와 이음매
+            비아가 같은 점에서 만나는 일이 흔하다.
+            """
+            key = (x, y, min(a, b), max(a, b))
+            if a == b or key in placed:
+                return
+            placed.add(key)
+            spec = pick_via(a, b)
+            drill = spec.drill_nm if spec else design.design_rules.min_drill_nm * 2
+            pad = spec.pad_nm if spec else drill * 2
+            kind = VIA_KIND_CODE[spec.kind.value] if spec else 0
+            geo[a].vias.append((x, y, pad, drill, kind, net_id))
+            geo[b].vias.append((x, y, pad, drill, kind, net_id))
+
         for i in range(len(points) - 1):
             layer = layers[i % len(layers)]
             (ax, ay), (bx, by) = points[i], points[i + 1]
             for seg in _route(ax, ay, bx, by):
                 geo[layer].traces.append((*seg, width, ni))
-            # 층이 바뀌는 자리에는 비아가 선다
-            if len(layers) > 1 and i + 1 < len(points) - 1:
-                nxt = layers[(i + 1) % len(layers)]
-                if nxt != layer:
-                    d = design.design_rules.min_drill_nm * 2
-                    geo[layer].vias.append((bx, by, d, ni))
-                    geo[nxt].vias.append((bx, by, d, ni))
+            # 패드는 바깥 층에만 있다. 안쪽 층으로 빠지는 배선은 패드 옆에서 비아로
+            # 내려간다 — 실제 보드에서 비아가 가장 많이 생기는 자리가 여기다.
+            # 비아를 패드 한복판에 세우지 않고 배선 방향으로 조금 밀어내는 것은 실제
+            # 도그본 패턴이기도 하고, 패드 위에 겹치면 화면에서 둘 다 안 보이기 때문이다.
+            for (px, py), (qx, qy) in (((ax, ay), (bx, by)), ((bx, by), (ax, ay))):
+                pl = pad_layer_at.get((px, py))
+                if pl is None or pl == layer:
+                    continue
+                dx, dy = qx - px, qy - py
+                span = max((dx * dx + dy * dy) ** 0.5, 1.0)
+                reach = min(ESCAPE_NM, span * 0.4)
+                via(px + int(dx / span * reach), py + int(dy / span * reach), pl, layer)
+            # 다음 홉에서 층이 바뀌면 이음매에 비아가 선다
+            if len(layers) > 1 and i + 1 <= len(points) - 2:
+                via(bx, by, layer, layers[(i + 1) % len(layers)])
 
     # ── 플레인 — 보드 대부분을 덮고 분할 몇 개 ──
     xs = [p for poly in design.header.outline if not poly.is_cutout for p in poly.points_nm[0::2]]

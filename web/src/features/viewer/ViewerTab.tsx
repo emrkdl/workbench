@@ -19,14 +19,27 @@ import s from "./viewer.module.css";
  * 실제로 선택을 바꿨을 때만 움직인다.
  */
 
-const SIGNAL_COLORS: [number, number, number][] = [
-  [0.94, 0.42, 0.3],
-  [0.3, 0.72, 0.95],
-  [0.48, 0.85, 0.48],
-  [0.95, 0.78, 0.32],
-  [0.78, 0.5, 0.95],
-  [0.35, 0.92, 0.82],
+/**
+ * 배선 색 — 층 번호가 정한다.
+ *
+ * D:\PCB_auto_route 뷰어의 L1~L6 배색을 그대로 가져왔다. 색이 "몇 번째 신호층인가"가
+ * 아니라 "L 몇인가"를 말해야, 적층표를 보면서 화면을 읽을 때 둘이 어긋나지 않는다.
+ * 6층을 넘으면 다시 돈다 — 12층 보드에서 L1 과 L7 이 같은 색이지만, 그 둘이 한 화면에
+ * 같이 켜져 있는 일은 드물고 단독 보기가 바로 옆에 있다.
+ */
+const LAYER_COLORS: [number, number, number][] = [
+  [0.878, 0.322, 0.322],  // L1 #e05252
+  [0.878, 0.651, 0.235],  // L2 #e0a63c
+  [0.690, 0.416, 0.816],  // L3 #b06ad0
+  [0.251, 0.690, 0.690],  // L4 #40b0b0
+  [0.341, 0.800, 0.478],  // L5 #57cc7a
+  [0.310, 0.561, 0.878],  // L6 #4f8fe0
 ];
+/** 비아 종류 — 렌더러의 색 순서와 같은 순서다. */
+const VIA_KIND_ORDER = ["through", "blind", "buried", "micro"];
+const VIA_KIND_LABEL = ["관통", "블라인드", "베리드", "마이크로"];
+const VIA_KIND_RGB_CSS = ["#d8dee6", "#b0c4d8", "#9fb4c9", "#7fd8c0"];
+
 const GND_COLOR: [number, number, number] = [0.56, 0.62, 0.64];
 const POWER_COLOR: [number, number, number] = [0.92, 0.58, 0.28];
 
@@ -83,7 +96,12 @@ export function ViewerTab({
   const [params] = useSearchParams();
   // 배치도가 기본이다. 설계 리뷰에서 먼저 보는 것이 "무엇이 어디 있나"이지
   // "동박이 어떻게 깔렸나"가 아니다.
-  const [mode, setMode] = useState<ViewMode>("placement");
+  // URL 에 실어 두면 "이 배선 좀 봐 주세요"를 링크 하나로 보낼 수 있다. 넷 강조(?net=)도
+  // 같은 방식이라 동박 화면을 그대로 건네는 데 필요한 것이 다 URL 에 있다.
+  const [mode, setMode] = useState<ViewMode>(() => {
+    const v = params.get("view");
+    return v === "copper" || v === "both" ? v : "placement";
+  });
   const [sideView, setSideView] = useState<SideView>("top");
   const [labels, setLabels] = useState(true);
   const [hiddenFamilies, setHiddenFamilies] = useState<Set<FamilyKey>>(() => new Set());
@@ -96,17 +114,17 @@ export function ViewerTab({
   const conductorNo = useMemo(() => conductorNumbers(detail.stackup), [detail.stackup]);
 
   const layerInfos = useMemo<LayerInfo[]>(() => {
-    let signalSeen = 0;
     return (detail.layer_geometry ?? []).map((g) => {
       const layer = stackupByIndex.get(g.layer_index);
       const role = layer?.role ?? "signal";
+      const no = conductorNo.get(g.layer_index) ?? g.layer_index;
       let color: [number, number, number];
       if (role === "plane_gnd") color = GND_COLOR;
       else if (role === "plane_power") color = POWER_COLOR;
-      else color = SIGNAL_COLORS[signalSeen++ % SIGNAL_COLORS.length]!;
+      else color = LAYER_COLORS[(no - 1) % LAYER_COLORS.length]!;
       return {
         index: g.layer_index,
-        label: `L${conductorNo.get(g.layer_index) ?? g.layer_index}`,
+        label: `L${no}`,
         role,
         color,
         storageKey: g.storage_key,
@@ -114,6 +132,18 @@ export function ViewerTab({
       };
     });
   }, [detail.layer_geometry, stackupByIndex, conductorNo]);
+
+  /** 이 보드에 실제로 쓰인 비아 규격. 범례는 있는 것만 적는다. */
+  const viaKindsPresent = useMemo(
+    () =>
+      detail.vias.map((v) => ({
+        kind: VIA_KIND_ORDER.indexOf(v.kind),
+        from: v.from_layer,
+        to: v.to_layer,
+        drill: v.drill_nm,
+      })).filter((v) => v.kind >= 0),
+    [detail.vias],
+  );
 
   const components = useMemo<ComponentPoint[]>(
     () =>
@@ -684,6 +714,24 @@ export function ViewerTab({
             </label>
           );
         })}
+
+        {/* 비아 색은 층이 아니라 종류를 말한다. 층 목록의 색과 규칙이 다르므로 따로 적어 둔다. */}
+        {viaKindsPresent.length > 0 && (
+          <>
+            <div className={s.layersHead}>
+              <span>비아</span>
+            </div>
+            {viaKindsPresent.map((k) => (
+              <div key={k.kind} className={s.viaRow}>
+                <span className={s.viaSwatch} style={{ borderColor: VIA_KIND_RGB_CSS[k.kind] }} />
+                <span className={s.layerName}>
+                  {VIA_KIND_LABEL[k.kind]}
+                  <span className={s.layerRole}> L{k.from}–L{k.to} · ⌀{formatFine(k.drill, unit)}</span>
+                </span>
+              </div>
+            ))}
+          </>
+        )}
         </>
         )}
       </aside>
@@ -754,7 +802,11 @@ export function ViewerTab({
                 <>
                   <dt>객체</dt>
                   <dd>
-                    {{ pad: "패드", via: "비아", trace: "배선", plane: "플레인" }[selection.hit.kind]} · L
+                    {{ pad: "패드", via: "비아", trace: "배선", plane: "플레인" }[selection.hit.kind]}
+                    {selection.hit.kind === "via" && selection.hit.viaKind !== undefined
+                      ? ` (${VIA_KIND_LABEL[selection.hit.viaKind] ?? "?"})`
+                      : ""}
+                    {" · L"}
                     {conductorNo.get(selection.hit.layerIndex) ?? selection.hit.layerIndex}
                   </dd>
                   <dt>넷</dt>

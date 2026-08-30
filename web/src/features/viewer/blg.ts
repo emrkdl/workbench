@@ -19,8 +19,10 @@ export interface LayerBuffers {
   /** x, y, w, h — 인스턴스당 4개. stride 16바이트. */
   pads: Int32Array;
   padNets: Uint32Array;
-  /** x, y, diameter — 인스턴스당 3개. stride 12바이트. */
+  /** x, y, pad_d, drill_d — 인스턴스당 4개. stride 16바이트. */
   vias: Int32Array;
+  /** 비아 종류 코드 — 0 through / 1 blind / 2 buried / 3 micro. 색이 여기서 나온다. */
+  viaKinds: Uint8Array;
   viaNets: Uint32Array;
   /** x0, y0, x1, y1 — 선분 하나가 인스턴스 하나. stride 16바이트. */
   traces: Int32Array;
@@ -35,12 +37,13 @@ export interface LayerBuffers {
 
 const EMPTY_I32 = new Int32Array(0);
 const EMPTY_U32 = new Uint32Array(0);
+const EMPTY_U8 = new Uint8Array(0);
 
 export function parseBlg(buffer: ArrayBuffer): LayerBuffers {
   const view = new DataView(buffer);
   if (view.getUint32(0, true) !== MAGIC) throw new Error("BLG 파일이 아닙니다");
   const version = view.getUint16(4, true);
-  if (version !== 1) throw new Error(`지원하지 않는 BLG 버전: ${version}`);
+  if (version !== 2) throw new Error(`지원하지 않는 BLG 버전: ${version}`);
 
   const layerIndex = view.getUint16(6, true);
   const bbox = {
@@ -66,7 +69,8 @@ export function parseBlg(buffer: ArrayBuffer): LayerBuffers {
 
   const pads = padCount ? take(Int32Array, padCount * 4) : EMPTY_I32;
   const padNets = padCount ? take(Uint32Array, padCount) : EMPTY_U32;
-  const vias = viaCount ? take(Int32Array, viaCount * 3) : EMPTY_I32;
+  const vias = viaCount ? take(Int32Array, viaCount * 4) : EMPTY_I32;
+  const viaKinds = viaCount ? take(Uint8Array, viaCount) : EMPTY_U8;
   const viaNets = viaCount ? take(Uint32Array, viaCount) : EMPTY_U32;
   const traces = traceCount ? take(Int32Array, traceCount * 4) : EMPTY_I32;
   const traceWidths = traceCount ? take(Uint32Array, traceCount) : EMPTY_U32;
@@ -82,6 +86,7 @@ export function parseBlg(buffer: ArrayBuffer): LayerBuffers {
     pads,
     padNets,
     vias,
+    viaKinds,
     viaNets,
     traces,
     traceWidths,

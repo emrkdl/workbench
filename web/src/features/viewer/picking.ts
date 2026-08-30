@@ -20,6 +20,8 @@ export interface Hit {
   y: number;
   /** 배선일 때의 폭 (nm). */
   width?: number;
+  /** 비아일 때의 종류 코드 — 0 through / 1 blind / 2 buried / 3 micro. */
+  viaKind?: number;
 }
 
 const distanceToSegment = (px: number, py: number, x0: number, y0: number, x1: number, y1: number): number => {
@@ -56,15 +58,19 @@ export function pick(
   };
 
   for (const { index, buffers } of layers) {
-    const { vias, viaNets, pads, padNets, traces, traceWidths, traceNets } = buffers;
+    const { vias, viaKinds, viaNets, pads, padNets, traces, traceWidths, traceNets } = buffers;
 
-    for (let i = 0; i < vias.length / 3; i += 1) {
-      const cx = vias[i * 3]!;
-      const cy = vias[i * 3 + 1]!;
-      const r = vias[i * 3 + 2]! / 2;
+    for (let i = 0; i < vias.length / 4; i += 1) {
+      const cx = vias[i * 4]!;
+      const cy = vias[i * 4 + 1]!;
+      const r = vias[i * 4 + 2]! / 2;   // 패드 반지름 — 구멍이 아니라 잡히는 것은 패드다
       const d = Math.hypot(x - cx, y - cy);
       if (d <= r + tolerance) {
-        consider({ layerIndex: index, kind: "via", netId: netOrNull(viaNets[i]), x: cx, y: cy }, d, 0);
+        consider(
+          { layerIndex: index, kind: "via", netId: netOrNull(viaNets[i]), x: cx, y: cy, viaKind: viaKinds[i] },
+          d,
+          0,
+        );
       }
     }
 

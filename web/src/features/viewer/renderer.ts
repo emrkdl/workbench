@@ -13,6 +13,30 @@
 
 import type { LayerBuffers } from "./blg";
 
+/**
+ * 비아 색 — 종류별. D:\PCB_auto_route 뷰어의 배색을 그대로 따랐다.
+ *
+ * 관통이 가장 밝고 마이크로가 청록이다. 이 순서는 취향이 아니라 제조 난이도 순이라,
+ * 화면에서 청록이 많이 보이면 그 보드는 HDI 라는 뜻이 된다.
+ */
+const VIA_KIND_RGB = new Float32Array([
+  0.847, 0.871, 0.902,   // through  #d8dee6
+  0.690, 0.769, 0.847,   // blind    #b0c4d8
+  0.624, 0.706, 0.788,   // buried   #9fb4c9
+  0.498, 0.847, 0.753,   // micro    #7fd8c0
+]);
+
+/**
+ * 축소해도 비아가 점으로 남게 하는 최소 화면 지름(px).
+ *
+ * 2px 는 "있다"가 겨우 보이는 크기다. 더 키우면 보드 전체를 볼 때 비아가 실제보다 커져
+ * 흰 점의 눈보라가 되고, 정작 봐야 할 배선이 그 밑에 깔린다.
+ */
+const VIA_MIN_PAD_PX = 2.0;
+
+/** 기판 바탕. 비아 구멍은 이 색으로 메워야 뚫린 것처럼 보인다. */
+const SUBSTRATE: [number, number, number] = [0.12, 0.16, 0.21];
+
 export interface LayerStyle {
   color: [number, number, number];
   visible: boolean;
@@ -82,28 +106,76 @@ void main() {
 const RECT_FS = `${FS_COMMON}
 void main() { outColor = shade(); }`;
 
-const CIRCLE_VS = `${VS_HEAD}
+/**
+ * 비아 — 바깥은 패드, 안쪽은 뚫린 구멍인 도넛.
+ *
+ * 꽉 찬 원으로 그리면 화면에서 패드와 구별되지 않는다. 비아는 "여기서 배선이 층을
+ * 바꿨다"는 표시이고, 그 사실은 배선을 따라가는 눈에 즉시 보여야 하므로 형태 자체가
+ * 달라야 한다. 구멍을 배경색으로 칠하는 것도 같은 이유다 — 밑의 배선이 비쳐 보이면
+ * 구멍인지 겹친 선인지 알 수 없다.
+ *
+ * 색은 층이 아니라 **비아 종류**를 말한다. 어느 층에 있는지는 배선 색이 이미 말하고,
+ * 비아에서 궁금한 것은 관통인지 마이크로인지다 — 제조 난이도와 단가가 거기서 갈린다.
+ */
+const VIA_VS = `${VS_HEAD}
 in vec2 a_unit;
 in ivec2 a_center;
-in int a_diameter;
+in int a_pad;
+in int a_drill;
+in uint a_kind;      // u8 로 올린 값이라 uint 로 받는다 — int 로 선언하면 타입이 어긋나
+                     // glDrawArraysInstanced 가 통째로 실패한다
 in int a_net;
+uniform float u_minPad;     // 축소했을 때 비아가 사라지지 않도록 하는 최소 지름 (nm)
 flat out int v_net;
+flat out int v_kind;
+flat out float v_hole;      // 반지름 대비 구멍 비율
 out vec2 v_local;
 void main() {
+  float pad = max(float(a_pad), u_minPad);
   vec2 unit = vec2(a_unit.x - 0.5, a_unit.y);
-  vec2 rel = vec2(a_center - u_origin) + unit * float(a_diameter);
+  vec2 rel = vec2(a_center - u_origin) + unit * pad;
   v_net = a_net;
+  v_kind = int(a_kind);
+  // 지름을 키워 그릴 때도 구멍 비율은 실제 규격대로 유지한다
+  v_hole = pad > 0.0 ? clamp(float(a_drill) / max(float(a_pad), 1.0), 0.0, 0.9) : 0.0;
   v_local = unit;
   gl_Position = project(rel);
 }`;
 
-const CIRCLE_FS = `${FS_COMMON}
+const VIA_FS = `#version 300 es
+precision highp float;
+uniform vec3 u_kindColor[4];
+uniform vec3 u_holeColor;
+uniform float u_opacity;
+uniform int u_highlight;
+flat in int v_net;
+flat in int v_kind;
+flat in float v_hole;
 in vec2 v_local;
+out vec4 outColor;
 void main() {
-  if (dot(v_local, v_local) > 0.25) discard;
-  outColor = shade();
+  float r2 = dot(v_local, v_local);
+  if (r2 > 0.25) discard;
+  vec3 ring = u_kindColor[clamp(v_kind, 0, 3)];
+  bool hole = r2 < 0.25 * v_hole * v_hole;
+  if (u_highlight >= 0 && v_net != u_highlight) {
+    if (hole) discard;                       // 흐린 비아까지 구멍을 뚫으면 배경만 남는다
+    outColor = vec4(ring, u_opacity * 0.16);
+    return;
+  }
+  if (hole) { outColor = vec4(u_holeColor, 1.0); return; }
+  vec3 c = u_highlight >= 0 ? min(ring * 1.5 + 0.25, vec3(1.0)) : ring;
+  outColor = vec4(c, 1.0);
 }`;
 
+/**
+ * 배선 — 선분 하나가 인스턴스 하나이고, 끝은 둥글다.
+ *
+ * 배선은 폴리라인을 선분으로 쪼개 저장한다. 끝을 각지게 자르면 45° 코너마다 바깥쪽에
+ * 쐐기 모양 틈이 생기고, 확대했을 때 한 줄이어야 할 배선이 토막으로 보인다. 끝을 반폭만큼
+ * 늘리고 그 부분을 반원으로 깎으면 이어지는 선분끼리 자연스럽게 맞물린다 — 실제 에칭된
+ * 동박의 모양이기도 하다.
+ */
 const SEG_VS = `${VS_HEAD}
 in vec2 a_unit;          // x: 0..1 진행 방향, y: -0.5..0.5 폭 방향
 in ivec2 a_p0;
@@ -112,6 +184,8 @@ in int a_width;
 in int a_net;
 uniform float u_minWidth; // 축소했을 때 배선이 사라지지 않도록 하는 최소 폭 (nm)
 flat out int v_net;
+out vec2 v_cap;          // 반폭을 1 로 둔 좌표. x 는 진행 방향, y 는 폭 방향
+flat out float v_len;    // 같은 단위로 잰 선분 길이
 void main() {
   vec2 a = vec2(a_p0 - u_origin);
   vec2 b = vec2(a_p1 - u_origin);
@@ -120,14 +194,24 @@ void main() {
   vec2 dir = len > 0.0 ? d / len : vec2(1.0, 0.0);
   vec2 nrm = vec2(-dir.y, dir.x);
   float w = max(float(a_width), u_minWidth);
+  float hw = w * 0.5;   // half 는 GLSL 예약어라 못 쓴다
   // 선분 끝을 반폭만큼 늘려 이어지는 배선 사이에 틈이 생기지 않게 한다
   vec2 pos = mix(a, b, a_unit.x) + dir * ((a_unit.x - 0.5) * w) + nrm * (a_unit.y * w);
+  v_cap = vec2((a_unit.x * len + (a_unit.x - 0.5) * w) / hw, a_unit.y * w / hw);
+  v_len = len / hw;
   v_net = a_net;
   gl_Position = project(pos);
 }`;
 
 const SEG_FS = `${FS_COMMON}
-void main() { outColor = shade(); }`;
+in vec2 v_cap;
+flat in float v_len;
+void main() {
+  // 몸통 밖으로 나간 양 끝만 반원으로 깎는다
+  float over = v_cap.x < 0.0 ? v_cap.x : (v_cap.x > v_len ? v_cap.x - v_len : 0.0);
+  if (over * over + v_cap.y * v_cap.y > 1.0) discard;
+  outColor = shade();
+}`;
 
 const TRI_VS = `${VS_HEAD}
 in ivec2 a_pos;
@@ -206,7 +290,7 @@ function fanTriangulate(points: Int32Array, start: number, end: number): { pos: 
 export class BoardRenderer {
   private gl: WebGL2RenderingContext;
   private rect: Prog;
-  private circle: Prog;
+  private via: Prog;
   private seg: Prog;
   private tri: Prog;
   private unitQuad: WebGLBuffer;
@@ -228,7 +312,11 @@ export class BoardRenderer {
     this.gl = gl;
 
     this.rect = prog(gl, RECT_VS, RECT_FS, ["a_unit", "a_center", "a_size", "a_net"], []);
-    this.circle = prog(gl, CIRCLE_VS, CIRCLE_FS, ["a_unit", "a_center", "a_diameter", "a_net"], []);
+    this.via = prog(
+      gl, VIA_VS, VIA_FS,
+      ["a_unit", "a_center", "a_pad", "a_drill", "a_kind", "a_net"],
+      ["u_minPad", "u_kindColor[0]", "u_holeColor"],
+    );
     this.seg = prog(gl, SEG_VS, SEG_FS, ["a_unit", "a_p0", "a_p1", "a_width", "a_net"], ["u_minWidth"]);
     this.tri = prog(gl, TRI_VS, TRI_FS, ["a_pos", "a_net"], []);
 
@@ -292,13 +380,20 @@ export class BoardRenderer {
     if (buf.vias.length) {
       vaoVias = gl.createVertexArray()!;
       gl.bindVertexArray(vaoVias);
-      this.bindUnit(this.circle.attr.a_unit!);
+      this.bindUnit(this.via.attr.a_unit!);
       const bv = this.buffer(buf.vias);
+      const bk = this.buffer(buf.viaKinds);
       const bn = this.buffer(buf.viaNets);
-      buffers.push(bv, bn);
-      iattr(this.circle.attr.a_center!, 2, bv, 12, 0);
-      iattr(this.circle.attr.a_diameter!, 1, bv, 12, 8);
-      iattr(this.circle.attr.a_net!, 1, bn, 4, 0);
+      buffers.push(bv, bk, bn);
+      iattr(this.via.attr.a_center!, 2, bv, 16, 0);
+      iattr(this.via.attr.a_pad!, 1, bv, 16, 8);
+      iattr(this.via.attr.a_drill!, 1, bv, 16, 12);
+      iattr(this.via.attr.a_net!, 1, bn, 4, 0);
+      // 종류 코드만 u8 이다. 비아 하나에 1바이트라 배열이 작고, 네 가지뿐이라 남지도 않는다.
+      gl.bindBuffer(gl.ARRAY_BUFFER, bk);
+      gl.enableVertexAttribArray(this.via.attr.a_kind!);
+      gl.vertexAttribIPointer(this.via.attr.a_kind!, 1, gl.UNSIGNED_BYTE, 1, 0);
+      gl.vertexAttribDivisor(this.via.attr.a_kind!, 1);
     }
 
     let vaoTraces: WebGLVertexArrayObject | null = null;
@@ -347,7 +442,7 @@ export class BoardRenderer {
       vaoPads,
       padCount: buf.pads.length / 4,
       vaoVias,
-      viaCount: buf.vias.length / 3,
+      viaCount: buf.vias.length / 4,
       vaoTraces,
       traceCount: buf.traces.length / 4,
       vaoPlanes,
@@ -496,7 +591,7 @@ export class BoardRenderer {
 
     if (show.placement && this.board.solid) {
       setup(this.tri);
-      paint(this.tri, { color: [0.12, 0.16, 0.21], visible: true, opacity: 1 });
+      paint(this.tri, { color: SUBSTRATE, visible: true, opacity: 1 });
       gl.bindVertexArray(this.board.solid.vao);
       gl.drawArrays(gl.TRIANGLES, 0, this.board.solid.count);
       if (this.board.cutout) {
@@ -507,7 +602,9 @@ export class BoardRenderer {
     }
 
     if (show.copper) {
-      this.drawCopper(setup, paint, minWidth);
+      // 비아 구멍을 메울 색. 배치도를 같이 그리면 구멍 뒤에 기판이 있고, 동박만 보면
+      // 화면 바탕이 있다. 틀린 쪽을 쓰면 구멍마다 색이 어긋난 점이 찍힌다.
+      this.drawCopper(setup, paint, minWidth, show.placement ? SUBSTRATE : background);
     }
 
     if (show.placement && this.placement.length) {
@@ -525,39 +622,57 @@ export class BoardRenderer {
     setup: (p: Prog) => void,
     paint: (p: Prog, style: LayerStyle) => void,
     minWidth: number,
+    holeColor: [number, number, number],
   ) {
     const gl = this.gl;
-    for (const index of this.order) {
-      const layer = this.layers.get(index);
-      const style = this.styles.get(index);
-      if (!layer || !style || !style.visible) continue;
+    // 종류별로 그리지 않고 **한 종류씩 전 레이어를 훑는다**. 층 순서대로 그리면 위층
+    // 플레인이 아래층 배선을 통째로 덮어 라우팅이 보이지 않는다. 플레인은 바탕이고,
+    // 배선이 그 위에, 패드가 그 위에, 비아가 맨 위다 — 읽는 순서가 그 순서다.
+    const visible = this.order
+      .map((index) => ({ layer: this.layers.get(index), style: this.styles.get(index) }))
+      .filter((x): x is { layer: LayerGpu; style: LayerStyle } => !!x.layer && !!x.style && x.style.visible);
 
-      if (layer.vaoPlanes) {
-        setup(this.tri);
-        // 플레인은 배경에 가깝게. 진하게 칠하면 그 위의 배선이 전부 묻힌다.
-        paint(this.tri, { ...style, opacity: style.opacity * 0.26 });
-        gl.bindVertexArray(layer.vaoPlanes);
-        gl.drawArrays(gl.TRIANGLES, 0, layer.planeVertexCount);
+    for (const { layer, style } of visible) {
+      if (!layer.vaoPlanes) continue;
+      setup(this.tri);
+      // 플레인은 배경에 가깝게 — 참조 뷰어와 같은 0.16 이다. 진하게 칠하면 그 위의
+      // 배선이 묻히고, 플레인 층이 서넛 겹치는 보드에서는 알파가 곱해져 더 심해진다.
+      paint(this.tri, { ...style, opacity: style.opacity * 0.16 });
+      gl.bindVertexArray(layer.vaoPlanes);
+      gl.drawArrays(gl.TRIANGLES, 0, layer.planeVertexCount);
+    }
+
+    for (const { layer, style } of visible) {
+      if (!layer.vaoTraces) continue;
+      setup(this.seg);
+      gl.uniform1f(this.seg.loc.u_minWidth!, minWidth);
+      paint(this.seg, style);
+      gl.bindVertexArray(layer.vaoTraces);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.traceCount);
+    }
+
+    for (const { layer, style } of visible) {
+      if (!layer.vaoPads) continue;
+      setup(this.rect);
+      paint(this.rect, style);
+      gl.bindVertexArray(layer.vaoPads);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.padCount);
+    }
+
+    let viaSetup = false;
+    for (const { layer, style } of visible) {
+      if (!layer.vaoVias) continue;
+      if (!viaSetup) {
+        setup(this.via);
+        gl.uniform1f(this.via.loc.u_minPad!, minWidth * VIA_MIN_PAD_PX);
+        gl.uniform3fv(this.via.loc["u_kindColor[0]"]!, VIA_KIND_RGB);
+        gl.uniform3f(this.via.loc.u_holeColor!, holeColor[0], holeColor[1], holeColor[2]);
+        viaSetup = true;
       }
-      if (layer.vaoTraces) {
-        setup(this.seg);
-        gl.uniform1f(this.seg.loc.u_minWidth!, minWidth);
-        paint(this.seg, style);
-        gl.bindVertexArray(layer.vaoTraces);
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.traceCount);
-      }
-      if (layer.vaoPads) {
-        setup(this.rect);
-        paint(this.rect, style);
-        gl.bindVertexArray(layer.vaoPads);
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.padCount);
-      }
-      if (layer.vaoVias) {
-        setup(this.circle);
-        paint(this.circle, style);
-        gl.bindVertexArray(layer.vaoVias);
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.viaCount);
-      }
+      // 비아 색은 종류가 정하므로 레이어 스타일에서는 투명도만 가져온다
+      gl.uniform1f(this.via.loc.u_opacity!, style.opacity);
+      gl.bindVertexArray(layer.vaoVias);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.viaCount);
     }
   }
 
@@ -583,6 +698,6 @@ export class BoardRenderer {
     }
     this.board = { solid: null, cutout: null };
     gl.deleteBuffer(this.unitQuad);
-    for (const p of [this.rect, this.circle, this.seg, this.tri]) gl.deleteProgram(p.program);
+    for (const p of [this.rect, this.via, this.seg, this.tri]) gl.deleteProgram(p.program);
   }
 }

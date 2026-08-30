@@ -658,7 +658,9 @@ def build_design(spec: BoardSpec, rev_label: str, rng: random.Random, when: date
         drill_nm=min_drill * 2, pad_nm=min_drill * 4, count=int(via_total * (0.55 if arch.advanced_via else 1.0)),
     )]
     if arch.advanced_via:
-        vias.append(ViaSpec(kind=ViaKind.MICRO, from_layer=1, to_layer=2, drill_nm=min_drill, pad_nm=min_drill * 3, count=int(via_total * 0.3)))
+        # 마이크로비아가 가장 작고 through 가 가장 크다. 규격마다 패드 지름이 다른 것은
+        # 실제로 그렇기도 하고, 화면에서 크기만으로 종류를 짐작할 수 있게 하는 값이다.
+        vias.append(ViaSpec(kind=ViaKind.MICRO, from_layer=1, to_layer=2, drill_nm=min_drill, pad_nm=min_drill * 2, count=int(via_total * 0.3)))
         vias.append(ViaSpec(kind=ViaKind.BURIED, from_layer=2, to_layer=n_cond - 1, drill_nm=int(min_drill * 1.5), pad_nm=min_drill * 3, count=int(via_total * 0.15)))
 
     drills = [

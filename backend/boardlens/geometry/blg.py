@@ -7,7 +7,7 @@ JSON 을 거치면 20만 객체에서 파싱만 수 초가 걸리고, 그 순간
 
     헤더 64바이트
       0  char[4] "BLG1"
-      4  u16     version = 1
+      4  u16     version = 2
       6  u16     layer_index
       8  i32     bbox_x0, bbox_y0, bbox_x1, bbox_y1
      24  u32     pad_count
@@ -20,7 +20,8 @@ JSON 을 거치면 20만 객체에서 파싱만 수 초가 걸리고, 그 순간
 
     pads    i32[n*4]  x, y, w, h        중심 좌표와 크기
             u32[n]    netId
-    vias    i32[n*3]  x, y, diameter
+    vias    i32[n*4]  x, y, pad_d, drill_d
+            u8[n]     kind             (0 through / 1 blind / 2 buried / 3 micro)
             u32[n]    netId
     traces  i32[n*4]  x0, y0, x1, y1    선분 하나가 인스턴스 하나
             u32[n]    width_nm
@@ -34,6 +35,12 @@ JSON 을 거치면 20만 객체에서 파싱만 수 초가 걸리고, 그 순간
 속성으로 바인딩할 수 있다 — 복사가 없다.
 
 netId 는 리비전 nets 배열의 인덱스이고, NO_NET 은 넷에 속하지 않는 객체다.
+
+비아가 패드 지름과 드릴 지름을 **둘 다** 들고 있는 이유는 화면에서 비아가 도넛이기
+때문이다. 바깥은 패드, 안쪽은 뚫린 구멍이고, 그 둘의 비율이 through / micro 를 눈으로
+가르는 첫 단서다. 지름 하나만 두면 뷰어가 나머지를 지어내야 하는데, 비아 규격은 보드마다
+다르므로 지어낸 값은 틀린다. kind 도 같은 이유로 인스턴스마다 들고 있다 — 지름으로
+되짚으면 규격이 겹치는 순간 뒤섞인다.
 """
 
 from __future__ import annotations
@@ -44,9 +51,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 MAGIC = b"BLG1"
-VERSION = 1
+VERSION = 2
 HEADER_SIZE = 64
 NO_NET = 0xFFFFFFFF
+
+#: 비아 종류를 버퍼에 담는 코드. CDM 의 ViaKind 와 짝을 이루고, 뷰어가 색을 고르는 값이다.
+VIA_KIND_CODE = {"through": 0, "blind": 1, "buried": 2, "micro": 3}
 
 
 def _align8(n: int) -> int:
@@ -59,7 +69,7 @@ class LayerGeometry:
 
     layer_index: int
     pads: list[tuple[int, int, int, int, int]] = field(default_factory=list)  # x, y, w, h, net
-    vias: list[tuple[int, int, int, int]] = field(default_factory=list)  # x, y, d, net
+    vias: list[tuple[int, int, int, int, int, int]] = field(default_factory=list)  # x,y,pad_d,drill_d,kind,net
     traces: list[tuple[int, int, int, int, int, int]] = field(default_factory=list)  # x0,y0,x1,y1,w,net
     planes: list[tuple[list[int], int]] = field(default_factory=list)  # (평탄화 좌표, net)
 
@@ -73,7 +83,7 @@ class LayerGeometry:
         for x, y, w, h, _ in self.pads:
             xs += [x - w // 2, x + w // 2]
             ys += [y - h // 2, y + h // 2]
-        for x, y, d, _ in self.vias:
+        for x, y, d, _, _, _ in self.vias:
             xs += [x - d // 2, x + d // 2]
             ys += [y - d // 2, y + d // 2]
         for x0, y0, x1, y1, _, _ in self.traces:
@@ -123,8 +133,9 @@ def pack(geometry: LayerGeometry, net_count: int) -> bytes:
         section(struct.pack(f"<{len(geometry.pads) * 4}i", *[v for p in geometry.pads for v in p[:4]]))
         section(struct.pack(f"<{len(geometry.pads)}I", *[p[4] for p in geometry.pads]))
     if geometry.vias:
-        section(struct.pack(f"<{len(geometry.vias) * 3}i", *[v for p in geometry.vias for v in p[:3]]))
-        section(struct.pack(f"<{len(geometry.vias)}I", *[p[3] for p in geometry.vias]))
+        section(struct.pack(f"<{len(geometry.vias) * 4}i", *[v for p in geometry.vias for v in p[:4]]))
+        section(struct.pack(f"<{len(geometry.vias)}B", *[p[4] for p in geometry.vias]))
+        section(struct.pack(f"<{len(geometry.vias)}I", *[p[5] for p in geometry.vias]))
     if geometry.traces:
         section(struct.pack(f"<{len(geometry.traces) * 4}i", *[v for t in geometry.traces for v in t[:4]]))
         section(struct.pack(f"<{len(geometry.traces)}I", *[t[4] for t in geometry.traces]))
