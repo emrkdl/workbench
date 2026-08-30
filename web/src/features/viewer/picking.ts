@@ -115,6 +115,9 @@ export interface ComponentPoint {
   side: string;
   package: string;
   partNumber?: string | null;
+  /** 회전을 반영한 몸통 크기. 있으면 몸통 안쪽을 눌렀는지로 판정한다. */
+  w?: number;
+  h?: number;
 }
 
 /** 클릭 지점에서 가장 가까운 부품. 뷰어와 부품 표가 같은 좌표를 쓰므로 그대로 맞물린다. */
@@ -125,6 +128,33 @@ export function pickComponent(components: ComponentPoint[], x: number, y: number
     const d = Math.hypot(x - c.x, y - c.y);
     if (d < bestDistance) {
       bestDistance = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/**
+ * 몸통 안쪽을 눌렀는지로 고른다. 배치도에서는 이쪽이 맞다 — 큰 BGA 위를 눌렀는데
+ * 중심이 더 가깝다는 이유로 옆의 0402 가 잡히면 쓸 수 없다.
+ * 겹치는 것이 있으면 작은 쪽을 집는다. 큰 부품 위에 얹힌 작은 것을 고를 수 있어야 한다.
+ */
+export function pickComponentBody(
+  components: ComponentPoint[],
+  x: number,
+  y: number,
+  slack: number,
+): ComponentPoint | null {
+  let best: ComponentPoint | null = null;
+  let bestArea = Infinity;
+  for (const c of components) {
+    const hw = (c.w ?? 0) / 2 + slack;
+    const hh = (c.h ?? 0) / 2 + slack;
+    if (hw <= slack && hh <= slack) continue;
+    if (Math.abs(x - c.x) > hw || Math.abs(y - c.y) > hh) continue;
+    const area = hw * hh;
+    if (area < bestArea) {
+      bestArea = area;
       best = c;
     }
   }

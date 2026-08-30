@@ -236,6 +236,10 @@ export interface ComponentRow {
   side: string;
   pin_count: number;
   pin_pitch_nm?: number | null;
+  /** 몸통 가로. 배치도가 그리는 사각형의 크기. */
+  body_w_nm?: number | null;
+  /** 몸통 세로. */
+  body_h_nm?: number | null;
 }
 
 /**

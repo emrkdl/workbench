@@ -83,6 +83,7 @@ from boardlens.ingest.summarize import (  # noqa: E402
 from boardlens.units import DEFAULT_MOVE_THRESHOLD_NM, NM_PER_MM, NM_PER_UM  # noqa: E402
 
 from geometry import synthesize  # noqa: E402
+from placement import Occupancy, body_size, jitter_into, rotated  # noqa: E402
 
 CDM_VERSION = "1.0.0"
 PARSER_NAME = "mockgen"
@@ -132,6 +133,9 @@ SMALL_ICS = [
     PartSpec("U", "LQFP-64", 64, 500, series="AL64", maker="Arcadia Semi"),
     PartSpec("U", "LQFP-100", 100, 500, series="AL10", maker="Arcadia Semi"),
 ]
+#: 실제 보드의 IC 구성은 작은 쪽으로 크게 치우친다. 균등하게 뽑으면 14mm 짜리 LQFP 가
+#: 보드 면적을 먼저 다 먹고 수동 소자가 들어갈 자리가 없어진다.
+SMALL_IC_WEIGHTS = [20, 18, 20, 16, 12, 8, 6]
 
 BIG_ICS = [
     PartSpec("U", "WLCSP-36", 36, 400, series="NW36", maker="Norsk Micro"),
@@ -196,34 +200,34 @@ class Archetype:
 ARCHETYPES = {
     "main_logic": Archetype(
         "main_logic", "메인 로직", (8, 12), (95, 155), (70, 115), 1.6,
-        (1100, 2600), (60, 90), 100, (2, 5), (4, 9), True, False, False,
+        (2600, 5200), (60, 90), 100, (2, 5), (4, 9), True, False, False,
     ),
     "power": Archetype(
         "power", "전원", (4, 6), (60, 120), (50, 95), 2.0,
-        (120, 420), (150, 300), 300, (0, 1), (2, 5), False, True, False,
+        (300, 900), (150, 300), 300, (0, 1), (2, 5), False, True, False,
         ("후동박 2oz",),
     ),
     "sensor": Archetype(
         "sensor", "센서", (2, 4), (18, 45), (14, 38), 1.0,
-        (40, 160), (100, 150), 200, (0, 1), (1, 2), False, False, True,
+        (90, 340), (100, 150), 200, (0, 1), (1, 2), False, False, True,
     ),
     "rf": Archetype(
         "rf", "RF", (4, 8), (40, 85), (30, 62), 1.0,
-        (150, 520), (75, 120), 150, (0, 2), (2, 4), True, False, False,
+        (340, 1100), (75, 120), 150, (0, 2), (2, 4), True, False, False,
         ("임피던스 관리", "저손실 기판",),
     ),
     "interface": Archetype(
         "interface", "인터페이스", (4, 8), (70, 130), (45, 85), 1.6,
-        (350, 1000), (90, 130), 200, (1, 2), (6, 14), False, False, False,
+        (800, 2200), (90, 130), 200, (1, 2), (6, 14), False, False, False,
     ),
     "flex": Archetype(
         "flex", "플렉스", (2, 4), (90, 210), (16, 34), 0.4,
-        (30, 120), (100, 160), 150, (0, 1), (2, 4), False, False, True,
+        (70, 260), (100, 160), 150, (0, 1), (2, 4), False, False, True,
         ("리지드플렉스",),
     ),
     "display": Archetype(
         "display", "디스플레이 드라이버", (6, 8), (55, 105), (35, 70), 1.2,
-        (250, 800), (50, 80), 100, (1, 3), (3, 6), True, False, False,
+        (600, 1800), (50, 80), 100, (1, 3), (3, 6), True, False, False,
         ("미세피치 조립",),
     ),
 }
@@ -421,14 +425,20 @@ def make_pins(spec: PartSpec, x: int, y: int, rng: random.Random) -> list[Pin]:
     return pins
 
 
-def place_components(arch: Archetype, w_nm: int, h_nm: int, count: int, rng: random.Random, scope: str) -> list[Component]:
-    """큰 IC를 먼저 중앙에 두고, 커넥터를 가장자리에, 나머지 수동 소자를 격자로 뿌린다.
+def place_components(
+    arch: Archetype, w_nm: int, h_nm: int, count: int, rng: random.Random, scope: str
+) -> list[Component]:
+    """부품을 겹치지 않게 놓는다.
+
+    큰 IC 를 먼저 중앙에, 커넥터를 가장자리에 두고, 나머지를 빈 칸에 채워 넣는다.
+    점유 격자를 쓰는 이유는 배치도가 몸통 사각형을 그리기 때문이다 — 겹친 채로 그리면
+    그림이 실제 보드처럼 보이지 않고 배치 밀도도 거짓말이 된다.
 
     `scope` 는 부품번호를 나누는 경계(프로젝트 키)다. 수동 소자는 값이 같으면 어느 보드든
     같은 부품번호를 쓰지만, IC 와 커넥터는 설계마다 다른 품번이다 — 이걸 구분하지 않으면
     모든 보드가 같은 BGA 를 쓰는 것이 되어 부품 재사용률이 100%로 나온다.
     """
-    margin = 2 * NM_PER_MM
+    occ = Occupancy(w_nm, h_nm)
     counters: dict[str, int] = {}
     out: list[Component] = []
 
@@ -436,81 +446,89 @@ def place_components(arch: Archetype, w_nm: int, h_nm: int, count: int, rng: ran
         counters[prefix] = counters.get(prefix, 0) + 1
         return f"{prefix}{counters[prefix]}"
 
-    def pin_reach(spec: PartSpec) -> int:
-        """부품 중심에서 핀이 뻗는 최대 거리. 이만큼은 가장자리에서 떨어져야 한다."""
-        pitch = (spec.pitch_um or 500) * NM_PER_UM
-        if spec.pins <= 2:
-            return NM_PER_MM
-        if "BGA" in spec.package or "CSP" in spec.package:
-            return int(math.isqrt(spec.pins) * pitch / 2) + NM_PER_MM // 2
-        return int(max(spec.pins // 4, 1) * pitch / 2) + NM_PER_MM // 2
+    def emit(
+        spec: PartSpec, x: int | None, y: int | None, side: Side, rotation: int | None = None
+    ) -> bool:
+        """x, y 가 None 이면 빈 칸을 찾아 채운다 (수동 소자 채우기)."""
+        rot = rng.choice([0, 90_000, 180_000, 270_000]) if rotation is None else rotation
+        bw, bh = body_size(spec.package)
+        rw, rh = rotated(bw, bh, rot)
+        spot = occ.find(rw, rh) if x is None or y is None else jitter_into(occ, x, y, rw, rh, rng)
+        if spot is None:
+            return False  # 자리가 없으면 놓지 않는다. 억지로 겹쳐 두지 않는다.
+        px, py = spot
 
-    def emit(spec: PartSpec, x: int, y: int, side: Side) -> None:
-        # 배치 좌표는 여기서 한 번만 조인다. LQFP-100 처럼 핀 수가 많은 부품은 반경이
-        # 6mm를 넘어, 격자 여백 2mm 만 보고 놓으면 패드가 기판 밖에 찍힌다.
-        reach = pin_reach(spec)
-        x = min(max(x, reach), max(w_nm - reach, reach))
-        y = min(max(y, reach), max(h_nm - reach, reach))
         if spec.values:
-            value = None if not spec.values else rng.choice(spec.values)
+            value = rng.choice(spec.values)
             part_number = mpn_for(spec, value, rng)
         else:
             # IC·커넥터: 프로젝트 안에서만 공유된다. 변종 수를 넉넉히 둬야 보드마다
             # 부품 구성이 달라지고, 그래야 재사용률과 역검색이 의미를 갖는다.
             value = None
             part_number = mpn_for(spec, f"{scope}#{rng.randint(1, 12)}", rng)
+
         out.append(Component(
             refdes=next_ref(spec.prefix),
             part_number=part_number,
             manufacturer=spec.maker or None,
             value=value,
             package=spec.package,
-            x_nm=x, y_nm=y,
-            rotation_mdeg=rng.choice([0, 90_000, 180_000, 270_000]),
+            x_nm=px, y_nm=py,
+            rotation_mdeg=rot,
             side=side,
+            body_w_nm=bw, body_h_nm=bh,
             height_nm=rng.randint(400, 3200) * NM_PER_UM,
             pin_pitch_nm=(spec.pitch_um * NM_PER_UM) if spec.pitch_um else None,
-            pins=make_pins(spec, x, y, rng),
+            pins=make_pins(spec, px, py, rng),
         ))
+        return True
 
     n_big = rng.randint(*arch.big_ics)
     for i in range(n_big):
         spec = rng.choice(BIG_ICS if arch.key != "sensor" else BIG_ICS[:2])
         fx = (i + 1) / (n_big + 1)
-        emit(spec, int(w_nm * fx), int(h_nm * rng.uniform(0.38, 0.62)), Side.TOP)
+        emit(spec, int(w_nm * fx), int(h_nm * rng.uniform(0.38, 0.62)), Side.TOP, rotation=0)
 
     for i in range(rng.randint(*arch.connectors)):
         spec = rng.choice(CONNECTORS)
-        on_top = rng.random() < 0.8
+        bw, bh = body_size(spec.package)
         edge = i % 4
-        if edge == 0:
-            x, y = rng.randint(margin, w_nm - margin), 0
-        elif edge == 1:
-            x, y = w_nm, rng.randint(margin, h_nm - margin)
-        elif edge == 2:
-            x, y = rng.randint(margin, w_nm - margin), h_nm
+        # 커넥터는 가장자리에 붙되 긴 변이 그 변과 나란하도록 돌린다
+        if edge in (0, 2):
+            rot = 0
+            x = rng.randint(w_nm // 6, w_nm * 5 // 6)
+            y = bh // 2 + NM_PER_MM if edge == 0 else h_nm - bh // 2 - NM_PER_MM
         else:
-            x, y = 0, rng.randint(margin, h_nm - margin)
-        emit(spec, x, y, Side.TOP if on_top else Side.BOTTOM)
+            rot = 90_000
+            x = bh // 2 + NM_PER_MM if edge == 3 else w_nm - bh // 2 - NM_PER_MM
+            y = rng.randint(h_nm // 6, h_nm * 5 // 6)
+        emit(spec, x, y, Side.TOP if rng.random() < 0.8 else Side.BOTTOM, rotation=rot)
 
+    # 남은 부품 목록을 먼저 만들고 섞는다. IC 를 앞에 몰아 놓으면 그것들이 면적을
+    # 선점해 수동 소자가 들어갈 자리가 없어진다 — 실제 보드는 IC 주변을 수동 소자가
+    # 둘러싸는 모양이라, 섞어 놓는 편이 결과도 실제에 가깝다.
     remaining = max(count - len(out), 0)
-    n_small_ic = int(remaining * 0.13)
-    cols = max(int(math.sqrt(remaining * w_nm / max(h_nm, 1))), 1)
-    rows = max(remaining // cols + 1, 1)
-
+    bill: list[PartSpec] = []
     for i in range(remaining):
-        r, c = divmod(i, cols)
-        x = margin + int((w_nm - 2 * margin) * (c + 0.5) / cols) + rng.randint(-400_000, 400_000)
-        y = margin + int((h_nm - 2 * margin) * (r + 0.5) / rows) + rng.randint(-400_000, 400_000)
-        x, y = max(margin, min(x, w_nm - margin)), max(margin, min(y, h_nm - margin))
-
-        if i < n_small_ic:
-            spec = rng.choice(SMALL_ICS)
-        elif rng.random() < 0.14:
-            spec = rng.choice(DISCRETES + MISC)
+        r = rng.random()
+        if r < 0.07:
+            bill.append(rng.choices(SMALL_ICS, weights=SMALL_IC_WEIGHTS)[0])
+        elif r < 0.20:
+            bill.append(rng.choice(DISCRETES + MISC))
         else:
-            spec = rng.choice(PASSIVES)
-        emit(spec, x, y, Side.TOP if rng.random() < 0.78 else Side.BOTTOM)
+            bill.append(rng.choice(PASSIVES))
+    rng.shuffle(bill)
+
+    # 자리가 다 차면 남은 부품은 놓지 않는다 — 실제 보드도 면적이 부품 수의 상한이다.
+    # 큰 부품 하나가 안 들어간다고 바로 멈추지는 않는다. 작은 것은 아직 들어갈 수 있다.
+    misses = 0
+    for spec in bill:
+        if emit(spec, None, None, Side.TOP if rng.random() < 0.78 else Side.BOTTOM):
+            misses = 0
+        else:
+            misses += 1
+            if misses >= 16:
+                break
 
     return out
 
@@ -782,11 +800,13 @@ def derive_revision(parent: Design, rev_label: str, rng: random.Random, when: da
         refdes = f"{spec.prefix}{max(used, default=0) + 1}"
         x, y = rng.randint(2_000_000, w_nm - 2_000_000), rng.randint(2_000_000, h_nm - 2_000_000)
         value = rng.choice(spec.values) if spec.values else None
+        bw, bh = body_size(spec.package)
         d.components.append(Component(
             refdes=refdes, part_number=mpn_for(spec, value or spec.package, rng),
             manufacturer=spec.maker or None, value=value, package=spec.package,
             x_nm=x, y_nm=y, rotation_mdeg=rng.choice([0, 90_000, 180_000, 270_000]),
             side=Side.TOP if rng.random() < 0.8 else Side.BOTTOM,
+            body_w_nm=bw, body_h_nm=bh,
             height_nm=rng.randint(400, 1200) * NM_PER_UM, pin_pitch_nm=None,
             pins=make_pins(spec, x, y, rng),
         ))

@@ -257,6 +257,8 @@ class ComponentRow(BaseModel):
     manufacturer: str | None = None
     value: str | None = None
     pin_pitch_nm: int | None = None
+    body_w_nm: int | None = Field(default=None, description="몸통 가로. 배치도가 그리는 사각형의 크기.")
+    body_h_nm: int | None = Field(default=None, description="몸통 세로.")
 
 
 class NetRow(BaseModel):

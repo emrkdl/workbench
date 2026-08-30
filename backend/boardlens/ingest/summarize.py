@@ -198,6 +198,8 @@ def to_component_rows(design: Design) -> list[ComponentRow]:
             side=c.side.value,
             pin_count=len(c.pins),
             pin_pitch_nm=c.pin_pitch_nm,
+            body_w_nm=c.body_w_nm,
+            body_h_nm=c.body_h_nm,
         )
         for c in design.components
     ]

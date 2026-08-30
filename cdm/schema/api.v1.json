@@ -270,7 +270,9 @@
         "rotation_mdeg": { "type": "integer" },
         "side": { "type": "string", "description": "top 또는 bottom." },
         "pin_count": { "type": "integer" },
-        "pin_pitch_nm": { "type": ["integer", "null"] }
+        "pin_pitch_nm": { "type": ["integer", "null"] },
+        "body_w_nm": { "type": ["integer", "null"], "description": "몸통 가로. 배치도가 그리는 사각형의 크기." },
+        "body_h_nm": { "type": ["integer", "null"], "description": "몸통 세로." }
       }
     },
 

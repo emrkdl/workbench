@@ -19,6 +19,21 @@ export interface LayerStyle {
   opacity: number;
 }
 
+/**
+ * 배치도 한 묶음 — 같은 색으로 칠할 부품 몸통들.
+ *
+ * 색은 패키지 외형(BGA / QFN / 칩 수동 / 커넥터 …) 기준으로 묶는다. "무엇으로
+ * 만들어졌는가"가 아니라 "실장·검사에서 서로 다른 물건인가"가 기준이라, 배치도를 볼 때
+ * 눈이 먼저 찾는 구분과 일치한다.
+ */
+export interface PlacementGroup {
+  key: string;
+  color: [number, number, number];
+  /** 인스턴스당 x, y, w, h (회전 반영 후). stride 16바이트. */
+  rects: Int32Array;
+  opacity: number;
+}
+
 export interface Camera {
   /** 화면 중심의 보드 좌표 (nm). */
   cx: number;
@@ -196,6 +211,11 @@ export class BoardRenderer {
   private tri: Prog;
   private unitQuad: WebGLBuffer;
   private layers = new Map<number, LayerGpu>();
+  private board: {
+    solid: { vao: WebGLVertexArrayObject; count: number; buffer: WebGLBuffer } | null;
+    cutout: { vao: WebGLVertexArrayObject; count: number; buffer: WebGLBuffer } | null;
+  } = { solid: null, cutout: null };
+  private placement: { key: string; color: [number, number, number]; opacity: number; vao: WebGLVertexArrayObject; count: number; buffers: WebGLBuffer[] }[] = [];
   private styles = new Map<number, LayerStyle>();
   private order: number[] = [];
   private camera: Camera = { cx: 0, cy: 0, scale: 1e-5 };
@@ -336,6 +356,91 @@ export class BoardRenderer {
     });
   }
 
+  /**
+   * 기판 바탕. 부품보다 먼저, 가장 아래에 깔린다.
+   *
+   * 오버레이(2D 캔버스)는 GL 위에 그려지므로 여기에 둘 수 없다 — 바탕이 부품을 덮는다.
+   * 폴리곤 하나뿐이라 삼각분할 비용도 없다.
+   */
+  setBoard(polygons: { points: Int32Array; isCutout: boolean }[]) {
+    const gl = this.gl;
+    for (const part of [this.board.solid, this.board.cutout]) {
+      if (part) {
+        gl.deleteVertexArray(part.vao);
+        gl.deleteBuffer(part.buffer);
+      }
+    }
+    this.board = { solid: null, cutout: null };
+
+    const fan = (poly: { points: Int32Array }, out: number[]) => {
+      const n = poly.points.length / 2;
+      for (let i = 1; i < n - 1; i += 1) {
+        out.push(
+          poly.points[0]!, poly.points[1]!,
+          poly.points[i * 2]!, poly.points[i * 2 + 1]!,
+          poly.points[(i + 1) * 2]!, poly.points[(i + 1) * 2 + 1]!,
+        );
+      }
+    };
+    const upload = (tri: number[]) => {
+      if (!tri.length) return null;
+      const vao = gl.createVertexArray()!;
+      gl.bindVertexArray(vao);
+      const buffer = this.buffer(new Int32Array(tri));
+      gl.enableVertexAttribArray(this.tri.attr.a_pos!);
+      gl.vertexAttribIPointer(this.tri.attr.a_pos!, 2, gl.INT, 8, 0);
+      gl.vertexAttribI4i(this.tri.attr.a_net!, -1, 0, 0, 0);
+      gl.disableVertexAttribArray(this.tri.attr.a_net!);
+      gl.bindVertexArray(null);
+      return { vao, count: tri.length / 2, buffer };
+    };
+
+    const solid: number[] = [];
+    const cutout: number[] = [];
+    for (const poly of polygons) {
+      if (poly.points.length >= 6) fan(poly, poly.isCutout ? cutout : solid);
+    }
+    // 컷아웃은 바탕색으로 다시 덮어 구멍처럼 보이게 한다. 팬 삼각분할로는 구멍 뚫린
+    // 폴리곤을 만들 수 없고, 실제 구멍의 모양은 오버레이의 파선 윤곽이 마저 알려준다.
+    this.board = { solid: upload(solid), cutout: upload(cutout) };
+  }
+
+  /**
+   * 부품 몸통을 올린다. 패드와 같은 사각형 프로그램을 그대로 쓴다 — 중심 좌표와 크기를
+   * 인스턴스 속성으로 넘기는 형태가 이미 같아서, 배치도를 위해 새 셰이더를 만들 이유가 없다.
+   */
+  setPlacement(groups: PlacementGroup[]) {
+    const gl = this.gl;
+    for (const g of this.placement) {
+      gl.deleteVertexArray(g.vao);
+      for (const b of g.buffers) gl.deleteBuffer(b);
+    }
+    this.placement = [];
+
+    for (const group of groups) {
+      const count = group.rects.length / 4;
+      if (!count) continue;
+      const vao = gl.createVertexArray()!;
+      gl.bindVertexArray(vao);
+      this.bindUnit(this.rect.attr.a_unit!);
+      const buffer = this.buffer(group.rects);
+      // 넷 강조는 배치도에서 쓰지 않는다. 넷 속성 자리에는 -1(넷 없음)을 상수로 넣는다.
+      gl.vertexAttribI4i(this.rect.attr.a_net!, -1, 0, 0, 0);
+      gl.disableVertexAttribArray(this.rect.attr.a_net!);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.enableVertexAttribArray(this.rect.attr.a_center!);
+      gl.vertexAttribIPointer(this.rect.attr.a_center!, 2, gl.INT, 16, 0);
+      gl.vertexAttribDivisor(this.rect.attr.a_center!, 1);
+      gl.enableVertexAttribArray(this.rect.attr.a_size!);
+      gl.vertexAttribIPointer(this.rect.attr.a_size!, 2, gl.INT, 16, 8);
+      gl.vertexAttribDivisor(this.rect.attr.a_size!, 1);
+      gl.bindVertexArray(null);
+      this.placement.push({
+        key: group.key, color: group.color, opacity: group.opacity, vao, count, buffers: [buffer],
+      });
+    }
+  }
+
   setStyle(index: number, style: LayerStyle) {
     this.styles.set(index, style);
   }
@@ -362,7 +467,7 @@ export class BoardRenderer {
     }
   }
 
-  render(background: [number, number, number]) {
+  render(background: [number, number, number], show: { copper: boolean; placement: boolean }) {
     const gl = this.gl;
     const { width, height } = this.canvas;
     gl.viewport(0, 0, width, height);
@@ -389,6 +494,39 @@ export class BoardRenderer {
       gl.uniform1f(p.loc.u_opacity!, style.opacity);
     };
 
+    if (show.placement && this.board.solid) {
+      setup(this.tri);
+      paint(this.tri, { color: [0.12, 0.16, 0.21], visible: true, opacity: 1 });
+      gl.bindVertexArray(this.board.solid.vao);
+      gl.drawArrays(gl.TRIANGLES, 0, this.board.solid.count);
+      if (this.board.cutout) {
+        paint(this.tri, { color: background, visible: true, opacity: 1 });
+        gl.bindVertexArray(this.board.cutout.vao);
+        gl.drawArrays(gl.TRIANGLES, 0, this.board.cutout.count);
+      }
+    }
+
+    if (show.copper) {
+      this.drawCopper(setup, paint, minWidth);
+    }
+
+    if (show.placement && this.placement.length) {
+      setup(this.rect);
+      for (const g of this.placement) {
+        paint(this.rect, { color: g.color, visible: true, opacity: g.opacity });
+        gl.bindVertexArray(g.vao);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, g.count);
+      }
+    }
+    gl.bindVertexArray(null);
+  }
+
+  private drawCopper(
+    setup: (p: Prog) => void,
+    paint: (p: Prog, style: LayerStyle) => void,
+    minWidth: number,
+  ) {
+    const gl = this.gl;
     for (const index of this.order) {
       const layer = this.layers.get(index);
       const style = this.styles.get(index);
@@ -421,7 +559,6 @@ export class BoardRenderer {
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, layer.viaCount);
       }
     }
-    gl.bindVertexArray(null);
   }
 
   dispose() {
@@ -433,6 +570,18 @@ export class BoardRenderer {
       }
     }
     this.layers.clear();
+    for (const g of this.placement) {
+      gl.deleteVertexArray(g.vao);
+      for (const b of g.buffers) gl.deleteBuffer(b);
+    }
+    this.placement = [];
+    for (const part of [this.board.solid, this.board.cutout]) {
+      if (part) {
+        gl.deleteVertexArray(part.vao);
+        gl.deleteBuffer(part.buffer);
+      }
+    }
+    this.board = { solid: null, cutout: null };
     gl.deleteBuffer(this.unitQuad);
     for (const p of [this.rect, this.circle, this.seg, this.tri]) gl.deleteProgram(p.program);
   }

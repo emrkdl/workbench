@@ -293,3 +293,59 @@
     display: none;
   }
 }
+
+/* ── 세그먼트 토글 (배치/동박, TOP/BOTTOM) ── */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  padding: 4px 11px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.seg button:hover {
+  color: var(--ink);
+}
+.seg button.segOn {
+  background: var(--accent);
+  color: var(--surface);
+}
+.segOn {
+}
+
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chk input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+.chk:hover {
+  color: var(--ink);
+}
+
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.range input {
+  width: 86px;
+  accent-color: var(--accent);
+}

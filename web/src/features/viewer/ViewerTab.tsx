@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { Polygon, RevisionDetail, StackupLayer } from "@/lib/cdm";
+import type { ComponentRow, Polygon, RevisionDetail, StackupLayer } from "@/lib/cdm";
 import { geometryUrl } from "@/lib/api";
 import { formatCoarse, formatFine, toMil, toMm, type DisplayUnit } from "@/lib/units";
 import { conductorNumbers, ROLE_LABEL } from "../revision/layers";
 import { fetchLayer, type LayerBuffers } from "./blg";
 import { BoardRenderer, type Camera } from "./renderer";
-import { pick, pickComponent, type ComponentPoint, type Hit } from "./picking";
+import { pick, pickComponent, pickComponentBody, type ComponentPoint, type Hit } from "./picking";
+import { bodySize, css as familyCss, familyOf, FAMILIES, FAMILY_BY_KEY, type FamilyKey } from "./families";
+import type { PlacementGroup } from "./renderer";
 import s from "./viewer.module.css";
 
 /**
@@ -30,6 +32,14 @@ const POWER_COLOR: [number, number, number] = [0.92, 0.58, 0.28];
 
 const css = (c: [number, number, number]) =>
   `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`;
+
+/** 배치도(부품 몸통) · 동박(패드·배선·플레인) · 둘 다. */
+export type ViewMode = "placement" | "copper" | "both";
+export type SideView = "top" | "bottom" | "both";
+
+/** 반대 면 부품은 지운다. 지우지 않으면 어느 면 것인지 구분이 안 되고, 아예 감추면
+ *  "이 자리에 뭔가 있다"는 사실이 사라진다. */
+const GHOST_ALPHA = 0.22;
 
 interface LayerInfo {
   index: number;
@@ -71,6 +81,13 @@ export function ViewerTab({
   const [cursorText, setCursorText] = useState("—");
   const [refdesQuery, setRefdesQuery] = useState("");
   const [params] = useSearchParams();
+  // 배치도가 기본이다. 설계 리뷰에서 먼저 보는 것이 "무엇이 어디 있나"이지
+  // "동박이 어떻게 깔렸나"가 아니다.
+  const [mode, setMode] = useState<ViewMode>("placement");
+  const [sideView, setSideView] = useState<SideView>("top");
+  const [labels, setLabels] = useState(true);
+  const [hiddenFamilies, setHiddenFamilies] = useState<Set<FamilyKey>>(() => new Set());
+  const [alpha, setAlpha] = useState(0.85);
 
   const stackupByIndex = useMemo(
     () => new Map(detail.stackup.map((l: StackupLayer) => [l.index, l])),
@@ -100,16 +117,75 @@ export function ViewerTab({
 
   const components = useMemo<ComponentPoint[]>(
     () =>
-      detail.components.map((c) => ({
-        refdes: c.refdes,
-        x: c.x_nm,
-        y: c.y_nm,
-        side: c.side,
-        package: c.package,
-        partNumber: c.part_number,
-      })),
+      detail.components.map((c) => {
+        const [w, h] = bodySize(c);
+        return {
+          refdes: c.refdes,
+          x: c.x_nm,
+          y: c.y_nm,
+          side: c.side,
+          package: c.package,
+          partNumber: c.part_number,
+          w,
+          h,
+        };
+      }),
     [detail.components],
   );
+
+
+  /** 화면에 보일 부품 — 면 필터와 패키지 계열 필터를 적용한 목록. */
+  const shownComponents = useMemo(() => {
+    return detail.components.filter((c) => {
+      if (hiddenFamilies.has(familyOf(c))) return false;
+      if (sideView === "both") return true;
+      return c.side === sideView;
+    });
+  }, [detail.components, hiddenFamilies, sideView]);
+
+/** 배치 모드에서 고를 수 있는 부품 — 화면에 보이는 것만. */
+  const pickableComponents = useMemo<ComponentPoint[]>(() => {
+    const shown = new Set(shownComponents.map((c) => c.refdes));
+    return components.filter((c) => shown.has(c.refdes));
+  }, [components, shownComponents]);
+
+  const familyCounts = useMemo(() => {
+    const out = new Map<FamilyKey, number>();
+    for (const c of detail.components) {
+      if (sideView !== "both" && c.side !== sideView) continue;
+      const k = familyOf(c);
+      out.set(k, (out.get(k) ?? 0) + 1);
+    }
+    return out;
+  }, [detail.components, sideView]);
+
+  /**
+   * 계열별로 묶어 인스턴스 배열을 만든다. 색이 같은 것끼리 한 번에 그리므로 드로우콜은
+   * 계열 수(최대 12)만큼이고, 부품이 몇 천 개든 달라지지 않는다.
+   */
+  const placementGroups = useMemo<PlacementGroup[]>(() => {
+    const buckets = new Map<string, { rgb: [number, number, number]; opacity: number; xs: number[] }>();
+    for (const c of shownComponents) {
+      const key = familyOf(c);
+      const ghost = sideView === "both" && c.side !== "top";
+      const id = ghost ? `${key}:ghost` : key;
+      let bucket = buckets.get(id);
+      if (!bucket) {
+        bucket = {
+          rgb: FAMILY_BY_KEY.get(key)!.rgb,
+          opacity: ghost ? GHOST_ALPHA : alpha,
+          xs: [],
+        };
+        buckets.set(id, bucket);
+      }
+      const [w, h] = bodySize(c);
+      bucket.xs.push(c.x_nm, c.y_nm, w, h);
+    }
+    // 반대 면(고스트)을 먼저 그려 앞면 부품이 위에 오게 한다
+    return [...buckets.entries()]
+      .sort((a, b) => Number(b[0].endsWith(":ghost")) - Number(a[0].endsWith(":ghost")))
+      .map(([key, b]) => ({ key, color: b.rgb, opacity: b.opacity, rects: new Int32Array(b.xs) }));
+  }, [shownComponents, sideView, alpha]);
 
   const boardBox = useMemo(() => {
     const xs: number[] = [];
@@ -218,6 +294,18 @@ export function ViewerTab({
     dirtyRef.current = true;
   }, [requestedNet, loaded, detail.nets]);
 
+  useEffect(() => {
+    rendererRef.current?.setPlacement(placementGroups);
+    dirtyRef.current = true;
+  }, [placementGroups]);
+
+  useEffect(() => {
+    rendererRef.current?.setBoard(
+      detail.outline.map((p) => ({ points: new Int32Array(p.points_nm), isCutout: p.is_cutout })),
+    );
+    dirtyRef.current = true;
+  }, [detail.outline]);
+
   // ── 그리기 루프 ───────────────────────────
   useEffect(() => {
     let raf = 0;
@@ -246,18 +334,28 @@ export function ViewerTab({
       }
       renderer.setOrder(order);
       renderer.setCamera(cameraRef.current);
-      renderer.setHighlight(highlightNet);
-      renderer.render([0.04, 0.05, 0.055]);
+      renderer.setHighlight(mode === "placement" ? null : highlightNet);
+      renderer.render([0.04, 0.05, 0.055], {
+        copper: mode !== "placement",
+        placement: mode !== "copper",
+      });
 
-      drawOverlay(overlay, dpr, stage, cameraRef.current, detail.outline, selection, measureRef.current, unit);
+      drawOverlay(overlay, dpr, stage, cameraRef.current, {
+        outline: detail.outline,
+        selection,
+        measure: measureRef.current,
+        unit,
+        components: mode === "copper" || !labels ? [] : shownComponents,
+        sideView,
+      });
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [layerInfos, visible, highlightNet, selection, unit, detail.outline]);
+  }, [layerInfos, visible, highlightNet, selection, unit, detail.outline, mode, labels, shownComponents, sideView]);
 
   useEffect(() => {
     dirtyRef.current = true;
-  }, [visible, highlightNet, selection, unit]);
+  }, [visible, highlightNet, selection, unit, mode, sideView, labels, alpha]);
 
   useEffect(() => {
     const onResize = () => {
@@ -347,6 +445,15 @@ export function ViewerTab({
     }
 
     const tolerance = 6 / cameraRef.current.scale;
+
+    if (mode === "placement") {
+      // 배치도에서는 몸통을 누른 것이지 동박을 누른 것이 아니다.
+      const component = pickComponentBody(pickableComponents, bx, by, tolerance / 3);
+      setSelection(component ? { hit: null, component } : null);
+      setHighlightNet(null);
+      return;
+    }
+
     const active = layerInfos
       .filter((l) => visible[l.index] !== false)
       .map((l) => ({ index: l.index, buffers: buffersRef.current.get(l.index) }))
@@ -393,9 +500,64 @@ export function ViewerTab({
   return (
     <div className={s.wrap}>
       <div className={s.toolbar}>
+        <div className={s.seg} role="group" aria-label="보기 종류">
+          {(
+            [
+              ["placement", "배치"],
+              ["copper", "동박"],
+              ["both", "둘 다"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={mode === k ? s.segOn : ""}
+              aria-pressed={mode === k}
+              onClick={() => setMode(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className={s.seg} role="group" aria-label="보는 면">
+          {(
+            [
+              ["top", "TOP"],
+              ["bottom", "BOTTOM"],
+              ["both", "양면"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={sideView === k ? s.segOn : ""}
+              aria-pressed={sideView === k}
+              onClick={() => setSideView(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className={s.sep} />
         <button type="button" className={s.btn} onClick={fit}>
           전체 보기
         </button>
+        <label className={s.chk}>
+          <input type="checkbox" checked={labels} onChange={() => setLabels((v) => !v)} />
+          라벨
+        </label>
+        <label className={s.range} title="부품 투명도">
+          α
+          <input
+            type="range"
+            min={20}
+            max={100}
+            step={5}
+            value={Math.round(alpha * 100)}
+            onChange={(e) => setAlpha(Number(e.target.value) / 100)}
+            aria-label="부품 투명도"
+          />
+        </label>
         <button
           type="button"
           className={`${s.btn} ${measuring ? s.btnOn : ""}`}
@@ -444,10 +606,50 @@ export function ViewerTab({
           mil
         </button>
         <span className={s.spacer} />
-        <span className={s.hintText}>휠 확대 · 끌어서 이동 · 클릭으로 넷 선택</span>
+        <span className={s.hintText}>휠 확대 · 끌어서 이동 · 클릭으로 선택</span>
       </div>
 
       <aside className={s.layers}>
+        {mode !== "copper" && (
+          <>
+            <div className={s.layersHead}>
+              <span>패키지 계열</span>
+              <button
+                type="button"
+                className={s.soloBtn}
+                onClick={() => setHiddenFamilies(new Set())}
+                disabled={hiddenFamilies.size === 0}
+              >
+                모두 켜기
+              </button>
+            </div>
+            {FAMILIES.filter((f) => familyCounts.get(f.key)).map((f) => {
+              const on = !hiddenFamilies.has(f.key);
+              return (
+                <label key={f.key} className={`${s.layerRow} ${on ? "" : s.layerDim}`}>
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() =>
+                      setHiddenFamilies((prev) => {
+                        const next = new Set(prev);
+                        if (on) next.add(f.key);
+                        else next.delete(f.key);
+                        return next;
+                      })
+                    }
+                  />
+                  <span className={s.swatch} style={{ background: familyCss(f.rgb) }} />
+                  <span className={s.layerName}>{f.label}</span>
+                  <span className={s.layerRole}>{familyCounts.get(f.key)}</span>
+                </label>
+              );
+            })}
+          </>
+        )}
+
+        {mode !== "placement" && (
+        <>
         <div className={s.layersHead}>
           <span>레이어 {layerInfos.length}</span>
           <button
@@ -482,6 +684,8 @@ export function ViewerTab({
             </label>
           );
         })}
+        </>
+        )}
       </aside>
 
       <div
@@ -576,7 +780,15 @@ export function ViewerTab({
           배율 <b>1 px = {formatCoarse(Math.round(1 / cameraRef.current.scale), unit)}</b>
         </span>
         <span>
-          객체 <b>{totalObjects.toLocaleString()}</b>
+          {mode === "placement" ? (
+            <>
+              부품 <b>{shownComponents.length.toLocaleString()}</b> / {detail.components.length.toLocaleString()}
+            </>
+          ) : (
+            <>
+              객체 <b>{totalObjects.toLocaleString()}</b>
+            </>
+          )}
         </span>
         {highlightNet !== null && (
           <span className={s.statusAccent}>
@@ -593,19 +805,24 @@ export function ViewerTab({
   );
 }
 
-/** 선택 표시와 측정선. GL 로 그리면 텍스트가 번거로워 2D 캔버스를 겹쳐 쓴다. */
+/** 선택 표시, 측정선, 보드 외형, 그리고 부품 라벨. GL 로 글자를 그리면 번거로워 2D 캔버스를 겹쳐 쓴다. */
 function drawOverlay(
   canvas: HTMLCanvasElement,
   dpr: number,
   stage: HTMLDivElement,
   camera: Camera,
-  outline: Polygon[],
-  selection: { hit: Hit | null; component: ComponentPoint | null } | null,
-  measure: { a: [number, number] | null; b: [number, number] | null },
-  unit: DisplayUnit,
+  opts: {
+    outline: Polygon[];
+    selection: { hit: Hit | null; component: ComponentPoint | null } | null;
+    measure: { a: [number, number] | null; b: [number, number] | null };
+    unit: DisplayUnit;
+    components: ComponentRow[];
+    sideView: SideView;
+  },
 ) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
+  const { outline, selection, measure, unit, components, sideView } = opts;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
 
@@ -614,7 +831,7 @@ function drawOverlay(
     -(y - camera.cy) * camera.scale + stage.clientHeight / 2,
   ];
 
-  // 보드 외형 — 어디까지가 기판인지 없으면 배선만 공중에 떠 보인다
+  // 보드 외형 — 어디까지가 기판인지 없으면 부품만 공중에 떠 보인다
   ctx.strokeStyle = "rgba(190, 205, 210, 0.55)";
   ctx.lineWidth = 1;
   for (const poly of outline) {
@@ -630,6 +847,29 @@ function drawOverlay(
     ctx.stroke();
   }
   ctx.setLineDash([]);
+
+  // 부품 라벨. 몸통이 화면에서 충분히 클 때만 쓴다 — 축소했을 때 글자를 다 그리면
+  // 읽히지도 않으면서 프레임만 잡아먹는다.
+  if (components.length) {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const w = stage.clientWidth;
+    const h = stage.clientHeight;
+    for (const c of components) {
+      const [bw, bh] = bodySize(c);
+      const pw = bw * camera.scale;
+      const ph = bh * camera.scale;
+      if (pw < 22 || ph < 8) continue;
+      const [sx, sy] = toScreen(c.x_nm, c.y_nm);
+      if (sx < -40 || sy < -20 || sx > w + 40 || sy > h + 20) continue;
+      const size = Math.max(8, Math.min(pw / (c.refdes.length * 0.62), ph * 0.62, 22));
+      if (size < 8) continue;
+      ctx.font = `600 ${size}px ui-monospace, Consolas, monospace`;
+      const ghost = sideView === "both" && c.side !== "top";
+      ctx.fillStyle = ghost ? "rgba(226,232,240,0.5)" : "#0b1220";
+      ctx.fillText(c.refdes, sx, sy);
+    }
+  }
 
   const target = selection?.hit ?? selection?.component;
   if (target) {
@@ -650,6 +890,8 @@ function drawOverlay(
     ctx.lineTo(sx, sy + 20);
     ctx.stroke();
     if (selection?.component) {
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
       ctx.font = "600 11px ui-monospace, Consolas, monospace";
       ctx.fillStyle = "#f0b070";
       ctx.fillText(selection.component.refdes, sx + 17, sy - 15);
@@ -676,6 +918,8 @@ function drawOverlay(
     }
     if (measure.b) {
       const dist = Math.hypot(measure.b[0] - measure.a[0], measure.b[1] - measure.a[1]);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
       ctx.font = "600 11px ui-monospace, Consolas, monospace";
       ctx.fillStyle = "#7fd6e8";
       ctx.fillText(formatCoarse(Math.round(dist), unit), (ax + bx) / 2 + 8, (ay + by) / 2 - 6);

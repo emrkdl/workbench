@@ -191,7 +191,9 @@ class Component(BaseModel):
     part_number: str | None = Field(default=None, description="제조사 파트넘버(MPN). 부품 역검색과 EOL 영향 분석의 핵심 필드.")
     manufacturer: str | None = Field(default=None, description="제조사.")
     value: str | None = Field(default=None, description="100nF, 10k 등 수동 소자 값.")
-    height_nm: int | None = Field(default=None, description="부품 높이. 기구 간섭 검토에 쓴다.")
+    body_w_nm: int | None = Field(default=None, description="부품 몸통 가로 크기(회전 전). 배치도를 그리려면 핀 좌표가 아니라 몸통 외형이 필요하고, 코트야드 간섭·배치 밀도 계산도 이 값을 쓴다. 파일에 없으면 핀 범위로 추정한다.")
+    body_h_nm: int | None = Field(default=None, description="부품 몸통 세로 크기(회전 전).")
+    height_nm: int | None = Field(default=None, description="부품 높이(Z). 기구 간섭 검토에 쓴다.")
     pin_pitch_nm: int | None = Field(default=None, description="핀 피치. BGA 최소 피치 집계에 쓴다.")
 
 
