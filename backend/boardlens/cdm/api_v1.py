@@ -169,6 +169,28 @@ class Revision(BaseModel):
     thumbnail_url: str | None = None
 
 
+class ComponentRow(BaseModel):
+    """
+    부품 테이블의 한 행. CDM Component에서 핀 배열을 뺀 형태로, 2,000행 가상 스크롤에 맞춰 가볍게 유지한다.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    refdes: str
+    package: str
+    x_nm: int
+    y_nm: int
+    rotation_mdeg: int
+    side: str = Field(description="top 또는 bottom.")
+    pin_count: int
+    part_number: str | None = None
+    manufacturer: str | None = None
+    value: str | None = None
+    pin_pitch_nm: int | None = None
+    body_w_nm: int | None = Field(default=None, description="몸통 가로. 배치도가 그리는 사각형의 크기.")
+    body_h_nm: int | None = Field(default=None, description="몸통 세로.")
+
+
 class Board(BaseModel):
     """
     설계 계보. 리비전이 바뀌어도 유지되는 논리적 정체성.
@@ -194,6 +216,7 @@ class Board(BaseModel):
     owner: str | None = None
     thumbnail_url: str | None = None
     outline: list[Polygon] | None = Field(default=None, description="최신 리비전의 외형 폴리곤. 카탈로그 카드가 보드 생김새를 바로 보여줄 수 있게 목록 응답에 함께 싣는다 — 폴리곤 하나에 좌표 몇 개뿐이라 비용이 거의 없다.")
+    landmarks: list[ComponentRow] | None = Field(default=None, description="카드 그림에 쓰는 대표 부품 — 몸통이 큰 순으로 몇십 개. 부품 전체를 목록 응답에 실으면 보드 30장에 4 MB 가 넘고, 카드 크기(86px)에서는 어차피 큰 IC 와 커넥터만 형태로 읽힌다. 전체 배치는 뷰어에서 본다.")
 
 
 class RangeFacet(BaseModel):
@@ -237,28 +260,6 @@ class BoardPage(BaseModel):
     offset: int
     limit: int
     facets: CatalogFacets
-
-
-class ComponentRow(BaseModel):
-    """
-    부품 테이블의 한 행. CDM Component에서 핀 배열을 뺀 형태로, 2,000행 가상 스크롤에 맞춰 가볍게 유지한다.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    refdes: str
-    package: str
-    x_nm: int
-    y_nm: int
-    rotation_mdeg: int
-    side: str = Field(description="top 또는 bottom.")
-    pin_count: int
-    part_number: str | None = None
-    manufacturer: str | None = None
-    value: str | None = None
-    pin_pitch_nm: int | None = None
-    body_w_nm: int | None = Field(default=None, description="몸통 가로. 배치도가 그리는 사각형의 크기.")
-    body_h_nm: int | None = Field(default=None, description="몸통 세로.")
 
 
 class NetRow(BaseModel):
@@ -618,11 +619,11 @@ __all__ = [
     "RevisionSummary",
     "RevisionRef",
     "Revision",
+    "ComponentRow",
     "Board",
     "RangeFacet",
     "CatalogFacets",
     "BoardPage",
-    "ComponentRow",
     "NetRow",
     "RevisionDetail",
     "ChangeKind",

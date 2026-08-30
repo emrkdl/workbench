@@ -1,8 +1,11 @@
 import type { ComponentRow } from "@/lib/cdm";
-import { NM_PER_MM } from "@/lib/units";
+import { NM_PER_MM } from "./units";
 
 /**
  * 패키지 외형 분류.
+ *
+ * 뷰어의 배치도, 카탈로그 카드, 요약 탭의 외형, 비교 화면이 모두 이 분류를 쓴다 —
+ * 한 곳에 두어야 네 화면의 색이 어긋나지 않는다.
  *
  * 색을 "무엇으로 만들어졌는가"가 아니라 **"실장·검사에서 서로 다른 물건인가"** 로 가른다.
  * BGA 와 QFN 과 칩 수동은 배치도를 볼 때 눈이 먼저 찾는 구분이고, 사내 배치 도구

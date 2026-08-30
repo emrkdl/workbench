@@ -76,6 +76,7 @@ from boardlens.diff.engine import diff  # noqa: E402
 from boardlens.geometry import blg  # noqa: E402
 from boardlens.ingest.summarize import (  # noqa: E402
     fill_signatures,
+    pick_landmarks,
     summarize,
     to_component_rows,
     to_net_rows,
@@ -1001,6 +1002,7 @@ def build_all(seed: int, out_dir: Path, golden_dir: Path) -> dict:
             latest_revision_id=last_id, latest_revision_label=f"Rev {last_design.header.revision_label}",
             created_at=revisions[0][2].isoformat(), updated_at=last_created.isoformat(),
             thumbnail_url=None, outline=last_design.header.outline,
+            landmarks=pick_landmarks(details[last_id].components),
             summary=details[last_id].revision.summary,
         ))
 

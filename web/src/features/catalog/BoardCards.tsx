@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Board } from "@/lib/cdm";
-import { BoardOutline, StatusPill, Tag } from "@/components/ui";
+import { StatusPill, Tag } from "@/components/ui";
+import { BoardFigure } from "@/components/BoardFigure";
 import { formatCount, formatDimensions } from "@/lib/units";
 import { revisionPath } from "@/lib/routes";
 import s from "./catalog.module.css";
@@ -10,7 +11,10 @@ function BoardCard({ board }: { board: Board }) {
   return (
     <Link className={s.card} to={revisionPath(board.id, board.latest_revision_id)}>
       <div className={s.cardShape}>
-        {board.outline && <BoardOutline outline={board.outline} height={62} />}
+        {/* 큰 부품만 그린다 — 카드 크기에서 형태로 읽히는 것이 그것뿐이다. 전체 배치는 뷰어에서. */}
+        {board.outline && (
+          <BoardFigure outline={board.outline} components={board.landmarks} height={82} partial />
+        )}
         <span className={s.cardDims}>{formatDimensions(sm.width_nm, sm.height_nm)}</span>
       </div>
 

@@ -1,0 +1,18 @@
+.figure {
+  display: block;
+  width: 100%;
+}
+/* 기판은 부품이 얹힐 바탕이다. 진하게 칠하면 그 위의 부품 색이 죽는다. */
+.board {
+  fill: var(--surface-3);
+  stroke: var(--line-3);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+.cutout {
+  fill: var(--surface);
+  stroke: var(--line-3);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}

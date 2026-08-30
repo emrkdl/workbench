@@ -1,5 +1,6 @@
 import type { RevisionDetail } from "@/lib/cdm";
-import { Bar, BoardOutline, Field, Fields, Panel, SeverityTag, Stat, StatGrid, Tag } from "@/components/ui";
+import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid, Tag } from "@/components/ui";
+import { BoardFigure } from "@/components/BoardFigure";
 import {
   formatArea,
   formatCoarse,
@@ -178,14 +179,16 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
       </div>
 
       <div className={s.col}>
-        <Panel title="외형">
+        <Panel title="배치">
           <div className={s.shapeBox}>
-            <BoardOutline outline={detail.outline} height={168} />
+            {/* 여기서는 부품 전체를 그린다 — 상세 화면은 이미 목록을 들고 있다. */}
+            <BoardFigure outline={detail.outline} components={detail.components} height={210} />
           </div>
           <div style={{ marginTop: "var(--sp-3)" }}>
             <Fields>
               <Field label="치수">{formatDimensions(sm.width_nm, sm.height_nm)}</Field>
               <Field label="면적">{formatArea(sm.area_mm2)}</Field>
+              <Field label="부품">{formatCount(sm.component_count)}개</Field>
             </Fields>
           </div>
         </Panel>

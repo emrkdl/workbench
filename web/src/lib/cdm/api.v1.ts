@@ -156,6 +156,28 @@ export interface Revision {
 }
 
 /**
+ * 부품 테이블의 한 행. CDM Component에서 핀 배열을 뺀 형태로, 2,000행 가상 스크롤에 맞춰 가볍게 유지한다.
+ */
+export interface ComponentRow {
+  refdes: string;
+  part_number?: string | null;
+  manufacturer?: string | null;
+  value?: string | null;
+  package: string;
+  x_nm: number;
+  y_nm: number;
+  rotation_mdeg: number;
+  /** top 또는 bottom. */
+  side: string;
+  pin_count: number;
+  pin_pitch_nm?: number | null;
+  /** 몸통 가로. 배치도가 그리는 사각형의 크기. */
+  body_w_nm?: number | null;
+  /** 몸통 세로. */
+  body_h_nm?: number | null;
+}
+
+/**
  * 설계 계보. 리비전이 바뀌어도 유지되는 논리적 정체성.
  */
 export interface Board {
@@ -182,6 +204,11 @@ export interface Board {
    * 없다.
    */
   outline?: Polygon[] | null;
+  /**
+   * 카드 그림에 쓰는 대표 부품 — 몸통이 큰 순으로 몇십 개. 부품 전체를 목록 응답에 실으면 보드 30장에 4 MB 가 넘고, 카드 크기(86px)에서는
+   * 어차피 큰 IC 와 커넥터만 형태로 읽힌다. 전체 배치는 뷰어에서 본다.
+   */
+  landmarks?: ComponentRow[] | null;
   /** 최신 리비전의 요약. 카탈로그 목록과 파셋 필터가 읽는 값. */
   summary: RevisionSummary;
 }
@@ -218,28 +245,6 @@ export interface BoardPage {
   offset: number;
   limit: number;
   facets: CatalogFacets;
-}
-
-/**
- * 부품 테이블의 한 행. CDM Component에서 핀 배열을 뺀 형태로, 2,000행 가상 스크롤에 맞춰 가볍게 유지한다.
- */
-export interface ComponentRow {
-  refdes: string;
-  part_number?: string | null;
-  manufacturer?: string | null;
-  value?: string | null;
-  package: string;
-  x_nm: number;
-  y_nm: number;
-  rotation_mdeg: number;
-  /** top 또는 bottom. */
-  side: string;
-  pin_count: number;
-  pin_pitch_nm?: number | null;
-  /** 몸통 가로. 배치도가 그리는 사각형의 크기. */
-  body_w_nm?: number | null;
-  /** 몸통 세로. */
-  body_h_nm?: number | null;
 }
 
 /**

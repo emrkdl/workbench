@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from boardlens.analytics import portfolio
+from boardlens.ingest.summarize import pick_landmarks
 from boardlens.cdm.api_v1 import (
     Board,
     BoardPage,
@@ -75,6 +76,40 @@ def _latest(session: Session) -> dict[str, m.Revision]:
     return out
 
 
+def _component_rows(session: Session, revision_id: str) -> list[ComponentRow]:
+    return [
+        ComponentRow(
+            refdes=c.refdes, part_number=c.part_number, manufacturer=c.manufacturer, value=c.value,
+            package=c.package, x_nm=c.x_nm, y_nm=c.y_nm, rotation_mdeg=c.rotation_mdeg,
+            side=c.side, pin_count=c.pin_count, pin_pitch_nm=c.pin_pitch_nm,
+            body_w_nm=c.body_w_nm, body_h_nm=c.body_h_nm,
+        )
+        for c in session.scalars(
+            select(m.Component).where(m.Component.revision_id == revision_id).order_by(m.Component.refdes)
+        ).all()
+    ]
+
+
+def _landmarks(session: Session, revision_id: str) -> list[ComponentRow]:
+    """카드 그림용 대표 부품. 몸통 넓이 순으로 DB 에서 잘라 온다 —
+    보드 30장의 부품을 전부 파이썬으로 올린 뒤 정렬하면 목록 응답 하나가 몇 초씩 걸린다."""
+    rows = session.scalars(
+        select(m.Component)
+        .where(m.Component.revision_id == revision_id)
+        .order_by((func.coalesce(m.Component.body_w_nm, 0) * func.coalesce(m.Component.body_h_nm, 0)).desc())
+        .limit(64)
+    ).all()
+    return [
+        ComponentRow(
+            refdes=c.refdes, part_number=c.part_number, manufacturer=c.manufacturer, value=c.value,
+            package=c.package, x_nm=c.x_nm, y_nm=c.y_nm, rotation_mdeg=c.rotation_mdeg,
+            side=c.side, pin_count=c.pin_count, pin_pitch_nm=c.pin_pitch_nm,
+            body_w_nm=c.body_w_nm, body_h_nm=c.body_h_nm,
+        )
+        for c in rows
+    ]
+
+
 def board_page(session: Session, *, projects: tuple[str, ...] = ()) -> BoardPage:
     boards = session.scalars(select(m.Board)).all()
     if projects:
@@ -104,6 +139,7 @@ def board_page(session: Session, *, projects: tuple[str, ...] = ()) -> BoardPage
                 latest_revision_id=rev.id, latest_revision_label=rev.label,
                 created_at=b.created_at.isoformat(), updated_at=rev.created_at.isoformat(),
                 outline=[Polygon.model_validate(p) for p in (rev.outline or [])],
+                landmarks=pick_landmarks(_landmarks(session, rev.id)),
                 summary=_summary(rev),
             )
         )
@@ -153,17 +189,7 @@ def revision_detail(session: Session, revision_id: str) -> RevisionDetail | None
         ).all()
     ]
 
-    components = [
-        ComponentRow(
-            refdes=c.refdes, part_number=c.part_number, manufacturer=c.manufacturer, value=c.value,
-            package=c.package, x_nm=c.x_nm, y_nm=c.y_nm, rotation_mdeg=c.rotation_mdeg,
-            side=c.side, pin_count=c.pin_count, pin_pitch_nm=c.pin_pitch_nm,
-            body_w_nm=c.body_w_nm, body_h_nm=c.body_h_nm,
-        )
-        for c in session.scalars(
-            select(m.Component).where(m.Component.revision_id == revision_id).order_by(m.Component.refdes)
-        ).all()
-    ]
+    components = _component_rows(session, revision_id)
 
     nets = [
         NetRow(

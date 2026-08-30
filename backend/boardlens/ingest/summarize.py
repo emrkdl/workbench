@@ -205,6 +205,22 @@ def to_component_rows(design: Design) -> list[ComponentRow]:
     ]
 
 
+#: 카드 그림에 실을 대표 부품 수. 86px 짜리 카드에서 형태로 읽히는 것은 이 정도가 한계다.
+LANDMARK_COUNT = 48
+
+
+def pick_landmarks(rows: list[ComponentRow], limit: int = LANDMARK_COUNT) -> list[ComponentRow]:
+    """몸통이 큰 순으로 고른다.
+
+    보드를 알아보게 하는 것은 큰 IC 와 커넥터의 배치다. 수동 소자는 카드 크기에서
+    점으로만 보여 어느 보드나 비슷해 보인다.
+    """
+    def area(c: ComponentRow) -> int:
+        return (c.body_w_nm or 0) * (c.body_h_nm or 0)
+
+    return sorted(rows, key=area, reverse=True)[:limit]
+
+
 def to_net_rows(design: Design) -> list[NetRow]:
     return [
         NetRow(

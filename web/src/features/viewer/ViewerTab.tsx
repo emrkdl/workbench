@@ -7,7 +7,7 @@ import { conductorNumbers, ROLE_LABEL } from "../revision/layers";
 import { fetchLayer, type LayerBuffers } from "./blg";
 import { BoardRenderer, type Camera } from "./renderer";
 import { pick, pickComponent, pickComponentBody, type ComponentPoint, type Hit } from "./picking";
-import { bodySize, css as familyCss, familyOf, FAMILIES, FAMILY_BY_KEY, type FamilyKey } from "./families";
+import { bodySize, css as familyCss, familyOf, FAMILIES, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
 import type { PlacementGroup } from "./renderer";
 import s from "./viewer.module.css";
 

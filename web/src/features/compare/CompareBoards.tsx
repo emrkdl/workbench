@@ -133,7 +133,7 @@ function drawPanel(
 
   // 바뀌지 않은 부품은 눌러서 배경으로 보낸다. 지우면 "이 자리에 뭔가 있다"가 사라지고,
   // 그대로 칠하면 변경된 것이 묻힌다.
-  ctx.globalAlpha = 0.28;
+  ctx.globalAlpha = 0.4;
   ctx.fillStyle = pal.quiet!;
   for (const c of data.components) {
     if (data.roles.has(c.refdes)) continue;
@@ -224,7 +224,7 @@ function drawOverlay(
   // 바뀌지 않은 부품을 눌러서 깔아 둔다. 없으면 판이 비어 보이고, "이 근처가 통째로
   // 달라졌다" 같은 것을 읽을 수 없다 — 나란히 보기와 같은 이유다.
   const changedRefs = new Set(changes.map((c) => c.refdes));
-  ctx.globalAlpha = 0.24;
+  ctx.globalAlpha = 0.4;
   ctx.fillStyle = pal.quiet!;
   for (const c of quiet) {
     if (changedRefs.has(c.refdes)) continue;

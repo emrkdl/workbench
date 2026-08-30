@@ -298,24 +298,3 @@
     transform: rotate(360deg);
   }
 }
-
-/* ── 보드 외형 미리보기 ─────────────────────── */
-/* height 는 컴포넌트가 인라인으로 박는다. height:auto 로 두면 SVG 가 viewBox 종횡비대로
-   늘어나(보드가 세로로 길면 수백 px) 담고 있는 카드를 넘쳐 잘린다. */
-.outline {
-  display: block;
-  width: 100%;
-}
-.outlineFill {
-  fill: var(--accent-wash);
-  stroke: var(--accent);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-.outlineCut {
-  fill: var(--surface);
-  stroke: var(--accent);
-  stroke-width: 1;
-  stroke-dasharray: 3 2;
-  vector-effect: non-scaling-stroke;
-}

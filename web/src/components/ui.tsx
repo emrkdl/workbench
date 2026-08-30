@@ -1,6 +1,6 @@
 import type React from "react";
 import type { ReactNode } from "react";
-import type { LifecycleStatus, Polygon, Severity } from "@/lib/cdm";
+import type { LifecycleStatus, Severity } from "@/lib/cdm";
 import s from "./ui.module.css";
 
 /* ── 상태 표시 ─────────────────────────────── */
@@ -211,57 +211,5 @@ export function EmptyState({ title, body }: { title: string; body?: ReactNode })
       <p className={s.stateTitle}>{title}</p>
       {body && <p className={s.stateBody}>{body}</p>}
     </div>
-  );
-}
-
-/* ── 보드 외형 ─────────────────────────────── */
-
-/**
- * 보드 외형 폴리곤을 그린다. 컷아웃은 배경색으로 덮어 구멍처럼 보이게 한다.
- * 카탈로그 카드와 Overview 에서 "이 보드가 어떻게 생겼나"를 즉시 알려준다.
- */
-export function BoardOutline({ outline, height = 64 }: { outline: Polygon[]; height?: number }) {
-  const solids = outline.filter((p) => !p.is_cutout);
-  const cuts = outline.filter((p) => p.is_cutout);
-  const xs = solids.flatMap((p) => p.points_nm.filter((_, i) => i % 2 === 0));
-  const ys = solids.flatMap((p) => p.points_nm.filter((_, i) => i % 2 === 1));
-  if (!xs.length || !ys.length) return null;
-
-  const x0 = Math.min(...xs);
-  const y0 = Math.min(...ys);
-  const w = Math.max(...xs) - x0 || 1;
-  const h = Math.max(...ys) - y0 || 1;
-  // 나노미터 원값을 SVG 좌표로 쓰면 값이 1억 단위가 되어 렌더러가 흔들린다.
-  // 표시 좌표계는 긴 변이 1000 이 되도록 줄여서 쓴다.
-  const k = 1000 / Math.max(w, h);
-  const vw = w * k;
-  const vh = h * k;
-  const pad = 1000 * 0.04;
-
-  // SVG 는 Y 가 아래로 자라므로 뒤집는다. 좌표계 규약(Y 상방향)은 데이터 쪽에 남긴다.
-  const path = (p: Polygon) => {
-    const pts: string[] = [];
-    for (let i = 0; i < p.points_nm.length; i += 2) {
-      pts.push(`${(p.points_nm[i]! - x0) * k},${(h - (p.points_nm[i + 1]! - y0)) * k}`);
-    }
-    return pts.join(" ");
-  };
-
-  return (
-    <svg
-      className={s.outline}
-      viewBox={`${-pad} ${-pad} ${vw + pad * 2} ${vh + pad * 2}`}
-      style={{ height: `${height}px` }}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label="보드 외형"
-    >
-      {solids.map((p, i) => (
-        <polygon key={`s${i}`} className={s.outlineFill} points={path(p)} />
-      ))}
-      {cuts.map((p, i) => (
-        <polygon key={`c${i}`} className={s.outlineCut} points={path(p)} />
-      ))}
-    </svg>
   );
 }
