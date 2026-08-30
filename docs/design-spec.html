@@ -1,0 +1,954 @@
+<title>PCB Design Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+:root{
+  --ground:#EEF1F1; --surface:#FBFCFC; --surface-2:#F4F7F7;
+  --ink:#14181A; --ink-2:#3C4649; --muted:#6B7679;
+  --line:#D8DEDE; --line-2:#C2CACA;
+  --copper:#A85F2B; --copper-2:#8A4C20; --copper-wash:#F4E5D9;
+  --trace:#15687E;
+  --ok:#2C6B4A; --warn:#8A6010; --crit:#A33A33;
+  --dot:rgba(20,24,26,.06);
+  --shadow:0 1px 2px rgba(20,24,26,.05), 0 8px 24px -16px rgba(20,24,26,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1314; --surface:#161B1C; --surface-2:#1B2122;
+    --ink:#E6EBEB; --ink-2:#B5BFC0; --muted:#899496;
+    --line:#252C2D; --line-2:#333C3D;
+    --copper:#D58B54; --copper-2:#E8A876; --copper-wash:#2A1E15;
+    --trace:#4FA8BF;
+    --ok:#5FA97F; --warn:#C69A45; --crit:#D4736B;
+    --dot:rgba(230,235,235,.05);
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1314; --surface:#161B1C; --surface-2:#1B2122;
+  --ink:#E6EBEB; --ink-2:#B5BFC0; --muted:#899496;
+  --line:#252C2D; --line-2:#333C3D;
+  --copper:#D58B54; --copper-2:#E8A876; --copper-wash:#2A1E15;
+  --trace:#4FA8BF;
+  --ok:#5FA97F; --warn:#C69A45; --crit:#D4736B;
+  --dot:rgba(230,235,235,.05);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background-color:var(--ground);
+  background-image:radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size:26px 26px;
+  color:var(--ink);
+  font-family:"Source Serif 4", Georgia, "Noto Serif KR", serif;
+  font-size:17px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.disp{font-family:"Archivo","Helvetica Neue","Malgun Gothic",sans-serif;text-wrap:balance}
+.mono,code,th,.chip,.num,.tag,figcaption .fignum{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+a{color:var(--copper-2);text-decoration-color:color-mix(in srgb, var(--copper) 40%, transparent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--copper);outline-offset:3px;border-radius:2px}
+
+/* ── masthead ─────────────────────────────── */
+.mast{border-bottom:1px solid var(--line);background:var(--surface)}
+.mast-in{max-width:1180px;margin:0 auto;padding:44px 34px 30px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:var(--copper);margin:0 0 16px}
+h1{font-size:clamp(30px,4.4vw,46px);font-weight:700;letter-spacing:-.021em;line-height:1.08;margin:0}
+h1 .alt{color:var(--muted);font-weight:500}
+.lede{font-size:18px;color:var(--ink-2);max-width:64ch;margin:16px 0 0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{font-size:11.5px;letter-spacing:.03em;padding:5px 10px;border:1px solid var(--line-2);border-radius:2px;color:var(--ink-2);background:var(--surface-2)}
+.chip b{color:var(--copper-2);font-weight:500}
+.stamp{margin-top:22px;padding-top:18px;border-top:1px dashed var(--line-2);display:flex;flex-wrap:wrap;gap:26px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted)}
+.stamp span b{color:var(--ink-2);font-weight:500}
+
+/* ── shell ────────────────────────────────── */
+.shell{max-width:1180px;margin:0 auto;padding:0 34px 90px}
+@media(min-width:1080px){
+  .shell{display:grid;grid-template-columns:186px minmax(0,1fr);gap:60px;align-items:start}
+}
+nav.toc{display:none}
+@media(min-width:1080px){
+  nav.toc{display:block;position:sticky;top:26px;padding-top:44px}
+}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+nav.toc a{display:flex;gap:9px;padding:5px 8px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;line-height:1.4}
+nav.toc a:hover{color:var(--ink);border-left-color:var(--copper);background:var(--surface-2)}
+nav.toc a i{font-style:normal;color:var(--line-2);flex:none}
+
+main{padding-top:44px;min-width:0}
+section{scroll-margin-top:22px;padding-bottom:8px}
+section+section{margin-top:56px;padding-top:44px;border-top:1px solid var(--line)}
+h2{font-size:25px;font-weight:600;letter-spacing:-.014em;margin:0 0 6px;display:flex;gap:14px;align-items:baseline}
+h2 .num{font-size:12px;font-weight:500;color:var(--copper);letter-spacing:.08em;flex:none}
+.sub{color:var(--muted);font-size:14.5px;margin:0 0 24px;max-width:66ch}
+h3{font-size:17px;font-weight:600;letter-spacing:-.005em;margin:34px 0 10px;color:var(--ink)}
+h3::before{content:"";display:inline-block;width:11px;height:2px;background:var(--copper);vertical-align:middle;margin-right:9px;margin-bottom:3px}
+h4{font-size:13px;font-weight:600;margin:22px 0 8px;color:var(--ink-2);letter-spacing:.01em}
+p{margin:0 0 14px;max-width:68ch}
+ul,ol{margin:0 0 16px;padding-left:20px;max-width:68ch}
+li{margin-bottom:6px}
+li::marker{color:var(--muted)}
+strong{font-weight:600}
+code{font-size:.86em;background:var(--surface-2);border:1px solid var(--line);border-radius:2px;padding:1px 5px;color:var(--copper-2)}
+
+/* ── tables ───────────────────────────────── */
+.tw{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:3px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font-size:10.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2);line-height:1.5}
+tbody tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink)}
+td.k{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--copper-2);white-space:nowrap}
+td.n{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:12.5px;white-space:nowrap}
+.tag{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px solid currentColor;white-space:nowrap}
+.t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-crit{color:var(--crit)} .t-mute{color:var(--muted)} .t-cu{color:var(--copper-2)}
+
+/* ── figures ──────────────────────────────── */
+figure{margin:26px 0 28px;padding:22px 22px 16px;background:var(--surface);border:1px solid var(--line);border-radius:3px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;color:var(--ink-2);min-width:560px}
+figcaption{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-2);font-size:13px;color:var(--muted);max-width:72ch}
+figcaption .fignum{color:var(--copper);font-size:11px;letter-spacing:.08em;margin-right:9px}
+.s-box{fill:var(--surface-2);stroke:var(--line-2)}
+.s-box-cu{fill:var(--copper-wash);stroke:var(--copper)}
+.s-t{font-family:"IBM Plex Mono",monospace;font-size:11.5px;fill:var(--ink)}
+.s-t2{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:var(--muted)}
+.s-lbl{font-family:"IBM Plex Mono",monospace;font-size:9.5px;fill:var(--muted);letter-spacing:.05em}
+.s-ln{stroke:var(--line-2);fill:none}
+.s-zone{fill:none;stroke:var(--line-2);stroke-dasharray:3 4}
+
+/* ── callouts ─────────────────────────────── */
+.note{border-left:2px solid var(--copper);background:var(--surface);padding:14px 18px;margin:20px 0;border-radius:0 3px 3px 0;max-width:70ch}
+.note p:last-child{margin-bottom:0}
+.note .lb{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--copper);display:block;margin-bottom:6px}
+.note.q{border-left-color:var(--crit)}
+.note.q .lb{color:var(--crit)}
+
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:20px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:15px 16px}
+.card h4{margin:0 0 6px;font-size:12.5px;color:var(--copper-2);font-family:"IBM Plex Mono",monospace;letter-spacing:.02em}
+.card p{font-size:13.5px;color:var(--ink-2);margin:0;line-height:1.55}
+
+pre{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:15px 17px;overflow-x:auto;margin:0 0 20px;font-size:12.5px;line-height:1.62;color:var(--ink-2)}
+pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit}
+pre .c{color:var(--muted)}
+pre .h{color:var(--copper-2)}
+
+dl{margin:0 0 18px;max-width:70ch}
+dt{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--copper-2);margin-top:12px}
+dd{margin:3px 0 0;color:var(--ink-2);font-size:15px}
+
+hr.rule{border:0;border-top:1px dashed var(--line-2);margin:30px 0}
+.foot{max-width:1180px;margin:0 auto;padding:26px 34px 60px;border-top:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between}
+
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="mast">
+  <div class="mast-in">
+    <p class="eyebrow">설계 문서 · Rev A · Draft</p>
+    <h1>PCB Design Workbench<br><span class="alt">BoardLens</span></h1>
+    <p class="lede">사내에 축적되는 PCB 설계 데이터(HKP)를 한곳에 적재하고, 웹에서 레이아웃을 직접 열람하며, 리비전 간 변경을 기계적으로 비교하는 온프렘 시스템.</p>
+    <div class="meta">
+      <span class="chip"><b>입력</b> HKP · ASCII</span>
+      <span class="chip"><b>환경</b> 폐쇄망 온프렘</span>
+      <span class="chip"><b>클라이언트</b> 웹 브라우저</span>
+      <span class="chip"><b>규모</b> 리비전 1,000+</span>
+      <span class="chip"><b>백엔드</b> Python · FastAPI</span>
+      <span class="chip"><b>프론트</b> React · TypeScript · WebGL</span>
+    </div>
+    <div class="stamp">
+      <span><b>작성</b> 2026-08-30</span>
+      <span><b>대상 독자</b> 설계팀 · 개발팀</span>
+      <span><b>현 상태</b> DB 미구축 · HKP 실물 미확보</span>
+      <span><b>다음 단계</b> Phase 0 착수</span>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="목차">
+    <ol>
+      <li><a href="#s1"><i>01</i>시스템 정의</a></li>
+      <li><a href="#s2"><i>02</i>아키텍처</a></li>
+      <li><a href="#s3"><i>03</i>캐노니컬 모델</a></li>
+      <li><a href="#s4"><i>04</i>저장 설계</a></li>
+      <li><a href="#s5"><i>05</i>인제스트</a></li>
+      <li><a href="#s6"><i>06</i>화면 · 열람 항목</a></li>
+      <li><a href="#s7"><i>07</i>뷰어</a></li>
+      <li><a href="#s8"><i>08</i>Diff 엔진</a></li>
+      <li><a href="#s9"><i>09</i>검색 · 인사이트</a></li>
+      <li><a href="#s10"><i>10</i>권한 · 감사</a></li>
+      <li><a href="#s11"><i>11</i>스택 · 배포</a></li>
+      <li><a href="#s12"><i>12</i>로드맵</a></li>
+      <li><a href="#s13"><i>13</i>미해결 항목</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <!-- ════════ 01 ════════ -->
+  <section id="s1">
+    <h2><span class="num">01</span>시스템 정의와 용어</h2>
+    <p class="sub">"대시보드"가 아니라, PCB 설계 데이터에 특화된 자산 관리 시스템 + 뷰어 + 비교 도구다.</p>
+
+    <p>BoardLens는 세 가지 일을 한다. 이 셋이 한 시스템 안에 있어야 하는 이유는, 셋 다 같은 파싱 결과를 소비하기 때문이다. 파일을 따로 열어보는 뷰어와 스펙을 따로 적어두는 위키를 각각 운영하면 둘은 반드시 어긋난다.</p>
+    <div class="cards">
+      <div class="card"><h4>Manage</h4><p>설계 파일을 리비전 계보와 함께 적재하고, 상태·권한·이력을 관리한다.</p></div>
+      <div class="card"><h4>Inspect</h4><p>보드 스펙과 실제 레이아웃을 CAD 툴 없이 브라우저에서 열람한다.</p></div>
+      <div class="card"><h4>Compare</h4><p>두 리비전의 부품·회로·기하 변경을 자동으로 산출한다.</p></div>
+    </div>
+
+    <h3>용어 정의</h3>
+    <p>이후 모든 문서와 코드에서 아래 용어를 고정해서 쓴다. 특히 <strong>Board와 Revision의 분리</strong>가 데이터 모델 전체를 좌우한다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>용어</th><th>식별자</th><th>정의</th></tr></thead>
+      <tbody>
+        <tr><td>Project</td><td class="k">project</td><td>제품 또는 개발 과제 단위. 권한 부여의 기본 경계.</td></tr>
+        <tr><td>Board</td><td class="k">board</td><td>하나의 설계 계보. 리비전이 바뀌어도 유지되는 논리적 정체성 (예: <code>MAIN-A1</code>).</td></tr>
+        <tr><td>Revision</td><td class="k">revision</td><td>특정 시점의 설계 스냅샷. <strong>실제 데이터는 전부 여기 매달린다.</strong> 열람·비교의 단위.</td></tr>
+        <tr><td>Design File</td><td class="k">design_file</td><td>업로드된 원본 HKP. 불변, sha256으로 주소 지정.</td></tr>
+        <tr><td>CDM</td><td class="k">cdm</td><td>Canonical Design Model. CAD 포맷과 무관한 사내 중립 스키마.</td></tr>
+        <tr><td>ChangeSet</td><td class="k">changeset</td><td>두 리비전 비교 결과. 캐시 가능한 산출물.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note">
+      <span class="lb">범위 밖</span>
+      <p>편집·설계 기능은 넣지 않는다. BoardLens는 <strong>읽기 전용</strong>이다. DRC 재실행, 시뮬레이션, 거버 생성은 기존 CAD 툴의 몫이며, 그 결과물을 첨부·표시만 한다. 이 경계를 흐리면 CAD 툴의 열등한 복제품이 된다.</p>
+    </div>
+  </section>
+
+  <!-- ════════ 02 ════════ -->
+  <section id="s2">
+    <h2><span class="num">02</span>아키텍처</h2>
+    <p class="sub">인제스트 · 저장 · 서빙 3계층. 기하 데이터는 API를 우회해 브라우저로 직행한다.</p>
+
+    <figure>
+      <svg viewBox="0 0 880 382" role="img" aria-label="HKP 파일이 파서를 거쳐 CDM으로 정규화된 뒤, 메타데이터는 PostgreSQL로 기하 데이터는 blob 스토어로 나뉘어 저장되고, 메타는 FastAPI를 통해 JSON으로 기하는 blob에서 브라우저로 직접 스트리밍되는 3계층 구조">
+        <defs>
+          <marker id="a1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <rect x="0" y="44" width="880" height="94" rx="3" fill="var(--surface-2)" opacity=".6"/>
+        <rect x="0" y="268" width="880" height="94" rx="3" fill="var(--surface-2)" opacity=".6"/>
+        <text class="s-lbl" x="24" y="88" style="letter-spacing:.13em">INGEST</text>
+        <text class="s-lbl" x="24" y="104" fill="var(--line-2)">인제스트</text>
+        <text class="s-lbl" x="24" y="200" style="letter-spacing:.13em">STORE</text>
+        <text class="s-lbl" x="24" y="216" fill="var(--line-2)">저장</text>
+        <text class="s-lbl" x="24" y="312" style="letter-spacing:.13em">SERVE</text>
+        <text class="s-lbl" x="24" y="328" fill="var(--line-2)">서빙</text>
+
+        <rect class="s-box" x="110" y="64" width="130" height="54" rx="3"/>
+        <text class="s-t" x="175" y="86" text-anchor="middle">HKP 파일</text>
+        <text class="s-t2" x="175" y="102" text-anchor="middle">ASCII · 원본</text>
+
+        <rect class="s-box" x="280" y="64" width="160" height="54" rx="3"/>
+        <text class="s-t" x="360" y="86" text-anchor="middle">bl-parser</text>
+        <text class="s-t2" x="360" y="102" text-anchor="middle">HKP → CDM 어댑터</text>
+
+        <rect class="s-box-cu" x="480" y="64" width="150" height="54" rx="3"/>
+        <text class="s-t" x="555" y="86" text-anchor="middle">CDM v1</text>
+        <text class="s-t2" x="555" y="102" text-anchor="middle">검증 · 정규화</text>
+
+        <rect class="s-box" x="670" y="64" width="160" height="54" rx="3"/>
+        <text class="s-t" x="750" y="86" text-anchor="middle">기하 패커</text>
+        <text class="s-t2" x="750" y="102" text-anchor="middle">→ .blg 버퍼</text>
+
+        <rect class="s-box" x="480" y="176" width="150" height="54" rx="3"/>
+        <text class="s-t" x="555" y="198" text-anchor="middle">PostgreSQL</text>
+        <text class="s-t2" x="555" y="214" text-anchor="middle">부품 · 넷 · 핀 · 스펙</text>
+
+        <rect class="s-box" x="670" y="176" width="160" height="54" rx="3"/>
+        <text class="s-t" x="750" y="198" text-anchor="middle">Blob Store</text>
+        <text class="s-t2" x="750" y="214" text-anchor="middle">원본 HKP · .blg</text>
+
+        <rect class="s-box" x="480" y="288" width="150" height="54" rx="3"/>
+        <text class="s-t" x="555" y="310" text-anchor="middle">bl-core</text>
+        <text class="s-t2" x="555" y="326" text-anchor="middle">FastAPI</text>
+
+        <rect class="s-box-cu" x="670" y="288" width="160" height="54" rx="3"/>
+        <text class="s-t" x="750" y="310" text-anchor="middle">bl-web</text>
+        <text class="s-t2" x="750" y="326" text-anchor="middle">React · WebGL</text>
+
+        <g class="s-ln" stroke-width="1.2" marker-end="url(#a1)" color="var(--muted)">
+          <line x1="244" y1="91" x2="274" y2="91"/>
+          <line x1="444" y1="91" x2="474" y2="91"/>
+          <line x1="634" y1="91" x2="664" y2="91"/>
+          <line x1="555" y1="120" x2="555" y2="170"/>
+          <line x1="750" y1="120" x2="750" y2="170"/>
+          <line x1="555" y1="232" x2="555" y2="282"/>
+          <line x1="634" y1="315" x2="664" y2="315"/>
+        </g>
+        <line x1="750" y1="232" x2="750" y2="282" stroke="var(--copper)" stroke-width="1.6" fill="none" marker-end="url(#a1)" color="var(--copper)"/>
+
+        <text class="s-lbl" x="459" y="86" text-anchor="middle">CDM</text>
+        <text class="s-lbl" x="649" y="86" text-anchor="middle">기하</text>
+        <text class="s-lbl" x="563" y="150" >메타</text>
+        <text class="s-lbl" x="758" y="150">버퍼</text>
+        <text class="s-lbl" x="563" y="262">SQL</text>
+        <text class="s-lbl" x="758" y="262" fill="var(--copper)">.blg 직스트림</text>
+        <text class="s-lbl" x="649" y="310" text-anchor="middle">JSON</text>
+      </svg>
+      <figcaption><span class="fignum">FIG 01</span>파싱 결과는 성격에 따라 갈라진다. 질의·비교 대상인 메타는 PostgreSQL로, 렌더링 전용 기하는 압축 바이너리로 blob 스토어에 간다. 기하는 JSON 직렬화를 거치지 않고 브라우저가 직접 받아 GPU 버퍼로 올린다 — 이 한 줄이 뷰어 성능의 대부분을 결정한다.</figcaption>
+    </figure>
+
+    <h3>구성 요소</h3>
+    <div class="tw"><table>
+      <thead><tr><th>컴포넌트</th><th>역할</th><th>배치</th></tr></thead>
+      <tbody>
+        <tr><td class="k">bl-core</td><td>REST API. 카탈로그 검색, 리비전 상세, ChangeSet 조회, 권한 판정, 감사 기록.</td><td>컨테이너 1~2</td></tr>
+        <tr><td class="k">bl-worker</td><td>인제스트 잡 소비. 파싱 → 검증 → 적재 → 기하 패킹 → 썸네일 생성.</td><td>컨테이너 1~N</td></tr>
+        <tr><td class="k">bl-parser</td><td>HKP → CDM 어댑터. <strong>독립 라이브러리</strong>로 분리해 코어가 포맷을 몰라도 되게 한다.</td><td>라이브러리</td></tr>
+        <tr><td class="k">bl-web</td><td>SPA. 카탈로그 · 상세 · 뷰어 · 비교 · 인사이트.</td><td>정적 파일 (nginx)</td></tr>
+        <tr><td class="k">PostgreSQL 16</td><td>메타 · 연결 정보 · 잡 상태 · 감사 로그 · 잡 큐.</td><td>컨테이너 1</td></tr>
+        <tr><td class="k">Blob Store</td><td>초기엔 마운트된 파일시스템. 필요해지면 MinIO로 교체 (인터페이스 동일).</td><td>볼륨</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note">
+      <span class="lb">설계 결정</span>
+      <p><strong>Redis·Celery 대신 PostgreSQL 잡 테이블 + <code>SELECT … FOR UPDATE SKIP LOCKED</code>를 쓴다.</strong> 폐쇄망 온프렘에서는 운영 인력이 붙는 미들웨어 하나하나가 비용이다. 하루 수십 건 규모의 인제스트에 별도 브로커는 과잉이고, 잡 상태를 같은 트랜잭션에서 보는 편이 재파싱·실패 추적도 단순하다. 처리량이 문제가 되는 시점에 교체하면 되고, 그 시점은 오지 않을 가능성이 높다.</p>
+    </div>
+  </section>
+
+  <!-- ════════ 03 ════════ -->
+  <section id="s3">
+    <h2><span class="num">03</span>캐노니컬 디자인 모델 (CDM v1)</h2>
+    <p class="sub">이 문서에서 가장 중요한 섹션. HKP 실물이 없는 지금이 오히려 포맷 비의존 모델을 강제할 최적의 시점이다.</p>
+
+    <p>DB 스키마도 API도 UI도 <strong>HKP를 직접 알지 못한다.</strong> 아는 것은 CDM 하나뿐이고, HKP는 그 CDM을 만들어내는 여러 입력 중 첫 번째일 뿐이다. 이렇게 두면 나중에 ODB++나 IPC-2581, 혹은 다른 CAD의 ASCII 출력이 들어와도 어댑터만 추가하면 된다. 반대로 HKP 필드명이 그대로 컬럼명이 되어버리면 두 번째 포맷이 들어오는 날 전체를 다시 짜야 한다.</p>
+
+    <figure>
+      <svg viewBox="0 0 880 420" role="img" aria-label="Revision을 루트로, 왼쪽은 검색과 비교에 쓰이는 관계형 엔티티(StackupLayer, Component, Pin, Net, NetPin), 오른쪽은 질의하지 않는 블롭(레이어 기하 버퍼, 원본 HKP, 썸네일)으로 나뉘는 데이터 모델">
+        <defs>
+          <marker id="a2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect class="s-box-cu" x="370" y="18" width="140" height="46" rx="3"/>
+        <text class="s-t" x="440" y="40" text-anchor="middle">Revision</text>
+        <text class="s-t2" x="440" y="55" text-anchor="middle">모든 데이터의 루트</text>
+
+        <path class="s-ln" d="M440 64 L440 82 L220 82 L220 100" stroke-width="1.2" marker-end="url(#a2)" color="var(--muted)"/>
+        <path class="s-ln" d="M440 64 L440 82 L660 82 L660 100" stroke-width="1.2" marker-end="url(#a2)" color="var(--muted)"/>
+
+        <rect class="s-zone" x="20" y="100" width="400" height="300" rx="3"/>
+        <text class="s-lbl" x="36" y="122" fill="var(--copper)">관계형 — 검색 · 비교 · 집계</text>
+        <rect class="s-zone" x="460" y="100" width="400" height="300" rx="3"/>
+        <text class="s-lbl" x="476" y="122">블롭 — 렌더링 전용, 질의하지 않음</text>
+
+        <rect class="s-box" x="50" y="145" width="150" height="42" rx="3"/>
+        <text class="s-t" x="125" y="171" text-anchor="middle">StackupLayer</text>
+        <rect class="s-box" x="50" y="215" width="150" height="42" rx="3"/>
+        <text class="s-t" x="125" y="241" text-anchor="middle">Component</text>
+        <rect class="s-box" x="50" y="285" width="150" height="42" rx="3"/>
+        <text class="s-t" x="125" y="311" text-anchor="middle">Net</text>
+        <rect class="s-box" x="250" y="215" width="140" height="42" rx="3"/>
+        <text class="s-t" x="320" y="241" text-anchor="middle">Pin</text>
+        <rect class="s-box-cu" x="250" y="285" width="140" height="42" rx="3"/>
+        <text class="s-t" x="320" y="311" text-anchor="middle">NetPin</text>
+
+        <g class="s-ln" stroke-width="1.2" marker-end="url(#a2)" color="var(--muted)">
+          <line x1="200" y1="236" x2="244" y2="236"/>
+          <line x1="200" y1="306" x2="244" y2="306"/>
+          <line x1="320" y1="257" x2="320" y2="279"/>
+        </g>
+        <text class="s-lbl" x="222" y="230" text-anchor="middle">1:N</text>
+        <text class="s-lbl" x="222" y="300" text-anchor="middle">1:N</text>
+        <text class="s-t2" x="50" y="360">연결 관계는 전부 행(row)으로 — 넷리스트 Diff가</text>
+        <text class="s-t2" x="50" y="376">여기서 집합 연산 한 번으로 끝난다.</text>
+
+        <rect class="s-box" x="490" y="145" width="340" height="42" rx="3"/>
+        <text class="s-t" x="506" y="163">layer_geometry.blg</text>
+        <text class="s-t2" x="506" y="178">레이어당 1개 · Int32 좌표 팩 · gzip</text>
+        <rect class="s-box" x="490" y="215" width="340" height="42" rx="3"/>
+        <text class="s-t" x="506" y="233">design_file</text>
+        <text class="s-t2" x="506" y="248">원본 HKP · sha256 주소 · 불변</text>
+        <rect class="s-box" x="490" y="285" width="340" height="42" rx="3"/>
+        <text class="s-t" x="506" y="303">thumbnail.png</text>
+        <text class="s-t2" x="506" y="318">카탈로그 카드용 사전 렌더</text>
+        <text class="s-t2" x="490" y="360">브라우저가 bl-core를 거치지 않고 직접 받는다.</text>
+        <text class="s-t2" x="490" y="376">DB에 넣으면 2억 행이 되는 데이터.</text>
+      </svg>
+      <figcaption><span class="fignum">FIG 02</span>데이터를 성격으로 가른다. "질의·비교·집계의 대상인가"가 기준이고, 그 답이 아니오인 기하는 관계형 DB에 들어가지 않는다. 부품 2,000개짜리 보드 1,000장이면 NetPin은 2,000만 행으로 PostgreSQL이 여유롭게 감당하지만, 같은 규모의 기하 객체는 2억 개다.</figcaption>
+    </figure>
+
+    <h3>단위와 좌표계 규약</h3>
+    <p>이 규약을 코드로 고정하지 않으면 비교 기능에서 반드시 사고가 난다. 부동소수점 좌표를 두 리비전에서 뺄셈하면 <code>0.09999999</code> 같은 값이 나오고, 그러면 아무것도 안 바뀐 부품이 "이동함"으로 잡힌다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>항목</th><th>규약</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>길이 단위</td><td class="k">정수 나노미터 (nm)</td><td>부동소수 누적 오차 제거. 비교가 정확히 <code>==</code>로 성립한다. int64로 ±9,200 km까지 표현 — 어떤 보드도 넘지 않는다.</td></tr>
+        <tr><td>표시 단위</td><td class="k">mm (기본) / mil (토글)</td><td>변환은 <strong>표시 직전에만</strong>. 저장·연산 경로에는 절대 들어오지 않는다.</td></tr>
+        <tr><td>원점</td><td class="k">보드 외형 좌하단</td><td>CAD마다 원점이 제각각이므로 인제스트 시점에 정규화. 리비전 간 좌표 비교의 전제.</td></tr>
+        <tr><td>축 방향</td><td class="k">X 우측, Y 상방향</td><td>수학 좌표계. 화면 렌더 시에만 Y를 뒤집는다.</td></tr>
+        <tr><td>각도</td><td class="k">1/1000 도, 반시계</td><td>0~359,999. 회전 변경 판정도 정수 비교.</td></tr>
+        <tr><td>레이어 번호</td><td class="k">1부터, Top이 1</td><td>물리 적층 순서. CAD 레이어명은 <code>source_name</code>에 원본 보존.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>핵심 엔티티 필드</h3>
+    <p>전체 스키마는 <code>cdm/schema/cdm.v1.json</code>이 단일 정의(single source of truth)이고, Pydantic 모델과 TypeScript 타입을 <strong>둘 다 거기서 생성</strong>한다. 손으로 두 번 쓰면 반드시 어긋난다.</p>
+
+    <h4>DesignHeader</h4>
+    <div class="tw"><table>
+      <thead><tr><th>필드</th><th>타입</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td class="k">board_key</td><td>string</td><td>설계 계보 식별자. 파일명이 아니라 헤더에서 추출.</td></tr>
+        <tr><td class="k">revision_label</td><td>string</td><td>Rev A, 1.2 등 원본 표기 그대로.</td></tr>
+        <tr><td class="k">source_tool / source_version</td><td>string</td><td>CAD 툴과 버전. 파싱 분기와 이슈 추적에 쓴다.</td></tr>
+        <tr><td class="k">outline</td><td>Polygon[]</td><td>보드 외형. 이형 보드와 내부 홀(cutout)을 위해 다중 폴리곤.</td></tr>
+        <tr><td class="k">board_thickness_nm</td><td>int</td><td>총 두께.</td></tr>
+        <tr><td class="k">units_source</td><td>enum</td><td>원본 단위. 변환 이력 추적용으로만 보존.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>Component</h4>
+    <div class="tw"><table>
+      <thead><tr><th>필드</th><th>타입</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td class="k">refdes</td><td>string</td><td><strong>Diff의 매칭 키.</strong> 리비전 내 유일.</td></tr>
+        <tr><td class="k">part_number</td><td>string?</td><td>부품 역검색·EOL 영향 분석의 핵심 필드. 없으면 <code>package + value</code>로 대체 키 생성.</td></tr>
+        <tr><td class="k">package</td><td>string</td><td>0402, QFN48, BGA256 등.</td></tr>
+        <tr><td class="k">x_nm / y_nm / rotation_mdeg</td><td>int</td><td>배치 좌표와 회전.</td></tr>
+        <tr><td class="k">side</td><td>enum</td><td><code>top</code> / <code>bottom</code>. 뒤집힘(flip) 판정에 쓴다.</td></tr>
+        <tr><td class="k">pin_count</td><td>int</td><td>Pin 행에서 파생되지만 집계 질의를 위해 비정규화 보관.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>Net · NetPin</h4>
+    <div class="tw"><table>
+      <thead><tr><th>필드</th><th>타입</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td class="k">net.name</td><td>string</td><td>1차 매칭 키. 다만 이름은 리비전 사이에서 바뀔 수 있다.</td></tr>
+        <tr><td class="k">net.signature</td><td>string</td><td><strong>정렬된 <code>refdes.pin</code> 집합의 해시.</strong> 이름이 바뀐 넷과 실제로 회로가 바뀐 넷을 구분하는 열쇠 — §08 참조.</td></tr>
+        <tr><td class="k">net.net_class</td><td>string?</td><td>전원 / 차동 / 고속 등 설계자가 부여한 분류.</td></tr>
+        <tr><td class="k">net.diff_partner</td><td>string?</td><td>차동쌍 상대 넷.</td></tr>
+        <tr><td class="k">net.length_nm</td><td>int</td><td>총 배선 길이. 레이어별 내역은 <code>length_by_layer</code>.</td></tr>
+        <tr><td class="k">net_pin.(net_id, refdes, pin_name)</td><td>—</td><td>회로 연결의 원자 단위. 넷리스트 Diff는 이 집합의 차집합이다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>StackupLayer</h4>
+    <div class="tw"><table>
+      <thead><tr><th>필드</th><th>타입</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td class="k">index</td><td>int</td><td>물리 적층 순서 (1 = Top).</td></tr>
+        <tr><td class="k">role</td><td>enum</td><td><code>signal</code> / <code>plane_power</code> / <code>plane_gnd</code> / <code>dielectric</code> / <code>mask</code> / <code>silk</code> / <code>paste</code>.</td></tr>
+        <tr><td class="k">thickness_nm</td><td>int</td><td>층 두께.</td></tr>
+        <tr><td class="k">material / dk / df</td><td>string, float</td><td>재질명과 유전 상수·손실. 임피던스 검토에 필요.</td></tr>
+        <tr><td class="k">copper_weight_um</td><td>float?</td><td>동박 두께. 후동박 여부 판별.</td></tr>
+        <tr><td class="k">copper_area_ratio</td><td>float?</td><td>동박 면적률. 휨·열 검토와 제조사 문의에 자주 요구된다.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note q">
+      <span class="lb">HKP 실물 확보 전 대응</span>
+      <p>파서는 <code>parse(text) -> CDM</code> 하나만 노출하는 인터페이스로 못박고, 실물이 오기 전까지는 <strong>골든 픽스처 테스트</strong>만 준비한다. 즉 "이 입력 텍스트가 들어오면 이 CDM이 나온다"는 케이스 파일을 만들어 두고, 실제 HKP를 받으면 픽스처를 실물로 교체한다. CDM 쪽 코드는 한 줄도 바뀌지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- ════════ 04 ════════ -->
+  <section id="s4">
+    <h2><span class="num">04</span>저장 설계와 규모 산정</h2>
+    <p class="sub">1,000 리비전 규모에서 무엇이 몇 행이 되는지 먼저 계산하고, 그 숫자에 맞춰 저장 방식을 나눈다.</p>
+
+    <h3>규모 추정</h3>
+    <p>보드 1장당 부품 2,000개 · 넷 3,000개 · 핀 20,000개 · 기하 객체 200,000개를 중간값으로 잡았다 (8층 고밀도 보드 기준). 리비전 1,000장 기준:</p>
+    <div class="tw"><table>
+      <thead><tr><th>데이터</th><th>보드당</th><th>총계 (1,000)</th><th>저장 위치</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr><td>Revision</td><td class="n">1</td><td class="n">1,000</td><td>PostgreSQL</td><td><span class="tag t-ok">여유</span></td></tr>
+        <tr><td>Component</td><td class="n">2,000</td><td class="n">2,000,000</td><td>PostgreSQL</td><td><span class="tag t-ok">여유</span></td></tr>
+        <tr><td>Net</td><td class="n">3,000</td><td class="n">3,000,000</td><td>PostgreSQL</td><td><span class="tag t-ok">여유</span></td></tr>
+        <tr><td>NetPin</td><td class="n">20,000</td><td class="n">20,000,000</td><td>PostgreSQL</td><td><span class="tag t-warn">인덱스 설계 필요</span></td></tr>
+        <tr><td>기하 객체</td><td class="n">200,000</td><td class="n">200,000,000</td><td><strong>Blob (.blg)</strong></td><td><span class="tag t-crit">DB 부적합</span></td></tr>
+        <tr><td>원본 HKP</td><td class="n">~30 MB</td><td class="n">~30 GB</td><td>Blob</td><td><span class="tag t-ok">여유</span></td></tr>
+        <tr><td>.blg 버퍼</td><td class="n">~8 MB</td><td class="n">~8 GB</td><td>Blob</td><td><span class="tag t-ok">여유</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>결론: PostgreSQL 약 15 GB, Blob 약 40 GB. <strong>단일 서버 한 대로 충분하다.</strong> 분산 저장이나 검색 엔진 도입을 정당화할 규모가 아니며, 폐쇄망 운영 부담만 늘린다.</p>
+
+    <h3>테이블 개요</h3>
+    <pre><code><span class="c">-- 계보</span>
+project(id, key, name, security_level)
+board(id, project_id, board_key, name, product_family, status, tags[])
+revision(id, board_id, label, parent_revision_id, created_at, author,
+         source_tool, source_version, parser_version, state, <span class="c">-- 인제스트 상태</span>
+         <span class="h">summary jsonb</span>) <span class="c">-- 카탈로그 목록에서 조인 없이 쓰는 사전 집계</span>
+design_file(id, revision_id, sha256, byte_size, storage_key, uploaded_by)
+
+<span class="c">-- 설계 내용</span>
+stackup_layer(revision_id, index, role, thickness_nm, material, dk, df, ...)
+component(revision_id, refdes, part_id, package, x_nm, y_nm, rotation_mdeg, side, pin_count)
+net(revision_id, name, signature, net_class, diff_partner, length_nm, via_count)
+net_pin(revision_id, net_id, refdes, pin_name)
+via(revision_id, kind, from_layer, to_layer, drill_nm, pad_nm, count)
+drc_finding(revision_id, rule, severity, x_nm, y_nm, layer, message)
+
+<span class="c">-- 횡단 조회</span>
+<span class="h">part</span>(id, manufacturer, mpn, description, lifecycle) <span class="c">-- 리비전 무관 마스터. EOL 역검색의 축</span>
+
+<span class="c">-- 운영</span>
+ingest_job(id, revision_id, state, parser_version, error, attempts, timestamps)
+comment(id, revision_id, layer, x_nm, y_nm, body, author, resolved)
+audit_log(id, actor, action, target_type, target_id, at, ip)</code></pre>
+
+    <div class="cards">
+      <div class="card"><h4>파티셔닝</h4><p><code>net_pin</code>과 <code>component</code>는 <code>revision_id</code> 기준 해시 파티션. 어떤 질의든 리비전이 먼저 좁혀지므로 파티션 프루닝이 그대로 먹는다.</p></div>
+      <div class="card"><h4>summary jsonb</h4><p>카탈로그 목록은 보드당 20여 개 집계값을 보여준다. 매번 집계하면 느리므로 인제스트 시점에 계산해 리비전 행에 박아둔다.</p></div>
+      <div class="card"><h4>불변성</h4><p>리비전은 한 번 <code>ready</code>가 되면 수정하지 않는다. 재파싱은 새 <code>parser_version</code>으로 내용을 갈아끼우되 리비전 ID와 링크는 유지한다.</p></div>
+    </div>
+
+    <h3>.blg — 레이어 기하 버퍼</h3>
+    <p>레이어 하나당 파일 하나. 브라우저가 받아서 <strong>파싱 없이</strong> 그대로 <code>Int32Array</code> 뷰를 씌워 GPU로 올릴 수 있는 형태로 만든다.</p>
+    <pre><code><span class="c">// .blg v1 레이아웃</span>
+[ magic "BLG1" | u32 ]  [ layer_index | u16 ]  [ object_count | u32 ]
+[ bbox: x0,y0,x1,y1 | i32 x4 ]
+[ kind_offsets: trace, pad, via, plane, text | u32 x5 ]
+[ <span class="h">coords: i32[] </span>]      <span class="c">// nm 단위 정수 좌표, 종류별로 연속 배치</span>
+[ <span class="h">attrs:  u32[] </span>]      <span class="c">// net_id · width · flags 팩</span>
+<span class="c">// 전체를 gzip. nginx가 Content-Encoding: gzip으로 그대로 서빙 → 서버 CPU 0</span></code></pre>
+  </section>
+
+  <!-- ════════ 05 ════════ -->
+  <section id="s5">
+    <h2><span class="num">05</span>인제스트 파이프라인</h2>
+    <p class="sub">파서는 앞으로 계속 고쳐진다. 전체 재파싱이 일상 작업이라는 전제로 설계한다.</p>
+
+    <figure>
+      <svg viewBox="0 0 880 236" role="img" aria-label="인제스트 상태 머신: uploaded에서 parsing, normalizing, indexing을 거쳐 ready에 이르고, 각 단계에서 failed로 빠질 수 있으며, 파서 버전이 올라가면 ready에서 parsing으로 되돌아가 일괄 재파싱한다">
+        <defs>
+          <marker id="a3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <path d="M715 80 C 715 18, 235 18, 235 80" fill="none" stroke="var(--copper)" stroke-width="1.4" marker-end="url(#a3)" color="var(--copper)"/>
+        <text class="s-lbl" x="475" y="26" text-anchor="middle" fill="var(--copper)">파서 버전 상승 → 전체 재파싱</text>
+
+        <rect class="s-box" x="20" y="80" width="120" height="44" rx="3"/>
+        <text class="s-t" x="80" y="107" text-anchor="middle">uploaded</text>
+        <rect class="s-box" x="175" y="80" width="120" height="44" rx="3"/>
+        <text class="s-t" x="235" y="107" text-anchor="middle">parsing</text>
+        <rect class="s-box" x="330" y="80" width="130" height="44" rx="3"/>
+        <text class="s-t" x="395" y="107" text-anchor="middle">normalizing</text>
+        <rect class="s-box" x="495" y="80" width="120" height="44" rx="3"/>
+        <text class="s-t" x="555" y="107" text-anchor="middle">indexing</text>
+        <rect class="s-box-cu" x="655" y="80" width="120" height="44" rx="3"/>
+        <text class="s-t" x="715" y="107" text-anchor="middle">ready</text>
+
+        <g class="s-ln" stroke-width="1.2" marker-end="url(#a3)" color="var(--muted)">
+          <line x1="144" y1="102" x2="169" y2="102"/>
+          <line x1="299" y1="102" x2="324" y2="102"/>
+          <line x1="464" y1="102" x2="489" y2="102"/>
+          <line x1="619" y1="102" x2="649" y2="102"/>
+        </g>
+        <text class="s-lbl" x="235" y="140" text-anchor="middle">HKP → CDM</text>
+        <text class="s-lbl" x="395" y="140" text-anchor="middle">단위 · 원점 정규화</text>
+        <text class="s-lbl" x="555" y="140" text-anchor="middle">DB 적재 · .blg · 썸네일</text>
+
+        <rect class="s-box" x="330" y="176" width="130" height="42" rx="3" stroke="var(--crit)" fill="none"/>
+        <text class="s-t" x="395" y="202" text-anchor="middle" fill="var(--crit)">failed</text>
+        <g stroke="var(--crit)" stroke-width="1" stroke-dasharray="3 3" fill="none" marker-end="url(#a3)" color="var(--crit)">
+          <line x1="235" y1="150" x2="340" y2="172"/>
+          <line x1="395" y1="150" x2="395" y2="172"/>
+          <line x1="555" y1="150" x2="450" y2="172"/>
+        </g>
+        <text class="s-t2" x="480" y="204" fill="var(--muted)">원인 · 라인 번호 보존, 원본은 그대로 남는다</text>
+      </svg>
+      <figcaption><span class="fignum">FIG 03</span>모든 단계는 원본 HKP를 소모하지 않는다. 따라서 어느 단계에서 실패하든, 그리고 파서를 개선했을 때든, <code>parsing</code>부터 다시 돌릴 수 있다. 재파싱이 예외가 아니라 정규 경로라는 점이 이 상태 머신의 요지다.</figcaption>
+    </figure>
+
+    <h3>검증 규칙</h3>
+    <p>CDM 스키마 검증을 통과해도 의미상 깨진 데이터는 들어올 수 있다. 인제스트 마지막에 무결성 규칙을 돌리고, 위반은 실패가 아니라 <strong>경고로 기록</strong>해 리비전 상세에 띄운다 — 실제 설계 데이터는 원래 조금씩 지저분하고, 그걸 이유로 적재를 거부하면 시스템을 아무도 안 쓴다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>규칙</th><th>처리</th></tr></thead>
+      <tbody>
+        <tr><td>부품 좌표가 보드 외형 밖</td><td><span class="tag t-warn">경고</span> 배치 오류이거나 원점 정규화 실패 신호</td></tr>
+        <tr><td>핀이 0개인 넷</td><td><span class="tag t-warn">경고</span> 고아 넷으로 표시, 넷 수 집계에서 별도 계상</td></tr>
+        <tr><td>RefDes 중복</td><td><span class="tag t-crit">실패</span> Diff 매칭 키가 깨지므로 적재 불가</td></tr>
+        <tr><td>스택업 인덱스 불연속</td><td><span class="tag t-crit">실패</span> 층 구조 해석 불가</td></tr>
+        <tr><td>외형 폴리곤 미폐합</td><td><span class="tag t-warn">경고</span> 자동 폐합 시도 후 기록</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ════════ 06 ════════ -->
+  <section id="s6">
+    <h2><span class="num">06</span>화면 구성과 열람 항목</h2>
+    <p class="sub">무엇을 보여줄 것인가 — 이 목록이 곧 CDM이 반드시 담아야 할 필드 목록이다.</p>
+
+    <h3>정보 구조</h3>
+    <pre><code>/                        홈 · 포트폴리오 요약, 최근 활동
+/boards                  <span class="h">카탈로그</span> — 파셋 필터 · 테이블/카드 · 저장된 검색
+/boards/:key/:rev        <span class="h">리비전 상세</span>
+   ├ overview            요약 스펙
+   ├ viewer              2D 레이아웃 뷰어
+   ├ stackup             적층 구조
+   ├ components          부품 테이블
+   ├ nets                넷 테이블
+   ├ manufacturing       제조 사양 · DRC
+   ├ revisions           리비전 계보
+   └ files               원본 · 첨부물
+/compare?a=…&b=…         <span class="h">비교</span>
+/insights                부품 역검색 · 포트폴리오 통계
+/admin                   업로드 · 인제스트 상태 · 권한 · 감사 로그</code></pre>
+
+    <h3>카탈로그 파셋</h3>
+    <p>필터는 전부 <code>revision.summary</code>의 사전 집계값을 쓴다. 사용자가 슬라이더를 움직일 때마다 2,000만 행을 집계하지 않는다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>파셋</th><th>형태</th><th>파셋</th><th>형태</th></tr></thead>
+      <tbody>
+        <tr><td>제품군 · 프로젝트</td><td>다중 선택</td><td>층수</td><td>범위</td></tr>
+        <tr><td>상태 (Draft/Review/Released/Obsolete)</td><td>다중 선택</td><td>보드 면적</td><td>범위</td></tr>
+        <tr><td>설계자</td><td>다중 선택</td><td>부품 수</td><td>범위</td></tr>
+        <tr><td>CAD 툴 · 버전</td><td>다중 선택</td><td>최소 선폭 / 최소 드릴</td><td>범위</td></tr>
+        <tr><td>태그</td><td>다중 선택</td><td>BGA 최소 피치</td><td>범위</td></tr>
+        <tr><td>비아 종류 (블라인드/베리드/마이크로)</td><td>토글</td><td>등록일</td><td>기간</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>리비전 상세 — 열람 항목</h3>
+
+    <h4>Overview</h4>
+    <div class="tw"><table>
+      <thead><tr><th>그룹</th><th>항목</th></tr></thead>
+      <tbody>
+        <tr><td>식별</td><td>보드명, 파트넘버, 리비전, 상태, 설계자, 프로젝트/제품군, CAD 툴·버전, 등록일·수정일</td></tr>
+        <tr><td>물리</td><td>외형 치수 X×Y, 면적, 형상(직사각/이형/컷아웃 수), 보드 총 두께, 총 층수 및 신호/전원/GND 내역</td></tr>
+        <tr><td>부품</td><td>총 부품 수, Top/Bottom 분포, 총 핀 수, 패키지 타입별 집계, BGA 수·최소 피치, 배치 밀도(부품/cm²)</td></tr>
+        <tr><td>회로</td><td>넷 수, 총 배선 길이, 차동쌍 수, 미배선 수, 전원 넷 목록, 최장 넷 Top 10</td></tr>
+        <tr><td>제조</td><td>최소 선폭·간격, 최소 드릴, 최대 종횡비, 총 홀 수, 비아 종류별 수, 표면처리, 특수 공정(리지드플렉스·후동박)</td></tr>
+        <tr><td>품질</td><td>DRC 위반 수 및 카테고리별 내역, 경고 목록, 인제스트 파서 버전</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4>탭별 상세</h4>
+    <dl>
+      <dt>Stackup</dt><dd>층별 단면 시각화 + 표: 인덱스, 이름(원본명 병기), 역할, 두께, 재질, Dk/Df, 동박 두께, 동박 면적률, 배선된 넷 수. 설계 임피던스(단일단/차동) 병기.</dd>
+      <dt>Components</dt><dd>RefDes, 파트넘버, 패키지, 값, 좌표, 회전, 배치 면, 핀 수. 행 클릭 → 뷰어에서 해당 부품으로 이동. 파트넘버 클릭 → 부품 역검색.</dd>
+      <dt>Nets</dt><dd>넷명, 넷 클래스, 연결 핀 수, 총 길이, 레이어별 길이 분포, 비아 수, 선폭, 차동 파트너. 행 클릭 → 뷰어에서 전 레이어 하이라이트.</dd>
+      <dt>Manufacturing</dt><dd>드릴 표(사이즈별 수량·종류), 설계 룰 요약, DRC 리포트 원문, 제조 관련 첨부물.</dd>
+      <dt>Revisions</dt><dd>계보 트리. 노드 클릭으로 임의의 두 리비전을 골라 바로 비교로 넘어간다. 파생 보드(fork) 관계도 여기 표시.</dd>
+      <dt>Files</dt><dd>원본 HKP(해시·크기·업로드 이력), 거버, BOM, 조립도, 스택업 문서. <strong>다운로드는 전부 감사 로그에 남는다.</strong></dd>
+    </dl>
+  </section>
+
+  <!-- ════════ 07 ════════ -->
+  <section id="s7">
+    <h2><span class="num">07</span>뷰어</h2>
+    <p class="sub">20만 객체를 60fps로 팬·줌하는 것이 목표. 이 목표가 앞선 저장 설계를 강제했다.</p>
+
+    <figure>
+      <svg viewBox="0 0 880 216" role="img" aria-label="뷰어 렌더 파이프라인: gzip된 blg 파일을 HTTP로 받아 압축을 풀면 ArrayBuffer가 되고, 이를 복사 없이 GPU 버퍼로 올려 화면에 그린다. 같은 버퍼에서 R-tree 인덱스를 만들어 클릭 히트테스트에 쓴다">
+        <defs>
+          <marker id="a4" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <rect class="s-box" x="20" y="56" width="130" height="48" rx="3"/>
+        <text class="s-t" x="85" y="78" text-anchor="middle">.blg (gzip)</text>
+        <text class="s-t2" x="85" y="93" text-anchor="middle">레이어당 1개</text>
+        <rect class="s-box" x="196" y="56" width="140" height="48" rx="3"/>
+        <text class="s-t" x="266" y="78" text-anchor="middle">fetch + inflate</text>
+        <text class="s-t2" x="266" y="93" text-anchor="middle">Worker 스레드</text>
+        <rect class="s-box" x="382" y="56" width="140" height="48" rx="3"/>
+        <text class="s-t" x="452" y="78" text-anchor="middle">Int32Array</text>
+        <text class="s-t2" x="452" y="93" text-anchor="middle">전치 뷰, 파싱 없음</text>
+        <rect class="s-box-cu" x="568" y="56" width="150" height="48" rx="3"/>
+        <text class="s-t" x="643" y="78" text-anchor="middle">GPU 버퍼</text>
+        <text class="s-t2" x="643" y="93" text-anchor="middle">PixiJS · 인스턴싱</text>
+        <rect class="s-box" x="764" y="56" width="96" height="48" rx="3"/>
+        <text class="s-t" x="812" y="84" text-anchor="middle">화면</text>
+
+        <g class="s-ln" stroke-width="1.2" marker-end="url(#a4)" color="var(--muted)">
+          <line x1="154" y1="80" x2="190" y2="80"/>
+          <line x1="340" y1="80" x2="376" y2="80"/>
+          <line x1="526" y1="80" x2="562" y2="80"/>
+          <line x1="722" y1="80" x2="758" y2="80"/>
+          <line x1="452" y1="106" x2="452" y2="146"/>
+        </g>
+        <text class="s-lbl" x="172" y="72" text-anchor="middle">HTTP</text>
+        <text class="s-lbl" x="358" y="72" text-anchor="middle">전개</text>
+        <text class="s-lbl" x="544" y="72" text-anchor="middle" fill="var(--copper)">복사 없음</text>
+        <text class="s-lbl" x="740" y="72" text-anchor="middle">draw</text>
+
+        <rect class="s-box" x="352" y="150" width="200" height="44" rx="3"/>
+        <text class="s-t" x="452" y="170" text-anchor="middle">Flatbush R-tree</text>
+        <text class="s-t2" x="452" y="185" text-anchor="middle">클릭 · 호버 히트테스트</text>
+        <text class="s-lbl" x="460" y="132">같은 버퍼에서 인덱스 생성</text>
+      </svg>
+      <figcaption><span class="fignum">FIG 04</span>기하 데이터는 서버에서도 클라이언트에서도 객체로 풀리지 않는다. 압축된 정수 배열이 그대로 GPU에 올라가고, 선택 판정만 같은 배열 위에 R-tree를 씌워 처리한다. JSON을 거쳤다면 20만 객체에서 파싱만 수 초가 걸린다.</figcaption>
+    </figure>
+
+    <div class="tw"><table>
+      <thead><tr><th>기능</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>레이어 제어</td><td>on/off, 색상, 투명도, 단독 보기(solo), 순서 반전. 프리셋 저장.</td></tr>
+        <tr><td>넷 하이라이트</td><td>넷 클릭 → 전 레이어 관통 하이라이트 + 나머지 디밍. 넷 정보 패널 동시 표시.</td></tr>
+        <tr><td>부품 검색</td><td>RefDes 입력 → 즉시 zoom-to-fit + 속성 팝업.</td></tr>
+        <tr><td>측정</td><td>두 점 거리, 두 객체 간 최소 간격(클리어런스).</td></tr>
+        <tr><td>보기 옵션</td><td>Top/Bottom 전환(미러), 90° 회전, 그리드, 커서 좌표(mm/mil 토글), 미니맵.</td></tr>
+        <tr><td>마크업</td><td>좌표에 코멘트 핀. 리뷰 스레드로 연결.</td></tr>
+        <tr><td>딥링크</td><td>뷰 상태(레이어·줌·선택·하이라이트)를 URL에 담아 그대로 공유.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note">
+      <span class="lb">성능 목표</span>
+      <p>8층 20만 객체 보드 기준 — 첫 화면 표시 <strong>2초 이내</strong>, 팬·줌 <strong>60fps</strong>, 레이어 토글 <strong>16ms 이내</strong>. 미달 시 서버 사이드 타일 렌더링을 대안으로 두되, 폐쇄망에서 서버 GPU를 기대하기 어려우므로 클라이언트 WebGL이 1순위다.</p>
+    </div>
+  </section>
+
+  <!-- ════════ 08 ════════ -->
+  <section id="s8">
+    <h2><span class="num">08</span>Diff 엔진</h2>
+    <p class="sub">이 시스템이 파일 서버와 갈라지는 지점. 핵심은 "무엇을 같은 것으로 볼 것인가"다.</p>
+
+    <p>비교의 어려움은 픽셀 비교가 아니라 <strong>매칭</strong>에 있다. 넷 이름이 <code>VDD_1V8</code>에서 <code>VDD_CORE</code>로 바뀌었을 때, 이름만 보면 "넷 하나 삭제 + 넷 하나 추가"로 잡힌다. 그러면 설계자에게는 쓸모없는 노이즈가 된다. 실제로 알고 싶은 것은 <em>회로가 바뀌었는가</em>이지 <em>문자열이 바뀌었는가</em>가 아니다.</p>
+
+    <figure>
+      <svg viewBox="0 0 880 300" role="img" aria-label="Rev A와 Rev B의 항목을 매칭하는 방식. 부품은 RefDes로 매칭해 이동량을 계산하고, 넷은 핀 집합 해시로 매칭해 이름 변경과 실제 회로 변경을 구분한다">
+        <defs>
+          <marker id="a5" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L8 4 L0 8 z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <text class="s-lbl" x="30" y="44" fill="var(--copper)">REV A</text>
+        <text class="s-lbl" x="620" y="44" fill="var(--copper)">REV B</text>
+
+        <rect class="s-box" x="30" y="60" width="230" height="36" rx="3"/>
+        <text class="s-t" x="44" y="83">R12 · 0402 · (10.20, 44.10)</text>
+        <rect class="s-box" x="620" y="60" width="230" height="36" rx="3"/>
+        <text class="s-t" x="634" y="83">R12 · 0402 · (10.20, 47.60)</text>
+
+        <rect class="s-box" x="30" y="116" width="230" height="36" rx="3"/>
+        <text class="s-t" x="44" y="139">U3 · BGA256 · 178핀</text>
+        <rect class="s-box" x="620" y="116" width="230" height="36" rx="3"/>
+        <text class="s-t" x="634" y="139">U3 · BGA256 · 178핀</text>
+
+        <rect class="s-box" x="30" y="172" width="230" height="36" rx="3"/>
+        <text class="s-t" x="44" y="195">net VDD_1V8 · 34핀</text>
+        <rect class="s-box" x="620" y="172" width="230" height="36" rx="3"/>
+        <text class="s-t" x="634" y="195">net VDD_CORE · 34핀</text>
+
+        <rect class="s-box" x="30" y="228" width="230" height="36" rx="3"/>
+        <text class="s-t" x="44" y="251">net CLK_A · 4핀</text>
+        <rect class="s-box" x="620" y="228" width="230" height="36" rx="3"/>
+        <text class="s-t" x="634" y="251">net CLK_A · 5핀</text>
+
+        <g stroke-width="1.1" fill="none" marker-end="url(#a5)">
+          <g color="var(--warn)" stroke="var(--warn)"><line x1="264" y1="78" x2="288" y2="78"/><line x1="592" y1="78" x2="616" y2="78"/></g>
+          <g color="var(--muted)" stroke="var(--line-2)"><line x1="264" y1="134" x2="288" y2="134"/><line x1="592" y1="134" x2="616" y2="134"/></g>
+          <g color="var(--copper)" stroke="var(--copper)"><line x1="264" y1="190" x2="288" y2="190"/><line x1="592" y1="190" x2="616" y2="190"/></g>
+          <g color="var(--crit)" stroke="var(--crit)"><line x1="264" y1="246" x2="288" y2="246"/><line x1="592" y1="246" x2="616" y2="246"/></g>
+        </g>
+
+        <rect x="292" y="64" width="296" height="28" rx="3" fill="none" stroke="var(--warn)"/>
+        <text class="s-t" x="440" y="83" text-anchor="middle" fill="var(--warn)">RefDes 일치 → 3.50 mm 이동</text>
+        <rect x="292" y="120" width="296" height="28" rx="3" fill="none" stroke="var(--line-2)"/>
+        <text class="s-t" x="440" y="139" text-anchor="middle" fill="var(--muted)">동일 — 변경 없음</text>
+        <rect x="292" y="176" width="296" height="28" rx="3" fill="var(--copper-wash)" stroke="var(--copper)"/>
+        <text class="s-t" x="440" y="195" text-anchor="middle" fill="var(--copper)">핀셋 해시 일치 → 이름만 변경</text>
+        <rect x="292" y="232" width="296" height="28" rx="3" fill="none" stroke="var(--crit)"/>
+        <text class="s-t" x="440" y="251" text-anchor="middle" fill="var(--crit)">핀 1개 추가 → 회로 변경</text>
+      </svg>
+      <figcaption><span class="fignum">FIG 05</span>넷을 이름이 아니라 <strong>연결된 핀 집합의 해시</strong>로 매칭하면, 3행처럼 이름만 바뀐 경우와 4행처럼 실제로 연결이 달라진 경우가 분리된다. 설계 리뷰에서 봐야 할 것은 4행 하나뿐이고, 나머지는 접어둘 수 있다.</figcaption>
+    </figure>
+
+    <h3>매칭 규칙</h3>
+    <div class="tw"><table>
+      <thead><tr><th>대상</th><th>1차 키</th><th>2차 키</th><th>판정 결과</th></tr></thead>
+      <tbody>
+        <tr><td>Component</td><td class="k">refdes</td><td class="k">part_number + 좌표 근접</td><td>added / removed / moved / rotated / flipped / replaced</td></tr>
+        <tr><td>Net</td><td class="k">name</td><td class="k">signature (핀셋 해시)</td><td>added / removed / <strong>renamed</strong> / rewired</td></tr>
+        <tr><td>NetPin</td><td class="k">(net, refdes, pin)</td><td>—</td><td>집합 차집합 = 진짜 회로 변경</td></tr>
+        <tr><td>StackupLayer</td><td class="k">index</td><td class="k">role + 두께</td><td>inserted / removed / spec_changed</td></tr>
+        <tr><td>Geometry</td><td class="k">레이어 · 공간 셀 해시</td><td>—</td><td>변경 영역 bbox 목록</td></tr>
+      </tbody>
+    </table></div>
+
+    <p>부품 이동 판정에는 임계값을 둔다. 기본 <strong>10 µm</strong> 미만은 변경으로 보지 않는다 — CAD 재저장만으로도 하위 자릿수는 흔들리기 때문이다. 임계값은 UI에서 조정 가능하게 노출한다.</p>
+
+    <h3>기하 비교</h3>
+    <p>레이어를 격자로 나눠 셀마다 그 안의 객체를 해시한다. 두 리비전에서 해시가 다른 셀만 모아 <strong>변경 영역 목록</strong>을 만든다. 이렇게 하면 "이 리비전에서 실제로 손댄 곳이 어디인가"를 즉시 짚어줄 수 있고, 뷰어는 그 bbox로 자동 이동한다. 전체 픽셀 비교보다 훨씬 싸고, 결과가 좌표라서 UI가 바로 쓸 수 있다.</p>
+
+    <h3>비교 화면</h3>
+    <div class="cards">
+      <div class="card"><h4>Side-by-side</h4><p>두 뷰포트를 잠금 동기화. 팬·줌·레이어 선택이 함께 움직인다.</p></div>
+      <div class="card"><h4>Overlay</h4><p>A만 = 구리색, B만 = 청록색, 공통 = 회색. 배선 변경을 한눈에 본다.</p></div>
+      <div class="card"><h4>Swipe</h4><p>수직 분할선을 드래그. 미세한 위치 변화 확인에 가장 정확하다.</p></div>
+      <div class="card"><h4>Blink</h4><p>일정 주기로 A/B 교차 표시. 잔상으로 차이가 튀어나온다.</p></div>
+    </div>
+    <p>ChangeSet은 <code>(rev_a, rev_b, parser_version)</code> 키로 캐시한다. 자주 보는 조합은 두 번째부터 즉시 뜨고, 파서가 갱신되면 자동 무효화된다. 변경 요약은 PDF·CSV로 내보내 설계 변경 문서에 그대로 붙일 수 있게 한다.</p>
+  </section>
+
+  <!-- ════════ 09 ════════ -->
+  <section id="s9">
+    <h2><span class="num">09</span>검색과 인사이트</h2>
+    <p class="sub">보드가 쌓일수록 가치가 커지는 기능들. 여기서 시스템이 "저장소"에서 "자산"으로 바뀐다.</p>
+
+    <h3>부품 역검색 — 우선순위 최상</h3>
+    <p>"이 파트넘버를 쓰는 보드를 전부 찾아라." 단종(EOL) 공지가 뜰 때마다 설계팀이 수작업으로 하던 일이고, BoardLens에서는 <code>part</code> 마스터 테이블 조인 한 번이다. 결과는 보드 목록 + 각 보드에서의 사용 수량 + 해당 부품 위치로의 딥링크.</p>
+    <p>정확도의 관건은 <strong>파트넘버 정규화</strong>다. 같은 부품이 <code>GRM188R71H104KA93D</code>와 <code>GRM188R71H104KA93</code>로 들어오면 다른 부품이 된다. 인제스트 시 제조사 + MPN 정규화 규칙(공백·하이픈·포장 접미사 제거)을 적용하고, 정규화 규칙은 데이터로 관리해 나중에 고칠 수 있게 한다.</p>
+
+    <h3>유사 보드 찾기</h3>
+    <p>신규 설계 착수 시 "비슷한 걸 전에 만든 적 있나"에 답한다. 층수·면적·부품 밀도·최소 선폭·BGA 최소 피치·비아 종류를 정규화한 가중 거리로 순위를 매긴다. 초기에는 학습 없는 단순 가중 스코어로 충분하고, 가중치는 설정으로 노출한다.</p>
+
+    <h3>포트폴리오 통계</h3>
+    <ul>
+      <li>연도별 신규 리비전 수, 층수 분포, 면적 분포</li>
+      <li>설계 룰 세대 추이 — 최소 선폭·최소 드릴·BGA 피치가 시간에 따라 어떻게 미세화됐는지</li>
+      <li>부품 재사용률 — 여러 보드에 걸쳐 쓰이는 부품의 비율. 표준화 수준을 나타내는 지표</li>
+      <li>복잡도 스코어 — 밀도·층수·핀 수를 합성한 단일 지표로 보드 간 난이도 비교</li>
+    </ul>
+    <p>이 통계 화면들이 흔히 말하는 "대시보드"에 해당하지만, <strong>전체의 한 페이지일 뿐</strong>이다. 시스템의 무게 중심은 카탈로그·뷰어·비교에 있다.</p>
+  </section>
+
+  <!-- ════════ 10 ════════ -->
+  <section id="s10">
+    <h2><span class="num">10</span>권한과 감사</h2>
+    <p class="sub">PCB 설계 데이터는 회사의 핵심 자산이다. 폐쇄망이라는 사실이 접근 통제를 면제해주지 않는다.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>역할</th><th>권한</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Viewer</td><td>허용된 프로젝트의 메타·뷰어·비교 열람. 원본 파일 다운로드 불가.</td></tr>
+        <tr><td class="k">Engineer</td><td>Viewer + 원본 다운로드, 코멘트·마크업 작성.</td></tr>
+        <tr><td class="k">Maintainer</td><td>Engineer + 업로드, 리비전 상태 변경, 재파싱 트리거.</td></tr>
+        <tr><td class="k">Admin</td><td>전체 + 권한 관리, 감사 로그 열람.</td></tr>
+      </tbody>
+    </table></div>
+
+    <p>권한 경계는 <strong>프로젝트</strong>다. 보드 단위 예외는 두지 않는다 — 관리 비용 대비 실효가 없고, 예외가 쌓이면 아무도 현재 상태를 모르게 된다.</p>
+
+    <div class="cards">
+      <div class="card"><h4>인증</h4><p>초기에는 로컬 계정. 사내 AD/LDAP 연동 지점을 <code>AuthProvider</code> 인터페이스로 미리 뚫어둔다.</p></div>
+      <div class="card"><h4>감사 로그</h4><p>원본 다운로드·권한 변경·업로드는 예외 없이 기록. 누가·언제·무엇을·어느 IP에서.</p></div>
+      <div class="card"><h4>워터마크</h4><p>뷰어 화면에 사용자 ID를 옅게 겹쳐 렌더. 화면 촬영 유출에 대한 최소한의 억제책.</p></div>
+    </div>
+  </section>
+
+  <!-- ════════ 11 ════════ -->
+  <section id="s11">
+    <h2><span class="num">11</span>기술 스택과 폐쇄망 배포</h2>
+    <p class="sub">모든 선택의 부가 조건: 인터넷 없는 서버에 설치 가능해야 한다.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>영역</th><th>선택</th><th>이유</th></tr></thead>
+      <tbody>
+        <tr><td>백엔드</td><td class="k">Python 3.12 · FastAPI</td><td>ASCII 파싱과 기하 전처리에 강하고, 타입 힌트 기반 스키마 생성이 CDM 전략과 맞물린다.</td></tr>
+        <tr><td>ORM · 마이그레이션</td><td class="k">SQLAlchemy 2 · Alembic</td><td>파티션 테이블과 대량 <code>COPY</code> 적재를 다룰 수 있는 수준의 제어력.</td></tr>
+        <tr><td>DB</td><td class="k">PostgreSQL 16</td><td>jsonb 집계, 파티셔닝, <code>SKIP LOCKED</code> 잡 큐를 한 엔진에서.</td></tr>
+        <tr><td>프론트</td><td class="k">React 18 · TypeScript · Vite</td><td>표준적이고 오프라인 빌드가 단순하다.</td></tr>
+        <tr><td>뷰어 렌더</td><td class="k">PixiJS v8 (WebGL)</td><td>대량 인스턴싱과 배치 렌더를 직접 제어 가능. Canvas2D는 20만 객체에서 무너진다.</td></tr>
+        <tr><td>히트테스트</td><td class="k">Flatbush</td><td>정적 R-tree. 빌드가 빠르고 typed array 기반이라 .blg와 그대로 맞물린다.</td></tr>
+        <tr><td>테이블 UI</td><td class="k">TanStack Table + Virtual</td><td>부품 2,000행·넷 3,000행을 가상 스크롤로.</td></tr>
+        <tr><td>스타일</td><td class="k">CSS 변수 + CSS Modules</td><td>런타임 의존 없음. 토큰 하나로 테마 전환.</td></tr>
+        <tr><td>서빙</td><td class="k">nginx</td><td>정적 SPA + .blg의 gzip 사전압축 서빙.</td></tr>
+        <tr><td>배포</td><td class="k">Docker Compose</td><td>단일 노드로 충분한 규모. Kubernetes는 과잉.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>폐쇄망 제약 대응</h3>
+    <div class="tw"><table>
+      <thead><tr><th>제약</th><th>대응</th></tr></thead>
+      <tbody>
+        <tr><td>외부 CDN·웹폰트 접근 불가</td><td>폰트·아이콘·라이브러리를 전부 번들에 포함. 빌드 산출물이 외부를 참조하지 않는지 CI에서 검사.</td></tr>
+        <tr><td>PyPI·npm 접근 불가</td><td>사내 미러(Nexus/Verdaccio) 우선. 없으면 <code>pip wheelhouse</code> + <code>npm ci --offline</code> 캐시를 산출물에 동봉.</td></tr>
+        <tr><td>Docker Hub 접근 불가</td><td><code>docker save</code>로 이미지 tar를 만들어 반입, <code>docker load</code>로 설치. 베이스 이미지 버전을 고정 태그로 못박는다.</td></tr>
+        <tr><td>온라인 업데이트 불가</td><td>버전별 오프라인 설치 번들 하나로 배포 (이미지 + 마이그레이션 + 설치 스크립트).</td></tr>
+        <tr><td>외부 인증서 검증 불가</td><td>사내 CA 인증서를 이미지에 주입하는 단계를 배포 스크립트에 포함.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>저장소 구조</h3>
+    <pre><code>pcb_db/
+├─ docs/                     설계 문서
+├─ cdm/                      <span class="h">캐노니컬 모델 — 단일 정의</span>
+│  ├─ schema/cdm.v1.json
+│  └─ codegen/               → Pydantic · TypeScript 생성
+├─ backend/
+│  └─ boardlens/
+│     ├─ api/                FastAPI 라우터
+│     ├─ models/             SQLAlchemy
+│     ├─ parser/             HKP 어댑터 + 골든 픽스처
+│     ├─ ingest/             잡 상태 머신 · 워커
+│     ├─ diff/               매칭 · ChangeSet
+│     └─ geometry/           .blg 패커
+├─ web/
+│  └─ src/{app,features,components,viewer,lib}
+├─ tools/mockgen/            <span class="h">목데이터 생성기</span>
+└─ deploy/                   compose · 오프라인 번들</code></pre>
+  </section>
+
+  <!-- ════════ 12 ════════ -->
+  <section id="s12">
+    <h2><span class="num">12</span>로드맵</h2>
+    <p class="sub">HKP 실물 없이 진행 가능한 구간이 Phase 2까지다. 그 구간을 먼저 다 끝낸다.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>단계</th><th>내용</th><th>HKP 필요</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Phase 0</td><td>CDM v1 확정 · 코드 생성 · 목데이터 생성기 · 웹 셸</td><td><span class="tag t-mute">불필요</span></td></tr>
+        <tr><td class="k">Phase 1</td><td>카탈로그(파셋 검색) · 리비전 상세(Overview·Stackup·Components·Nets·Revisions)</td><td><span class="tag t-mute">불필요</span></td></tr>
+        <tr><td class="k">Phase 2</td><td>2D 뷰어 — 레이어 제어 · 선택 · 넷 하이라이트 · 측정</td><td><span class="tag t-mute">불필요</span></td></tr>
+        <tr><td class="k">Phase 3</td><td>Diff 엔진 + 비교 화면 4모드 + 변경 리포트</td><td><span class="tag t-mute">불필요</span></td></tr>
+        <tr><td class="k">Phase 4</td><td>부품 역검색 · 유사 보드 · 포트폴리오 통계</td><td><span class="tag t-mute">불필요</span></td></tr>
+        <tr><td class="k">Phase 5</td><td><strong>HKP 파서 실장</strong> · 백엔드 연결 · 권한 · 감사 · 오프라인 배포</td><td><span class="tag t-cu">필수</span></td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="note">
+      <span class="lb">이 순서인 이유</span>
+      <p>목데이터를 CDM 규격에 맞춰 생성해두면 Phase 1~4의 모든 화면이 실제 데이터와 동일한 형태를 소비한다. Phase 5에서 파서가 붙는 순간 목데이터 로더를 API 호출로 바꾸는 것 외에 고칠 것이 없다. 반대로 파서를 기다리며 멈춰 있으면 아무것도 진행되지 않는다.</p>
+    </div>
+
+    <h3>Phase 0 작업 목록</h3>
+    <ol>
+      <li><code>cdm/schema/cdm.v1.json</code> — 단위·좌표계 규약을 포함한 전체 스키마</li>
+      <li>코드 생성 스크립트 — 스키마 → Pydantic 모델 + TypeScript 타입</li>
+      <li><code>tools/mockgen</code> — 리비전 계보가 있는 가짜 보드 30장 생성. 부품·넷·핀·스택업·DRC·기하까지 포함하고, 일부는 <em>의도적으로 서로 다른 리비전</em>으로 만들어 Diff 개발에 쓴다</li>
+      <li>웹 셸 — 라우팅, 디자인 토큰, 레이아웃, 목데이터 로더</li>
+      <li>카탈로그 화면 — 파셋 필터 · 테이블/카드 전환 · 정렬 · 가상 스크롤</li>
+      <li>리비전 상세 — Overview · Stackup · Components · Nets · Revisions</li>
+      <li>Viewer · Compare · Insights는 라우트와 자리만 잡아둔다</li>
+    </ol>
+  </section>
+
+  <!-- ════════ 13 ════════ -->
+  <section id="s13">
+    <h2><span class="num">13</span>미해결 항목</h2>
+    <p class="sub">결정이 필요하지만 지금 당장 착수를 막지는 않는 것들.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>항목</th><th>영향</th><th>필요 시점</th></tr></thead>
+      <tbody>
+        <tr><td>HKP에 배선 기하가 포함되는가</td><td><strong>가장 큰 변수.</strong> 미포함이면 뷰어를 메타+거버 기반으로 전환해야 한다.</td><td><span class="tag t-crit">Phase 2 전</span></td></tr>
+        <tr><td>HKP 섹션 문법 · 단위 · 원점 규약</td><td>파서 구현 범위. CDM은 영향 없음.</td><td><span class="tag t-warn">Phase 5</span></td></tr>
+        <tr><td>사내 AD/LDAP 연동 여부</td><td><code>AuthProvider</code> 구현체 1개.</td><td><span class="tag t-warn">Phase 5</span></td></tr>
+        <tr><td>거버·BOM 등 첨부물 동시 관리 범위</td><td>업로드 UI와 스토리지 정책.</td><td><span class="tag t-mute">Phase 1</span></td></tr>
+        <tr><td>3D 뷰 필요성</td><td>별도 대규모 작업. 현 범위 밖으로 둔다.</td><td><span class="tag t-mute">추후</span></td></tr>
+        <tr><td>기존 설계 자산 일괄 이관 규모</td><td>초기 인제스트 배치 설계.</td><td><span class="tag t-mute">Phase 5</span></td></tr>
+      </tbody>
+    </table></div>
+
+    <hr class="rule">
+    <p style="color:var(--muted);font-size:14px">HKP 실물이 확보되는 즉시 §03의 골든 픽스처를 실제 파일로 교체하고, §13의 첫 항목을 확인한다. 그때까지 Phase 0~4는 독립적으로 진행된다.</p>
+  </section>
+
+  </main>
+</div>
+
+<footer class="foot">
+  <span>PCB Design Workbench · BoardLens</span>
+  <span>설계 문서 Rev A · 2026-08-30</span>
+</footer>

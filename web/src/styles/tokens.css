@@ -1,0 +1,180 @@
+/*
+ * 디자인 토큰.
+ *
+ * 색은 전부 여기서만 정의하고 컴포넌트는 var() 로만 쓴다. 다크 모드는 토큰 값만
+ * 바꿔치기하므로 컴포넌트 CSS 에는 테마 분기가 한 줄도 들어가지 않는다.
+ *
+ * 폰트: 폐쇄망에서는 외부 웹폰트를 받을 수 없다. 지금은 시스템 스택으로 두고,
+ * Phase 5 배포 번들에서 woff2 를 src/assets/fonts 에 넣고 @font-face 를 여기 추가한다.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── 표면 ───────────────────────────── */
+  --bg: #eef1f1;
+  --surface: #fbfcfc;
+  --surface-2: #f3f6f6;
+  --surface-3: #e8eded;
+  --overlay: rgba(20, 24, 26, 0.32);
+
+  /* ── 텍스트 ─────────────────────────── */
+  --ink: #14181a;
+  --ink-2: #414a4d;
+  --ink-3: #6c7779;
+  --ink-4: #939d9f;
+
+  /* ── 선 ─────────────────────────────── */
+  --line: #dce2e2;
+  --line-2: #c5cdcd;
+  --line-3: #adb7b7;
+
+  /* ── 강조 (구리 — PCB 의 재료) ───────── */
+  --accent: #a85f2b;
+  --accent-ink: #8a4c20;
+  --accent-wash: #f5e7db;
+  --accent-line: #dfc3a8;
+
+  /* ── 의미색 — 강조색과 별개로 상태만 나타낸다 ── */
+  --ok: #2c6b4a;
+  --ok-wash: #e1efe7;
+  --warn: #8a6010;
+  --warn-wash: #f6ecd8;
+  --crit: #a33a33;
+  --crit-wash: #f7e1df;
+  --info: #15687e;
+  --info-wash: #ddedf1;
+  --neutral-wash: #e8eded;
+
+  /* ── 그림자 ─────────────────────────── */
+
+  /* ── 차트 계열색 ─────────────────────────
+     dataviz 검증기(밝기대·채도·CVD 분리·대비) 6개 항목을 모두 통과한 값이다.
+     바꾸려면 눈으로 고르지 말고 검증기를 다시 돌릴 것. */
+  --series-1: #b4571c;
+  --series-2: #0d8aa8;
+  --chart-grid: #e4e9e9;
+  --chart-axis: #8d9799;
+
+  --shadow-1: 0 1px 2px rgba(20, 24, 26, 0.06);
+  --shadow-2: 0 2px 4px rgba(20, 24, 26, 0.06), 0 12px 28px -18px rgba(20, 24, 26, 0.4);
+  --shadow-pop: 0 6px 16px -4px rgba(20, 24, 26, 0.18), 0 24px 48px -24px rgba(20, 24, 26, 0.4);
+
+  /* ── 타이포 ─────────────────────────── */
+  --font-ui: "Pretendard", "Segoe UI Variable Text", "Segoe UI", system-ui, "Malgun Gothic",
+    "Apple SD Gothic Neo", sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", ui-monospace, monospace;
+
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 17px;
+  --fs-xl: 21px;
+  --fs-2xl: 27px;
+
+  /* ── 간격 ───────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  --r-sm: 2px;
+  --r: 3px;
+  --r-lg: 6px;
+
+  --rail-w: 208px;
+  --facet-w: 244px;
+  --header-h: 52px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0e1213;
+    --surface: #161b1c;
+    --surface-2: #1b2122;
+    --surface-3: #222a2b;
+    --overlay: rgba(0, 0, 0, 0.55);
+
+    --ink: #e6ebeb;
+    --ink-2: #b6c0c1;
+    --ink-3: #8a9597;
+    --ink-4: #6a7476;
+
+    --line: #262d2e;
+    --line-2: #343d3e;
+    --line-3: #475153;
+
+    --accent: #d58b54;
+    --accent-ink: #e8a876;
+    --accent-wash: #2b2018;
+    --accent-line: #48331f;
+
+    --ok: #5fa97f;
+    --ok-wash: #16241d;
+    --warn: #c69a45;
+    --warn-wash: #262014;
+    --crit: #d4736b;
+    --crit-wash: #2a1a19;
+    --info: #4fa8bf;
+    --info-wash: #142326;
+    --neutral-wash: #222a2b;
+
+
+  --series-1: #cf7a2a;
+  --series-2: #1e9cc4;
+  --chart-grid: #232a2b;
+  --chart-axis: #6d7779;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 28px -18px rgba(0, 0, 0, 0.9);
+    --shadow-pop: 0 6px 16px -4px rgba(0, 0, 0, 0.6), 0 24px 48px -24px rgba(0, 0, 0, 0.9);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1213;
+  --surface: #161b1c;
+  --surface-2: #1b2122;
+  --surface-3: #222a2b;
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  --ink: #e6ebeb;
+  --ink-2: #b6c0c1;
+  --ink-3: #8a9597;
+  --ink-4: #6a7476;
+
+  --line: #262d2e;
+  --line-2: #343d3e;
+  --line-3: #475153;
+
+  --accent: #d58b54;
+  --accent-ink: #e8a876;
+  --accent-wash: #2b2018;
+  --accent-line: #48331f;
+
+  --ok: #5fa97f;
+  --ok-wash: #16241d;
+  --warn: #c69a45;
+  --warn-wash: #262014;
+  --crit: #d4736b;
+  --crit-wash: #2a1a19;
+  --info: #4fa8bf;
+  --info-wash: #142326;
+  --neutral-wash: #222a2b;
+
+
+  --series-1: #cf7a2a;
+  --series-2: #1e9cc4;
+  --chart-grid: #232a2b;
+  --chart-axis: #6d7779;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 28px -18px rgba(0, 0, 0, 0.9);
+  --shadow-pop: 0 6px 16px -4px rgba(0, 0, 0, 0.6), 0 24px 48px -24px rgba(0, 0, 0, 0.9);
+}

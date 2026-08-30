@@ -1,0 +1,321 @@
+/* 화면 전체에서 재사용하는 작은 조각들. 색은 전부 토큰에서만 온다. */
+
+/* ── 상태 표시 ─────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px 2px 6px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pill::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.pillReleased {
+  color: var(--ok);
+  background: var(--ok-wash);
+  border-color: color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.pillReview {
+  color: var(--warn);
+  background: var(--warn-wash);
+  border-color: color-mix(in srgb, var(--warn) 24%, transparent);
+}
+.pillDraft {
+  color: var(--ink-3);
+  background: var(--neutral-wash);
+  border-color: var(--line-2);
+}
+.pillObsolete {
+  color: var(--crit);
+  background: var(--crit-wash);
+  border-color: color-mix(in srgb, var(--crit) 22%, transparent);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+.tagAccent {
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.sev {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.sevError {
+  color: var(--crit);
+}
+.sevWarning {
+  color: var(--warn);
+}
+.sevInfo {
+  color: var(--info);
+}
+
+/* ── 수치 타일 ─────────────────────────────── */
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.statLabel {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.statValue {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.statValue small {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-left: 3px;
+  letter-spacing: 0;
+}
+.statHint {
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.statAccent .statValue {
+  color: var(--accent-ink);
+}
+.statCrit .statValue {
+  color: var(--crit);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--stat-cols, 4), minmax(0, 1fr));
+  gap: var(--sp-4) var(--sp-5);
+}
+@media (max-width: 780px) {
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── 라벨/값 목록 ──────────────────────────── */
+.fields {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) 1fr;
+  gap: 7px var(--sp-4);
+  align-items: baseline;
+}
+.fieldLabel {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.fieldValue {
+  font-size: var(--fs-base);
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fieldValue.muted {
+  color: var(--ink-4);
+}
+
+/* ── 패널 ──────────────────────────────────── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  min-width: 0;
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 10px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.panelTitle {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.panelBody {
+  padding: var(--sp-4);
+  min-width: 0;
+}
+.panelBodyFlush {
+  min-width: 0;
+}
+
+/* 표처럼 남은 높이를 다 쓰는 내용을 담을 때. 패널 자체가 flex 컨테이너가 된다. */
+.panelFill {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.panelFill > .panelBody,
+.panelFill > .panelBodyFlush {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 비율 막대 ─────────────────────────────── */
+.bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-3);
+}
+.barSeg {
+  height: 100%;
+}
+.barLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--sp-3);
+  margin-top: 7px;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.barLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.barDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* ── 세그먼트 토글 ─────────────────────────── */
+.segmented {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 2px;
+  gap: 2px;
+}
+.segBtn {
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  padding: 3px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.segBtn:hover {
+  color: var(--ink);
+}
+.segBtnOn {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+  font-weight: 600;
+}
+
+/* ── 상태 블록 ─────────────────────────────── */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7) var(--sp-4);
+  text-align: center;
+  color: var(--ink-3);
+}
+.stateTitle {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.stateBody {
+  font-size: var(--fs-base);
+  max-width: 44ch;
+  line-height: 1.6;
+}
+.stateCrit .stateTitle {
+  color: var(--crit);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── 보드 외형 미리보기 ─────────────────────── */
+/* height 는 컴포넌트가 인라인으로 박는다. height:auto 로 두면 SVG 가 viewBox 종횡비대로
+   늘어나(보드가 세로로 길면 수백 px) 담고 있는 카드를 넘쳐 잘린다. */
+.outline {
+  display: block;
+  width: 100%;
+}
+.outlineFill {
+  fill: var(--accent-wash);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.outlineCut {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+}

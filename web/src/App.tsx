@@ -1,0 +1,36 @@
+import { useState } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { LIVE, token } from "@/lib/api";
+import { LoginPage } from "@/features/auth/LoginPage";
+import { AppShell } from "@/components/AppShell";
+import { CatalogPage } from "@/features/catalog/CatalogPage";
+import { RevisionPage } from "@/features/revision/RevisionPage";
+import { ComparePage } from "@/features/compare/ComparePage";
+import { InsightsPage } from "@/features/insights/InsightsPage";
+import { PartsPage } from "@/features/parts/PartsPage";
+import { EmptyState } from "@/components/ui";
+
+export function App() {
+  // 실서버 모드에서 토큰이 없으면 로그인부터. 목데이터 모드에는 인증 자체가 없다.
+  const [signedIn, setSignedIn] = useState(() => !LIVE || token() !== null);
+  if (!signedIn) return <LoginPage onSignedIn={() => setSignedIn(true)} />;
+
+  return (
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<Navigate to="/boards" replace />} />
+        <Route path="boards" element={<CatalogPage />} />
+        {/* 탭은 경로에 들어간다 — 화면 상태를 그대로 링크로 공유할 수 있어야 한다 */}
+        <Route path="boards/:boardId/:rev" element={<RevisionPage />} />
+        <Route path="boards/:boardId/:rev/:tab" element={<RevisionPage />} />
+        <Route path="compare" element={<ComparePage />} />
+        <Route path="insights" element={<InsightsPage />} />
+        <Route path="parts" element={<PartsPage />} />
+        <Route
+          path="*"
+          element={<EmptyState title="없는 주소입니다" body="좌측 메뉴에서 카탈로그로 돌아가세요." />}
+        />
+      </Route>
+    </Routes>
+  );
+}

@@ -1,0 +1,62 @@
+# BoardLens 온프렘 배포.
+#
+# 단일 노드로 충분한 규모다 (리비전 1,000장 기준 PostgreSQL 약 15 GB, blob 약 40 GB).
+# Kubernetes 는 과잉이고, 폐쇄망에서는 운영 인력이 붙는 미들웨어 하나하나가 비용이다.
+#
+# 이미지는 인터넷에서 받지 않는다. deploy/bundle.sh 로 만든 tar 를 반입해 docker load 한다.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: boardlens
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 를 .env 에 설정하세요}
+      POSTGRES_DB: boardlens
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boardlens"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  core:
+    image: boardlens/core:${BOARDLENS_VERSION:-0.1.0}
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      BOARDLENS_DATABASE_URL: postgresql+psycopg://boardlens:${POSTGRES_PASSWORD}@db:5432/boardlens
+      BOARDLENS_BLOB_ROOT: /var/blobs
+      BOARDLENS_SECRET: ${BOARDLENS_SECRET:?BOARDLENS_SECRET 를 .env 에 설정하세요}
+    volumes:
+      - blobs:/var/blobs
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn boardlens.api.app:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    image: boardlens/core:${BOARDLENS_VERSION:-0.1.0}
+    restart: unless-stopped
+    depends_on:
+      core: { condition: service_started }
+    environment:
+      BOARDLENS_DATABASE_URL: postgresql+psycopg://boardlens:${POSTGRES_PASSWORD}@db:5432/boardlens
+      BOARDLENS_BLOB_ROOT: /var/blobs
+    volumes:
+      - blobs:/var/blobs
+    # 워커를 늘려도 SELECT … FOR UPDATE SKIP LOCKED 덕분에 서로 같은 잡을 붙들지 않는다.
+    command: python -m boardlens worker
+
+  web:
+    image: boardlens/web:${BOARDLENS_VERSION:-0.1.0}
+    restart: unless-stopped
+    depends_on:
+      core: { condition: service_started }
+    ports:
+      - "${BOARDLENS_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  blobs:

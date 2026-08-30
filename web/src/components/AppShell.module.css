@@ -1,0 +1,185 @@
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  grid-template-rows: var(--header-h) minmax(0, 1fr);
+  height: 100%;
+}
+
+/* ── 상단 바 ───────────────────────────────── */
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  width: calc(var(--rail-w) - var(--sp-4));
+  flex: none;
+}
+.brandMark {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.brandSub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--accent);
+  letter-spacing: 0.09em;
+}
+
+.headerSpacer {
+  flex: 1;
+}
+
+.env {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  padding: 3px 8px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  white-space: nowrap;
+}
+.envDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  flex: none;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 14px;
+  flex: none;
+}
+.iconBtn:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+
+/* ── 좌측 레일 ─────────────────────────────── */
+.rail {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: var(--sp-4) var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  overflow-y: auto;
+}
+
+.navGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.navLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 0 var(--sp-3) 6px;
+}
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px var(--sp-3);
+  border-radius: var(--r);
+  font-size: var(--fs-base);
+  color: var(--ink-2);
+  border-left: 2px solid transparent;
+}
+.navItem:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.navItemOn {
+  background: var(--accent-wash);
+  border-left-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.navItemOn:hover {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+.navGlyph {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.8;
+  width: 14px;
+  text-align: center;
+  flex: none;
+}
+.navSoon {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-4);
+  border: 1px solid var(--line-2);
+  border-radius: 2px;
+  padding: 0 4px;
+}
+
+.railFoot {
+  margin-top: auto;
+  padding: var(--sp-3);
+  border-top: 1px dashed var(--line-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--ink-4);
+}
+.railFoot b {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* ── 본문 ──────────────────────────────────── */
+.main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    display: none;
+  }
+  .brand {
+    width: auto;
+  }
+}

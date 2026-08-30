@@ -1,0 +1,629 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "boardlens/api.v1",
+  "title": "BoardLens API v1",
+  "description": "웹이 소비하는 계약. CDM이 '설계 파일 안에 무엇이 있는가'라면 이쪽은 '애플리케이션이 무엇을 돌려주는가'다. 목데이터 로더와 실제 bl-core는 동일하게 이 형태를 내놓는다.",
+  "x-module": "api_v1",
+  "x-version": "1.0.0",
+
+  "$defs": {
+
+    "LifecycleStatus": {
+      "type": "string",
+      "description": "리비전의 승인 단계. 보드의 상태는 최신 리비전의 상태로 파생된다.",
+      "enum": ["draft", "review", "released", "obsolete"]
+    },
+
+    "IngestState": {
+      "type": "string",
+      "description": "인제스트 상태 머신의 현재 위치. ready가 아니면 열람할 수 없다.",
+      "enum": ["uploaded", "parsing", "normalizing", "indexing", "ready", "failed"]
+    },
+
+    "SecurityLevel": {
+      "type": "string",
+      "description": "프로젝트 보안 등급. 다운로드 허용 여부와 워터마크 강도를 좌우한다.",
+      "enum": ["internal", "confidential", "restricted"]
+    },
+
+    "OutlineKind": {
+      "type": "string",
+      "description": "보드 외형 분류. 이형 보드는 제조 단가와 패널화 효율이 달라진다.",
+      "enum": ["rectangular", "shaped"]
+    },
+
+    "Project": {
+      "type": "object",
+      "description": "권한 부여의 기본 경계.",
+      "additionalProperties": false,
+      "required": ["id", "key", "name", "security_level"],
+      "properties": {
+        "id": { "type": "string" },
+        "key": { "type": "string", "description": "URL과 필터에 쓰는 짧은 식별자." },
+        "name": { "type": "string" },
+        "security_level": { "$ref": "#/$defs/SecurityLevel" }
+      }
+    },
+
+    "DesignFileRef": {
+      "type": "object",
+      "description": "업로드된 원본 파일. 불변이며 sha256으로 주소 지정한다.",
+      "additionalProperties": false,
+      "required": ["id", "filename", "sha256", "byte_size", "uploaded_at", "uploaded_by", "storage_key"],
+      "properties": {
+        "id": { "type": "string" },
+        "filename": { "type": "string" },
+        "sha256": { "type": "string" },
+        "byte_size": { "type": "integer" },
+        "uploaded_at": { "type": "string", "description": "ISO-8601." },
+        "uploaded_by": { "type": "string" },
+        "storage_key": { "type": "string" },
+        "kind": { "type": ["string", "null"], "description": "design, gerber, bom, assembly, drc_report 등." }
+      }
+    },
+
+    "RevisionSummary": {
+      "type": "object",
+      "description": "인제스트 시점에 계산해 리비전 행에 박아두는 사전 집계. 카탈로그 파셋과 Overview 화면은 전부 여기만 읽는다 — 사용자가 슬라이더를 움직일 때마다 2,000만 행을 집계하지 않기 위해서다.",
+      "additionalProperties": false,
+      "required": [
+        "layer_count", "signal_layer_count", "plane_layer_count",
+        "width_nm", "height_nm", "area_mm2", "outline_kind", "cutout_count", "board_thickness_nm",
+        "component_count", "component_top_count", "component_bottom_count", "pin_count",
+        "bga_count", "package_counts", "density_per_cm2",
+        "net_count", "total_route_length_nm", "diff_pair_count", "unrouted_count", "power_net_count",
+        "via_total", "via_by_kind", "hole_count",
+        "min_trace_width_nm", "min_clearance_nm", "min_drill_nm",
+        "drc_error_count", "drc_warning_count", "warning_count", "complexity_score"
+      ],
+      "properties": {
+        "layer_count": { "type": "integer", "description": "총 도체층 수." },
+        "signal_layer_count": { "type": "integer" },
+        "plane_layer_count": { "type": "integer" },
+
+        "width_nm": { "type": "integer", "description": "외형 경계 상자 폭." },
+        "height_nm": { "type": "integer", "description": "외형 경계 상자 높이." },
+        "area_mm2": { "type": "number", "description": "실제 폴리곤 면적(컷아웃 제외). 경계 상자 면적과 다르다." },
+        "outline_kind": { "$ref": "#/$defs/OutlineKind" },
+        "cutout_count": { "type": "integer" },
+        "board_thickness_nm": { "type": "integer" },
+
+        "component_count": { "type": "integer" },
+        "component_top_count": { "type": "integer" },
+        "component_bottom_count": { "type": "integer" },
+        "pin_count": { "type": "integer" },
+        "bga_count": { "type": "integer" },
+        "min_bga_pitch_nm": { "type": ["integer", "null"], "description": "BGA가 없으면 null." },
+        "package_counts": {
+          "type": "object",
+          "description": "패키지 타입별 부품 수.",
+          "additionalProperties": { "type": "integer" }
+        },
+        "density_per_cm2": { "type": "number", "description": "부품 배치 밀도." },
+
+        "net_count": { "type": "integer" },
+        "total_route_length_nm": { "type": "integer" },
+        "diff_pair_count": { "type": "integer" },
+        "unrouted_count": { "type": "integer" },
+        "power_net_count": { "type": "integer" },
+
+        "via_total": { "type": "integer" },
+        "via_by_kind": {
+          "type": "object",
+          "description": "비아 종류별 수. 키는 CDM의 ViaKind 값.",
+          "additionalProperties": { "type": "integer" }
+        },
+        "hole_count": { "type": "integer", "description": "드릴 총 수." },
+
+        "min_trace_width_nm": { "type": "integer" },
+        "min_clearance_nm": { "type": "integer" },
+        "min_drill_nm": { "type": "integer" },
+        "max_aspect_ratio": { "type": ["number", "null"] },
+
+        "drc_error_count": { "type": "integer" },
+        "drc_warning_count": { "type": "integer" },
+        "warning_count": { "type": "integer", "description": "인제스트 무결성 경고 건수." },
+        "complexity_score": { "type": "number", "description": "밀도·층수·핀 수·최소 선폭을 합성한 0~100 지표. 보드 간 난이도 비교용." }
+      }
+    },
+
+    "RevisionRef": {
+      "type": "object",
+      "description": "리비전 계보 트리와 비교 대상 선택에 쓰는 가벼운 참조.",
+      "additionalProperties": false,
+      "required": ["id", "label", "status", "created_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "$ref": "#/$defs/LifecycleStatus" },
+        "created_at": { "type": "string" },
+        "parent_revision_id": { "type": ["string", "null"] },
+        "author": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"], "description": "변경 사유 한 줄." }
+      }
+    },
+
+    "Revision": {
+      "type": "object",
+      "description": "특정 시점의 설계 스냅샷. 열람과 비교의 단위이며 실제 데이터는 전부 여기 매달린다.",
+      "additionalProperties": false,
+      "required": [
+        "id", "board_id", "board_key", "board_name", "label", "status", "ingest_state",
+        "created_at", "source_tool", "source_version", "summary"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "board_id": { "type": "string" },
+        "board_key": { "type": "string" },
+        "board_name": { "type": "string", "description": "보드의 사람이 읽는 이름. 계보 전체에 공통이지만 상세 화면이 매번 보드를 따로 조회하지 않도록 함께 싣는다." },
+        "label": { "type": "string" },
+        "parent_revision_id": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/LifecycleStatus" },
+        "ingest_state": { "$ref": "#/$defs/IngestState" },
+        "ingest_error": { "type": ["string", "null"], "description": "failed 상태일 때의 원인과 원본 라인 번호." },
+        "author": { "type": ["string", "null"] },
+        "designed_at": { "type": ["string", "null"] },
+        "created_at": { "type": "string", "description": "업로드 시점." },
+        "note": { "type": ["string", "null"] },
+        "source_tool": { "type": "string" },
+        "source_version": { "type": "string" },
+        "parser_version": { "type": ["string", "null"] },
+        "thumbnail_url": { "type": ["string", "null"] },
+        "summary": { "$ref": "#/$defs/RevisionSummary" }
+      }
+    },
+
+    "Board": {
+      "type": "object",
+      "description": "설계 계보. 리비전이 바뀌어도 유지되는 논리적 정체성.",
+      "additionalProperties": false,
+      "required": [
+        "id", "project_key", "board_key", "name", "status", "source_tool",
+        "tags", "revision_count", "latest_revision_id", "latest_revision_label",
+        "created_at", "updated_at", "summary"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "project_key": { "type": "string" },
+        "board_key": { "type": "string", "description": "URL 식별자." },
+        "name": { "type": "string" },
+        "part_number": { "type": ["string", "null"] },
+        "product_family": { "type": ["string", "null"] },
+        "owner": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/LifecycleStatus" },
+        "source_tool": { "type": "string", "description": "최신 리비전의 CAD 툴. 카탈로그 파셋이라 보드 행에 비정규화해 둔다." },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "revision_count": { "type": "integer" },
+        "latest_revision_id": { "type": "string" },
+        "latest_revision_label": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "thumbnail_url": { "type": ["string", "null"] },
+        "outline": {
+          "type": "array",
+          "description": "최신 리비전의 외형 폴리곤. 카탈로그 카드가 보드 생김새를 바로 보여줄 수 있게 목록 응답에 함께 싣는다 — 폴리곤 하나에 좌표 몇 개뿐이라 비용이 거의 없다.",
+          "items": { "$ref": "cdm.v1.json#/$defs/Polygon" }
+        },
+        "summary": {
+          "$ref": "#/$defs/RevisionSummary",
+          "description": "최신 리비전의 요약. 카탈로그 목록과 파셋 필터가 읽는 값."
+        }
+      }
+    },
+
+    "RangeFacet": {
+      "type": "object",
+      "description": "숫자 파셋의 현재 데이터 범위. 슬라이더 경계를 서버가 알려준다.",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    },
+
+    "CatalogFacets": {
+      "type": "object",
+      "description": "현재 필터 조건에서 가능한 선택지와 각 선택지의 결과 수. 값이 0인 선택지는 UI에서 비활성으로 보인다.",
+      "additionalProperties": false,
+      "required": ["product_family", "status", "owner", "source_tool", "tags", "layer_count", "area_mm2", "component_count", "min_trace_width_nm"],
+      "properties": {
+        "product_family": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "status": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "owner": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "source_tool": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "tags": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "layer_count": { "$ref": "#/$defs/RangeFacet" },
+        "area_mm2": { "$ref": "#/$defs/RangeFacet" },
+        "component_count": { "$ref": "#/$defs/RangeFacet" },
+        "min_trace_width_nm": { "$ref": "#/$defs/RangeFacet" }
+      }
+    },
+
+    "BoardPage": {
+      "type": "object",
+      "description": "카탈로그 한 페이지.",
+      "additionalProperties": false,
+      "required": ["items", "total", "offset", "limit", "facets"],
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Board" } },
+        "total": { "type": "integer" },
+        "offset": { "type": "integer" },
+        "limit": { "type": "integer" },
+        "facets": { "$ref": "#/$defs/CatalogFacets" }
+      }
+    },
+
+    "ComponentRow": {
+      "type": "object",
+      "description": "부품 테이블의 한 행. CDM Component에서 핀 배열을 뺀 형태로, 2,000행 가상 스크롤에 맞춰 가볍게 유지한다.",
+      "additionalProperties": false,
+      "required": ["refdes", "package", "x_nm", "y_nm", "rotation_mdeg", "side", "pin_count"],
+      "properties": {
+        "refdes": { "type": "string" },
+        "part_number": { "type": ["string", "null"] },
+        "manufacturer": { "type": ["string", "null"] },
+        "value": { "type": ["string", "null"] },
+        "package": { "type": "string" },
+        "x_nm": { "type": "integer" },
+        "y_nm": { "type": "integer" },
+        "rotation_mdeg": { "type": "integer" },
+        "side": { "type": "string", "description": "top 또는 bottom." },
+        "pin_count": { "type": "integer" },
+        "pin_pitch_nm": { "type": ["integer", "null"] }
+      }
+    },
+
+    "NetRow": {
+      "type": "object",
+      "description": "넷 테이블의 한 행.",
+      "additionalProperties": false,
+      "required": ["name", "pin_count", "length_nm", "via_count", "unrouted"],
+      "properties": {
+        "name": { "type": "string" },
+        "net_class": { "type": ["string", "null"] },
+        "diff_partner": { "type": ["string", "null"] },
+        "pin_count": { "type": "integer" },
+        "length_nm": { "type": "integer" },
+        "via_count": { "type": "integer" },
+        "width_nm": { "type": ["integer", "null"] },
+        "unrouted": { "type": "boolean" },
+        "layer_span": { "type": "array", "description": "이 넷이 지나는 층 인덱스 목록.", "items": { "type": "integer" } }
+      }
+    },
+
+    "RevisionDetail": {
+      "type": "object",
+      "description": "리비전 상세 화면 한 벌. 적층·설계룰·비아·드릴 같은 설계 내용은 CDM 타입을 그대로 쓴다 — 표현만을 위해 같은 모양을 다시 정의하면 두 정의가 어긋나기 시작한다.",
+      "additionalProperties": false,
+      "required": [
+        "revision", "special_processes", "outline", "stackup", "design_rules",
+        "vias", "drills", "components", "nets", "files", "lineage"
+      ],
+      "properties": {
+        "revision": { "$ref": "#/$defs/Revision" },
+        "part_number": { "type": ["string", "null"] },
+        "project_key": { "type": ["string", "null"] },
+        "product_family": { "type": ["string", "null"] },
+        "surface_finish": { "type": ["string", "null"] },
+        "special_processes": { "type": "array", "items": { "type": "string" } },
+        "outline": {
+          "type": "array",
+          "description": "보드 외형 폴리곤. Overview의 형상 미리보기와 뷰어 초기 뷰포트가 쓴다.",
+          "items": { "$ref": "cdm.v1.json#/$defs/Polygon" }
+        },
+        "stackup": { "type": "array", "items": { "$ref": "cdm.v1.json#/$defs/StackupLayer" } },
+        "design_rules": { "$ref": "cdm.v1.json#/$defs/DesignRules" },
+        "vias": { "type": "array", "items": { "$ref": "cdm.v1.json#/$defs/ViaSpec" } },
+        "drills": { "type": "array", "items": { "$ref": "cdm.v1.json#/$defs/DrillEntry" } },
+        "drc_findings": { "type": "array", "items": { "$ref": "cdm.v1.json#/$defs/DrcFinding" } },
+        "warnings": { "type": "array", "items": { "$ref": "cdm.v1.json#/$defs/IngestWarning" } },
+        "layer_geometry": { "type": "array", "items": { "$ref": "cdm.v1.json#/$defs/LayerGeometryRef" } },
+        "components": { "type": "array", "items": { "$ref": "#/$defs/ComponentRow" } },
+        "nets": { "type": "array", "items": { "$ref": "#/$defs/NetRow" } },
+        "files": { "type": "array", "items": { "$ref": "#/$defs/DesignFileRef" } },
+        "lineage": {
+          "type": "array",
+          "description": "같은 보드의 전체 리비전 목록. 계보 트리와 비교 대상 선택에 쓴다.",
+          "items": { "$ref": "#/$defs/RevisionRef" }
+        }
+      }
+    },
+
+    "ChangeKind": {
+      "type": "string",
+      "description": "Diff 판정 결과. renamed는 넷 이름만 바뀐 경우로 rewired(실제 회로 변경)와 구분된다.",
+      "enum": ["added", "removed", "moved", "rotated", "flipped", "replaced", "renamed", "rewired", "spec_changed", "inserted"]
+    },
+
+    "ComponentSnapshot": {
+      "type": "object",
+      "description": "부품 변경 전후 상태.",
+      "additionalProperties": false,
+      "required": ["x_nm", "y_nm", "rotation_mdeg", "side", "package"],
+      "properties": {
+        "x_nm": { "type": "integer" },
+        "y_nm": { "type": "integer" },
+        "rotation_mdeg": { "type": "integer" },
+        "side": { "type": "string" },
+        "package": { "type": "string" },
+        "part_number": { "type": ["string", "null"] }
+      }
+    },
+
+    "ComponentChange": {
+      "type": "object",
+      "description": "부품 하나의 변경. RefDes로 매칭한 뒤 무엇이 달라졌는지 판정한다.",
+      "additionalProperties": false,
+      "required": ["refdes", "kind"],
+      "properties": {
+        "refdes": { "type": "string" },
+        "kind": { "$ref": "#/$defs/ChangeKind" },
+        "before": { "$ref": "#/$defs/ComponentSnapshot" },
+        "after": { "$ref": "#/$defs/ComponentSnapshot" },
+        "distance_nm": { "type": ["integer", "null"], "description": "이동 거리. 임계값(기본 10µm) 미만은 변경으로 보지 않는다." },
+        "rotation_delta_mdeg": { "type": ["integer", "null"] }
+      }
+    },
+
+    "NetChange": {
+      "type": "object",
+      "description": "넷 하나의 변경. 이름이 아니라 핀 집합 해시로 매칭하므로, 이름만 바뀐 넷과 회로가 바뀐 넷이 분리된다.",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/ChangeKind" },
+        "name_a": { "type": ["string", "null"] },
+        "name_b": { "type": ["string", "null"] },
+        "pins_added": { "type": "array", "description": "refdes.pin 표기.", "items": { "type": "string" } },
+        "pins_removed": { "type": "array", "items": { "type": "string" } },
+        "length_delta_nm": { "type": ["integer", "null"] }
+      }
+    },
+
+    "FieldChange": {
+      "type": "object",
+      "description": "헤더·설계룰·스택업의 단일 값 변경. 값은 표시용 문자열로 정규화해 담는다.",
+      "additionalProperties": false,
+      "required": ["path", "label", "before", "after"],
+      "properties": {
+        "path": { "type": "string", "description": "header.board_thickness_nm 등." },
+        "label": { "type": "string", "description": "사람이 읽는 항목명." },
+        "before": { "type": "string" },
+        "after": { "type": "string" }
+      }
+    },
+
+    "StackupChange": {
+      "type": "object",
+      "description": "적층 구조 변경.",
+      "additionalProperties": false,
+      "required": ["index", "kind"],
+      "properties": {
+        "index": { "type": "integer" },
+        "kind": { "$ref": "#/$defs/ChangeKind" },
+        "layer_name": { "type": ["string", "null"] },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/FieldChange" } }
+      }
+    },
+
+    "GeometryRegion": {
+      "type": "object",
+      "description": "기하가 실제로 달라진 영역. 층을 격자로 나눠 셀 해시를 비교해 얻는다. 결과가 좌표라서 뷰어가 바로 그 위치로 이동할 수 있다.",
+      "additionalProperties": false,
+      "required": ["layer_index", "x0_nm", "y0_nm", "x1_nm", "y1_nm", "changed_object_count"],
+      "properties": {
+        "layer_index": { "type": "integer" },
+        "x0_nm": { "type": "integer" },
+        "y0_nm": { "type": "integer" },
+        "x1_nm": { "type": "integer" },
+        "y1_nm": { "type": "integer" },
+        "changed_object_count": { "type": "integer" }
+      }
+    },
+
+    "ChangeStats": {
+      "type": "object",
+      "description": "변경 요약 수치. 비교 화면 상단과 내보내기 리포트 첫 장에 쓴다.",
+      "additionalProperties": false,
+      "required": [
+        "components_added", "components_removed", "components_moved", "components_replaced",
+        "nets_added", "nets_removed", "nets_renamed", "nets_rewired",
+        "pins_added", "pins_removed", "layers_changed", "geometry_regions"
+      ],
+      "properties": {
+        "components_added": { "type": "integer" },
+        "components_removed": { "type": "integer" },
+        "components_moved": { "type": "integer" },
+        "components_replaced": { "type": "integer" },
+        "nets_added": { "type": "integer" },
+        "nets_removed": { "type": "integer" },
+        "nets_renamed": { "type": "integer" },
+        "nets_rewired": { "type": "integer" },
+        "pins_added": { "type": "integer" },
+        "pins_removed": { "type": "integer" },
+        "layers_changed": { "type": "integer" },
+        "geometry_regions": { "type": "integer" }
+      }
+    },
+
+    "ChangeSet": {
+      "type": "object",
+      "description": "두 리비전 비교 결과. (rev_a, rev_b, parser_version) 키로 캐시하며 파서가 갱신되면 자동 무효화된다.",
+      "additionalProperties": false,
+      "required": ["revision_a_id", "revision_b_id", "generated_at", "move_threshold_nm", "stats"],
+      "properties": {
+        "revision_a_id": { "type": "string" },
+        "revision_b_id": { "type": "string" },
+        "generated_at": { "type": "string" },
+        "parser_version": { "type": ["string", "null"] },
+        "move_threshold_nm": { "type": "integer", "description": "이 값 미만의 이동은 변경으로 판정하지 않는다. CAD 재저장만으로도 하위 자릿수는 흔들리기 때문이다." },
+        "stats": { "$ref": "#/$defs/ChangeStats" },
+        "header_changes": { "type": "array", "items": { "$ref": "#/$defs/FieldChange" } },
+        "rule_changes": { "type": "array", "items": { "$ref": "#/$defs/FieldChange" } },
+        "component_changes": { "type": "array", "items": { "$ref": "#/$defs/ComponentChange" } },
+        "net_changes": { "type": "array", "items": { "$ref": "#/$defs/NetChange" } },
+        "stackup_changes": { "type": "array", "items": { "$ref": "#/$defs/StackupChange" } },
+        "geometry_regions": { "type": "array", "items": { "$ref": "#/$defs/GeometryRegion" } }
+      }
+    },
+
+    "ChangeSetKind": {
+      "type": "string",
+      "description": "비교의 성격. revision 은 같은 보드의 리비전 간, generation 은 같은 계열의 다음 세대 보드와의 벤치마킹.",
+      "enum": ["revision", "generation"]
+    },
+
+    "ChangeSetRef": {
+      "type": "object",
+      "description": "미리 계산되어 캐시된 ChangeSet 하나. 목록에서 변경 규모를 먼저 보여주고 실제 상세는 눌렀을 때 받는다.",
+      "additionalProperties": false,
+      "required": [
+        "revision_a_id", "revision_b_id", "board_key", "board_name",
+        "label_a", "label_b", "kind", "generated_at", "stats"
+      ],
+      "properties": {
+        "revision_a_id": { "type": "string" },
+        "revision_b_id": { "type": "string" },
+        "board_key": { "type": "string" },
+        "board_name": { "type": "string" },
+        "board_key_b": { "type": ["string", "null"], "description": "generation 비교에서 B 쪽 보드가 다를 때만 채운다." },
+        "label_a": { "type": "string" },
+        "label_b": { "type": "string" },
+        "kind": { "$ref": "#/$defs/ChangeSetKind" },
+        "generated_at": { "type": "string" },
+        "stats": { "$ref": "#/$defs/ChangeStats" }
+      }
+    },
+
+    "ChangeSetIndex": {
+      "type": "object",
+      "description": "캐시되어 있는 비교 목록. 실제 API에서는 임의의 두 리비전을 요청 시점에 계산하고 그 결과를 캐시하므로, 이 목록은 '이미 계산된 것'을 뜻한다.",
+      "additionalProperties": false,
+      "required": ["pairs", "move_threshold_nm"],
+      "properties": {
+        "pairs": { "type": "array", "items": { "$ref": "#/$defs/ChangeSetRef" } },
+        "move_threshold_nm": { "type": "integer", "description": "이 목록을 계산할 때 쓴 이동 임계값. 화면에서는 이 값 이상으로만 올려 거를 수 있다." }
+      }
+    },
+
+    "PartUsage": {
+      "type": "object",
+      "description": "부품 역검색 결과의 한 행. 단종 공지가 뜰 때마다 설계팀이 수작업으로 하던 일을 조인 한 번으로 대체한다.",
+      "additionalProperties": false,
+      "required": ["board_key", "board_name", "revision_label", "revision_id", "quantity", "refdes_list"],
+      "properties": {
+        "board_key": { "type": "string" },
+        "board_name": { "type": "string" },
+        "revision_label": { "type": "string" },
+        "revision_id": { "type": "string" },
+        "status": { "type": ["string", "null"] },
+        "quantity": { "type": "integer" },
+        "refdes_list": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "YearCount": {
+      "type": "object",
+      "description": "연도별 등록 건수.",
+      "additionalProperties": false,
+      "required": ["year", "revisions", "boards"],
+      "properties": {
+        "year": { "type": "integer" },
+        "revisions": { "type": "integer" },
+        "boards": { "type": "integer", "description": "그 해에 처음 등록된 보드 수." }
+      }
+    },
+
+    "Bucket": {
+      "type": "object",
+      "description": "히스토그램 한 칸.",
+      "additionalProperties": false,
+      "required": ["label", "count"],
+      "properties": {
+        "label": { "type": "string" },
+        "count": { "type": "integer" }
+      }
+    },
+
+    "RuleTrendPoint": {
+      "type": "object",
+      "description": "설계 룰의 연도별 중앙값. 세대가 지나며 얼마나 미세화됐는지를 본다.",
+      "additionalProperties": false,
+      "required": ["year", "samples", "min_trace_width_nm", "min_drill_nm"],
+      "properties": {
+        "year": { "type": "integer" },
+        "samples": { "type": "integer", "description": "그 해 리비전 수. 표본이 적은 해는 화면에서 흐리게 둔다." },
+        "min_trace_width_nm": { "type": "integer" },
+        "min_drill_nm": { "type": "integer" },
+        "min_bga_pitch_nm": { "type": ["integer", "null"] }
+      }
+    },
+
+    "PortfolioStats": {
+      "type": "object",
+      "description": "포트폴리오 전체 통계. 보드가 쌓일수록 의미가 생기는 값들이라 인제스트 때가 아니라 조회 시점에 집계한다.",
+      "additionalProperties": false,
+      "required": [
+        "generated_at", "board_count", "revision_count", "component_total", "net_total",
+        "part_count", "reused_part_count", "reuse_ratio",
+        "by_year", "layer_histogram", "area_buckets", "complexity_buckets", "rule_trend", "top_parts"
+      ],
+      "properties": {
+        "generated_at": { "type": "string" },
+        "board_count": { "type": "integer" },
+        "revision_count": { "type": "integer" },
+        "component_total": { "type": "integer" },
+        "net_total": { "type": "integer" },
+        "part_count": { "type": "integer", "description": "정규화된 고유 부품 수." },
+        "reused_part_count": { "type": "integer", "description": "두 개 이상의 보드에 쓰인 부품 수." },
+        "reuse_ratio": { "type": "number", "description": "재사용 부품 비율 0~1. 설계 표준화 수준의 대리 지표." },
+        "by_year": { "type": "array", "items": { "$ref": "#/$defs/YearCount" } },
+        "layer_histogram": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "area_buckets": { "type": "array", "items": { "$ref": "#/$defs/Bucket" } },
+        "complexity_buckets": { "type": "array", "items": { "$ref": "#/$defs/Bucket" } },
+        "rule_trend": { "type": "array", "items": { "$ref": "#/$defs/RuleTrendPoint" } },
+        "top_parts": { "type": "array", "items": { "$ref": "#/$defs/Part" } }
+      }
+    },
+
+    "PartIndex": {
+      "type": "object",
+      "description": "부품 마스터 전체. 역검색 화면이 먼저 받는 목록이다.",
+      "additionalProperties": false,
+      "required": ["generated_at", "parts"],
+      "properties": {
+        "generated_at": { "type": "string" },
+        "parts": { "type": "array", "items": { "$ref": "#/$defs/Part" } }
+      }
+    },
+
+    "PartDetail": {
+      "type": "object",
+      "description": "부품 하나와 그 사용처 전부. 단종 공지가 떴을 때 보는 화면.",
+      "additionalProperties": false,
+      "required": ["part", "usages"],
+      "properties": {
+        "part": { "$ref": "#/$defs/Part" },
+        "usages": { "type": "array", "items": { "$ref": "#/$defs/PartUsage" } }
+      }
+    },
+
+    "Part": {
+      "type": "object",
+      "description": "리비전과 무관한 부품 마스터. 정규화된 MPN이 축이며, 정규화 실패는 곧 역검색 누락이다.",
+      "additionalProperties": false,
+      "required": ["id", "mpn_normalized", "mpn_display", "board_count", "total_quantity"],
+      "properties": {
+        "id": { "type": "string" },
+        "manufacturer": { "type": ["string", "null"] },
+        "mpn_normalized": { "type": "string", "description": "공백·하이픈·포장 접미사를 제거한 정규형." },
+        "mpn_display": { "type": "string", "description": "원본 표기." },
+        "description": { "type": ["string", "null"] },
+        "lifecycle": { "type": ["string", "null"], "description": "active, nrnd, eol 등." },
+        "board_count": { "type": "integer", "description": "이 부품을 쓰는 보드 수." },
+        "total_quantity": { "type": "integer" }
+      }
+    }
+  }
+}

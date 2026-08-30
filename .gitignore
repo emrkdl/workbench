@@ -1,0 +1,15 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+
+# 생성물 — cdm/codegen 과 tools/mockgen 으로 언제든 다시 만든다
+web/public/mock/
+backend/boardlens/parser/fixtures/
+*.tsbuildinfo
+
+# 폐쇄망 반입 번들
+dist/
+wheelhouse/
+var/

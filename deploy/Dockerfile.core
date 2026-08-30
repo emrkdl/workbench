@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+# 폐쇄망: 휠은 반입한 wheelhouse 에서만 설치한다. 인터넷을 보지 않는다.
+COPY wheelhouse /wheelhouse
+COPY backend/pyproject.toml /app/pyproject.toml
+RUN pip install --no-index --find-links=/wheelhouse . && rm -rf /wheelhouse
+
+COPY backend/ /app/
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8000
+CMD ["uvicorn", "boardlens.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,394 @@
+.page {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+/* ── 헤더 ──────────────────────────────────── */
+.head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.pairLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-md);
+}
+.side {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--r);
+  border: 1px solid;
+  white-space: nowrap;
+}
+/* A/B 를 색으로 못박는다. 표와 지도에서 같은 색이 반복되므로 어느 쪽인지 매번 읽지 않아도 된다. */
+.sideA {
+  color: var(--accent-ink);
+  background: var(--accent-wash);
+  border-color: var(--accent-line);
+}
+.sideB {
+  color: var(--info);
+  background: var(--info-wash);
+  border-color: color-mix(in srgb, var(--info) 30%, transparent);
+}
+.arrow {
+  color: var(--ink-4);
+}
+.headSpacer {
+  flex: 1;
+}
+
+.threshold {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.threshold input[type="range"] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+.thresholdValue {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  min-width: 52px;
+  text-align: right;
+}
+
+/* ── 좌측: 캐시된 비교 목록 ─────────────────── */
+.picker {
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: var(--sp-6);
+}
+.pickerGroup {
+  border-bottom: 1px solid var(--line);
+}
+.pickerLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 9px var(--sp-4) 5px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.pickerBoard {
+  padding: 8px var(--sp-4) 4px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pickerItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 6px var(--sp-4) 8px;
+  border-left: 2px solid transparent;
+}
+.pickerItem:hover {
+  background: var(--surface-2);
+}
+.pickerItemOn {
+  background: var(--accent-wash);
+  border-left-color: var(--accent);
+}
+.pickerItemOn:hover {
+  background: var(--accent-wash);
+}
+.pickerPair {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: var(--fs-base);
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+/* 세대 비교는 라벨에 보드 코드까지 들어가 280px 를 넘는다. 목록 안에서는 한 단계 줄인다. */
+.pickerPair .side {
+  font-size: var(--fs-xs);
+  padding: 2px 6px;
+}
+.pickerMag {
+  display: flex;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--surface-3);
+  margin-top: 5px;
+}
+.pickerMagSeg {
+  height: 100%;
+}
+.pickerCounts {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 본문 ──────────────────────────────────── */
+.body {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  flex: none;
+}
+.tab {
+  border: 0;
+  background: transparent;
+  padding: 8px var(--sp-3) 9px;
+  font-size: var(--fs-base);
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tabOn {
+  color: var(--accent-ink);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.tabCount {
+  margin-left: 5px;
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll {
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-5) var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-height: 0;
+}
+.tableHost {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.twoUp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+/* ── 변경 지도 ─────────────────────────────── */
+.map {
+  display: block;
+  width: 100%;
+  background: var(--surface-2);
+  border-radius: var(--r);
+}
+.mapOutline {
+  fill: none;
+  stroke: var(--line-3);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.mapLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin-top: var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.mapLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.mapDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* ── 좌우 대비 표 ──────────────────────────── */
+.fieldDiff {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) 18px minmax(0, 1fr);
+  gap: 7px var(--sp-3);
+  align-items: baseline;
+  font-size: var(--fs-base);
+}
+.fdLabel {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.fdBefore {
+  color: var(--ink-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.fdArrow {
+  color: var(--ink-4);
+  text-align: center;
+}
+.fdAfter {
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* ── 변경 종류 배지 ────────────────────────── */
+.kind {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.kAdded {
+  color: var(--ok);
+}
+.kRemoved {
+  color: var(--crit);
+}
+.kMoved {
+  color: var(--warn);
+}
+.kRotated,
+.kFlipped {
+  color: var(--info);
+}
+.kReplaced {
+  color: var(--accent-ink);
+}
+.kRenamed {
+  color: var(--ink-3);
+}
+.kRewired {
+  color: var(--crit);
+}
+.kSpec,
+.kInserted {
+  color: var(--info);
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.filterChip {
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  border-radius: var(--r);
+  padding: 2px 9px;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.filterChip:hover:not(:disabled) {
+  color: var(--ink);
+}
+.filterChipOn {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.filterChip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pins {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.pinAdd,
+.pinDel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  padding: 0 5px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.pinAdd {
+  color: var(--ok);
+  background: var(--ok-wash);
+}
+.pinDel {
+  color: var(--crit);
+  background: var(--crit-wash);
+  text-decoration: line-through;
+}
+
+.hint {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  line-height: 1.65;
+  max-width: 66ch;
+}
+.hint b {
+  color: var(--ink-2);
+}
+
+@media (max-width: 1100px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .picker {
+    display: none;
+  }
+  .twoUp {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

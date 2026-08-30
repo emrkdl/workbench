@@ -1,0 +1,235 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  flex: none;
+}
+.title {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.sub {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+
+.body {
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--sp-4) var(--sp-5) var(--sp-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  max-width: 1280px;
+  width: 100%;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.note {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  line-height: 1.65;
+  max-width: 68ch;
+  margin-top: var(--sp-3);
+}
+.note b {
+  color: var(--ink-2);
+}
+
+/* ── 부품 순위 ─────────────────────────────── */
+.topParts {
+  display: flex;
+  flex-direction: column;
+}
+.topPart {
+  display: grid;
+  grid-template-columns: 26px 150px minmax(0, 1fr) 130px 68px 84px;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 7px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-base);
+}
+.topPart:last-child {
+  border-bottom: 0;
+}
+.topPart:hover {
+  background: var(--surface-2);
+}
+.rank {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mpn {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.maker {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--series-1);
+  border-radius: 3px;
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+/* ── 유사 보드 ─────────────────────────────── */
+.similarHead {
+  display: flex;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.pick {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+.pick select {
+  padding: 5px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  font-size: var(--fs-base);
+  max-width: 320px;
+}
+.weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 4px var(--sp-4);
+  flex: 1;
+  min-width: 260px;
+}
+.weight {
+  display: grid;
+  grid-template-columns: 68px 1fr 28px;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+.weight input {
+  accent-color: var(--accent);
+  width: 100%;
+}
+.weight b {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  font-weight: 500;
+  text-align: right;
+}
+.reset {
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: var(--r);
+  padding: 3px 9px;
+  font-size: var(--fs-sm);
+}
+.reset:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent-line);
+}
+
+.similarList {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+.similarRow {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto minmax(0, 320px);
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-base);
+}
+.similarRow:hover {
+  background: var(--surface-2);
+}
+.score {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--fs-md);
+  color: var(--accent-ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.similarName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+.similarName b {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  margin-right: 6px;
+}
+.gaps {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-size: 10px;
+  color: var(--ink-4);
+}
+.gaps span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+/* 축별 일치도를 점 하나로 — 진할수록 그 축이 비슷하다 */
+.gaps i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--series-2);
+}
