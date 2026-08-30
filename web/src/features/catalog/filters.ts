@@ -116,12 +116,11 @@ export function liveFacets(boards: Board[], f: CatalogFilters): LiveFacets {
 
 /* ── 정렬 ─────────────────────────────────── */
 
-export type SortKey = "updated" | "name" | "complexity" | "components" | "area" | "layers";
+export type SortKey = "updated" | "name" | "components" | "area" | "layers";
 
 export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "updated", label: "최근 갱신순" },
   { value: "name", label: "보드 코드순" },
-  { value: "complexity", label: "복잡도순" },
   { value: "components", label: "부품 수순" },
   { value: "area", label: "면적순" },
   { value: "layers", label: "층수순" },
@@ -130,7 +129,6 @@ export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 const COMPARATORS: Record<SortKey, (a: Board, b: Board) => number> = {
   updated: (a, b) => b.updated_at.localeCompare(a.updated_at),
   name: (a, b) => a.board_key.localeCompare(b.board_key),
-  complexity: (a, b) => b.summary.complexity_score - a.summary.complexity_score,
   components: (a, b) => b.summary.component_count - a.summary.component_count,
   area: (a, b) => b.summary.area_mm2 - a.summary.area_mm2,
   layers: (a, b) => b.summary.layer_count - a.summary.layer_count,

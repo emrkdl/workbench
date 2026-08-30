@@ -1,3 +1,4 @@
+import type React from "react";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCatalog } from "@/lib/api";
@@ -22,7 +23,62 @@ import s from "./catalog.module.css";
 
 type View = "table" | "cards";
 
-function columns(): Column<Board>[] {
+/**
+ * 제품군 라벨.
+ *
+ * 글자만 있으면 30줄짜리 표에서 같은 계열끼리 묶여 보이지 않는다. 색을 입히면 훑는 눈이
+ * 먼저 덩어리를 잡는다.
+ *
+ * 색은 카탈로그 전체의 제품군을 이름순으로 세워 배정한다. 걸러낸 목록이 아니라 전체에서
+ * 뽑으므로 필터를 걸어도 색이 바뀌지 않는다. 새 제품군이 하나 생기면 그 뒤 색이 한 칸씩
+ * 밀리는데, 색은 알아보기 위한 보조 표시이지 데이터가 아니므로 그 정도는 감수한다.
+ */
+function FamilyTag({ family, hue }: { family?: string | null; hue: Map<string, number> }) {
+  if (!family) return <span className={s.muted}>—</span>;
+  return (
+    <span className={s.familyTag} style={{ "--cat-h": hue.get(family) ?? 0 } as React.CSSProperties}>
+      {family}
+    </span>
+  );
+}
+
+/** 비아 종류 — 뷰어와 같은 색을 쓴다. 두 화면을 오가는 사람이 색을 다시 배우지 않도록. */
+const VIA_LABEL: Record<string, string> = {
+  through: "관통",
+  blind: "블라인드",
+  buried: "베리드",
+  micro: "마이크로",
+};
+const VIA_ORDER = ["through", "blind", "buried", "micro"];
+const VIA_COLOR: Record<string, string> = {
+  through: "#9aa3ad",
+  blind: "#7f97b0",
+  buried: "#6f8496",
+  micro: "#3fa88c",
+};
+
+/** 가장 어려운 공정이 무엇인지로 줄 세운다. 관통만 < 블라인드 < 베리드 < 마이크로. */
+function viaRank(counts?: Record<string, number> | null): number {
+  const keys = Object.keys(counts ?? {});
+  return keys.length ? Math.max(...keys.map((k) => VIA_ORDER.indexOf(k) + 1)) : 0;
+}
+
+function ViaKinds({ counts }: { counts?: Record<string, number> | null }) {
+  const kinds = VIA_ORDER.filter((k) => (counts?.[k] ?? 0) > 0);
+  if (!kinds.length) return <span className={s.muted}>—</span>;
+  return (
+    <span className={s.viaKinds}>
+      {kinds.map((k) => (
+        <span key={k} className={s.viaKind} title={`${VIA_LABEL[k]} ${counts![k]!.toLocaleString()}개`}>
+          <i style={{ background: VIA_COLOR[k] }} />
+          {VIA_LABEL[k]}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function columns(familyHue: Map<string, number>): Column<Board>[] {
   return [
     {
       key: "board_key",
@@ -52,8 +108,8 @@ function columns(): Column<Board>[] {
     {
       key: "family",
       header: "제품군",
-      width: "96px",
-      render: (b) => b.product_family ?? "—",
+      width: "112px",
+      render: (b) => <FamilyTag family={b.product_family} hue={familyHue} />,
       sort: (a, b) => (a.product_family ?? "").localeCompare(b.product_family ?? ""),
       search: (b) => b.product_family ?? "",
     },
@@ -64,6 +120,16 @@ function columns(): Column<Board>[] {
       align: "right",
       render: (b) => b.summary.layer_count,
       sort: (a, b) => a.summary.layer_count - b.summary.layer_count,
+    },
+    {
+      key: "via",
+      header: "비아",
+      width: "minmax(150px, 176px)",
+      render: (b) => <ViaKinds counts={b.summary.via_by_kind} />,
+      // 제조 난이도 순으로 줄 세운다 — 관통만 쓰는 보드와 마이크로비아를 쓰는 보드는
+      // 만들 수 있는 업체가 다르다.
+      sort: (a, b) => viaRank(a.summary.via_by_kind) - viaRank(b.summary.via_by_kind),
+      search: (b) => Object.keys(b.summary.via_by_kind ?? {}).map((k) => VIA_LABEL[k] ?? k).join(" "),
     },
     {
       key: "size",
@@ -115,14 +181,6 @@ function columns(): Column<Board>[] {
       sort: (a, b) => a.summary.min_trace_width_nm - b.summary.min_trace_width_nm,
     },
     {
-      key: "complexity",
-      header: "복잡도",
-      width: "80px",
-      align: "right",
-      render: (b) => b.summary.complexity_score,
-      sort: (a, b) => a.summary.complexity_score - b.summary.complexity_score,
-    },
-    {
       key: "updated",
       header: "갱신",
       width: "96px",
@@ -154,7 +212,16 @@ export function CatalogPage() {
   const boards = data?.items ?? [];
   const facets = useMemo(() => liveFacets(boards, filters), [boards, filters]);
   const results = useMemo(() => sortBoards(applyFilters(boards, filters), sort), [boards, filters, sort]);
-  const cols = useMemo(columns, []);
+  /** 제품군 → 색상. 전체 목록에서 뽑으므로 필터를 걸어도 색이 흔들리지 않는다. */
+  const familyHue = useMemo(() => {
+    const names = [...new Set(boards.map((b) => b.product_family).filter(Boolean) as string[])].sort();
+    // 있는 제품군 수만큼 색상환을 고르게 나눈다. 여섯이면 60°씩 벌어져 서로 헷갈릴 일이
+    // 없다. 열둘을 넘으면 색이 되풀이되는데, 그쯤 되면 색상각을 더 쪼개도 어차피 구분이
+    // 안 되므로 그때부터는 이름이 구분을 맡는다.
+    const slots = Math.min(names.length, 12) || 1;
+    return new Map(names.map((n, i) => [n, Math.round(((i % slots) * 360) / slots + 15) % 360]));
+  }, [boards]);
+  const cols = useMemo(() => columns(familyHue), [familyHue]);
 
   if (loading) return <Loading label="카탈로그를 불러오는 중" />;
   if (error) return <ErrorState error={error} />;

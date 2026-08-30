@@ -86,6 +86,11 @@
   --r: 3px;
   --r-lg: 6px;
 
+  /* 제품군처럼 개수가 정해지지 않은 범주에 쓰는 색. 색상각은 쓰는 쪽이 정하고
+     여기서는 테마에 맞는 밝기와 채움 농도만 준다. */
+  --cat-l: 32%;
+  --cat-fill: 0.13;
+
   --rail-w: 208px;
   --facet-w: 244px;
   --header-h: 52px;
@@ -130,6 +135,8 @@
   --series-2: #1e9cc4;
   --chart-grid: #232a2b;
   --chart-axis: #6d7779;
+    --cat-l: 74%;
+    --cat-fill: 0.18;
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 28px -18px rgba(0, 0, 0, 0.9);
     --shadow-pop: 0 6px 16px -4px rgba(0, 0, 0, 0.6), 0 24px 48px -24px rgba(0, 0, 0, 0.9);
@@ -174,6 +181,8 @@
   --series-2: #1e9cc4;
   --chart-grid: #232a2b;
   --chart-axis: #6d7779;
+  --cat-l: 74%;
+  --cat-fill: 0.18;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 28px -18px rgba(0, 0, 0, 0.9);
   --shadow-pop: 0 6px 16px -4px rgba(0, 0, 0, 0.6), 0 24px 48px -24px rgba(0, 0, 0, 0.9);

@@ -382,3 +382,44 @@
   color: var(--accent-ink);
   font-weight: 600;
 }
+
+/* 제품군 라벨 — 색상은 인라인 --cat-h(색상각)로 들어오고, 밝기만 테마가 정한다.
+   제품군은 몇 개가 될지 모르므로 토큰을 하나씩 두지 않고 각도 하나로 돌린다. */
+.familyTag {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: hsl(var(--cat-h) 48% var(--cat-l));
+  background: hsl(var(--cat-h) 48% 50% / var(--cat-fill));
+  border: 1px solid hsl(var(--cat-h) 40% 50% / 0.3);
+}
+
+/* 비아 종류 — 뷰어의 도넛 색과 같다. */
+/* 한 줄로 둔다. 줄바꿈을 허용하면 종류가 셋인 보드만 행이 두 배로 높아져 표가 들쭉날쭉해진다. */
+.viaKinds {
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.viaKind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.viaKind i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: block;
+  flex: none;
+}
