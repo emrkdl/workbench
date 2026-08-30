@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { fetchCatalog, fetchChangeSet, fetchChangeSetIndex } from "@/lib/api";
+import { fetchChangeSet, fetchChangeSetIndex, fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import type { ChangeKind, ChangeSetRef, ComponentChange, NetChange } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { EmptyState, ErrorState, Loading, Panel, Stat, StatGrid } from "@/components/ui";
 import { formatCoarse, formatCount, formatRouteLength, toDeg, toMm, NM_PER_UM } from "@/lib/units";
-import { ChangeMap } from "./ChangeMap";
+import { CompareBoards, type CompareView } from "./CompareBoards";
 import { FieldDiffList, KindBadge, KindFilter, PinList } from "./ChangeBits";
 import s from "./compare.module.css";
 
@@ -253,9 +253,18 @@ export function ComparePage() {
   const [thresholdUm, setThresholdUm] = useState(10);
   const [compKind, setCompKind] = useState<ChangeKind | null>(null);
   const [netKind, setNetKind] = useState<ChangeKind | null>(null);
+  // 기본은 나란히 보기. 겹쳐보기는 미세한 이동을 확인할 때 쓰는 옵션이다.
+  // 탭과 마찬가지로 URL 에 둔다 — "이 겹쳐보기 좀 봐 주세요"를 링크로 보낼 수 있어야 한다.
+  const boardView = (params.get("boards") ?? "side") as CompareView;
+  const setBoardView = (next: CompareView) =>
+    setParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set("boards", next);
+      return p;
+    }, { replace: true });
+  const [boardLabels, setBoardLabels] = useState(true);
 
   const index = useAsync(fetchChangeSetIndex, []);
-  const catalog = useAsync(fetchCatalog, []);
 
   const a = params.get("a");
   const b = params.get("b");
@@ -266,15 +275,17 @@ export function ComparePage() {
     [a, b],
   );
 
+  // 두 판을 각자 그리려면 각자의 부품 목록이 필요하다. ChangeSet 은 바뀐 것만 담는다.
+  const details = useAsync(
+    () => (a && b ? Promise.all([fetchRevision(a), fetchRevision(b)]) : Promise.resolve(null)),
+    [a, b],
+  );
+
   const ref = useMemo(
     () => index.data?.pairs.find((p) => p.revision_a_id === a && p.revision_b_id === b) ?? null,
     [index.data, a, b],
   );
 
-  const outline = useMemo(() => {
-    if (!ref || !catalog.data) return null;
-    return catalog.data.items.find((x) => x.board_key === ref.board_key)?.outline ?? null;
-  }, [ref, catalog.data]);
 
   // 임계값은 미리 계산된 10 µm 위로만 올릴 수 있다. 내리려면 서버가 다시 계산해야 한다.
   const components = useMemo(() => {
@@ -303,7 +314,7 @@ export function ComparePage() {
   const netCols = useMemo(netColumns, []);
 
   const select = (r: ChangeSetRef) => {
-    setParams({ a: r.revision_a_id, b: r.revision_b_id, tab });
+    setParams({ a: r.revision_a_id, b: r.revision_b_id, tab, boards: boardView });
     setCompKind(null);
     setNetKind(null);
   };
@@ -418,11 +429,61 @@ export function ComparePage() {
                   </p>
                 </Panel>
 
-                <Panel title="부품 변경 위치">
-                  <ChangeMap outline={outline} changes={components} height={340} />
+                <Panel
+                  title="보드 맞대어 보기"
+                  action={
+                    <span className={s.filters}>
+                      <button
+                        type="button"
+                        className={`${s.filterChip} ${boardView === "side" ? s.filterChipOn : ""}`}
+                        aria-pressed={boardView === "side"}
+                        onClick={() => setBoardView("side")}
+                      >
+                        나란히
+                      </button>
+                      <button
+                        type="button"
+                        className={`${s.filterChip} ${boardView === "overlay" ? s.filterChipOn : ""}`}
+                        aria-pressed={boardView === "overlay"}
+                        onClick={() => setBoardView("overlay")}
+                      >
+                        겹쳐보기
+                      </button>
+                      <button
+                        type="button"
+                        className={`${s.filterChip} ${boardLabels ? s.filterChipOn : ""}`}
+                        aria-pressed={boardLabels}
+                        onClick={() => setBoardLabels((v) => !v)}
+                      >
+                        라벨
+                      </button>
+                    </span>
+                  }
+                >
+                  <CompareBoards
+                    view={boardView}
+                    labels={boardLabels}
+                    changes={components}
+                    detailA={details.data?.[0] ?? null}
+                    detailB={details.data?.[1] ?? null}
+                    labelA={ref?.label_a ?? "A"}
+                    labelB={ref?.label_b ?? "B"}
+                    height={380}
+                  />
                   <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>
-                    부품 좌표 기준입니다. 이동한 부품은 이전 위치에서 이후 위치로 선을 그었습니다. 배선 기하 비교는
-                    <code style={{ margin: "0 4px" }}>.blg</code> 버퍼가 만들어지는 Phase 2 이후입니다.
+                    {boardView === "side" ? (
+                      <>
+                        두 판이 <b>같은 배율</b>을 씁니다 — 배율이 다르면 크기 비교가 성립하지 않습니다. 팬·줌도 함께
+                        움직입니다. 바뀌지 않은 부품은 눌러서 배경으로 보냈습니다.
+                      </>
+                    ) : (
+                      <>
+                        이전 위치는 파선, 이후 위치는 채움입니다. 미세한 이동을 확인할 때는 겹쳐 놓는 편이 정확하지만,
+                        판이 둘 다 보이지 않아 넓은 범위의 변화는 놓치기 쉽습니다.
+                      </>
+                    )}{" "}
+                    배선 기하 비교는 <code style={{ margin: "0 4px" }}>.blg</code> 버퍼가 만들어지는 Phase 2
+                    이후입니다.
                   </p>
                 </Panel>
 
