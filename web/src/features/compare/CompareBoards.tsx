@@ -1,27 +1,43 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ComponentChange, ComponentRow, Polygon, RevisionDetail } from "@/lib/cdm";
-import { formatCoarse, toMm } from "@/lib/units";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import type { ComponentChange, ComponentSnapshot, RevisionDetail } from "@/lib/cdm";
+import type { FamilyKey } from "@/lib/families";
+import { formatCoarse, toMm, type DisplayUnit } from "@/lib/units";
+import {
+  BoardScene,
+  css,
+  outlineBox,
+  useLayerInfos,
+  type LayerInfo,
+  type SceneHandle,
+  type Selection,
+  type SideView,
+  type ViewMode,
+} from "../viewer/BoardScene";
+import type { Camera } from "../viewer/renderer";
 import s from "./compare.module.css";
 
 /**
  * 두 리비전을 눈으로 맞대어 보는 화면.
  *
- * 기본은 **나란히 보기**다. 각자의 기판을 각자 그리고, 두 판이 같은 배율·같은 카메라를
- * 공유한다 — 배율이 다르면 14mm BGA 와 10mm QFP 가 같은 크기로 보여서 비교 자체가
- * 성립하지 않는다. 팬·줌도 함께 움직인다.
+ * 뷰어와 **같은 렌더러**로 그린다. 예전에는 여기서 캔버스로 외형과 부품 몸통만 따로
+ * 그렸는데, 그러면 비교하려고 연 화면에서 뷰어와 다른 그림을 보게 된다 — 배선도 비아도
+ * 없는 그림으로 "배선이 어떻게 달라졌나"를 물을 수는 없다. 지금은 배치도·동박·비아가
+ * 뷰어와 한 획도 다르지 않고, 뷰어의 조작(팬·줌·층 끄기·클릭 선택·넷 강조)도 그대로다.
  *
- * **겹쳐보기**는 옵션이다. 같은 보드의 미세한 이동을 볼 때는 겹쳐 놓는 편이 정확하지만,
- * 판이 둘 다 보이지 않아 "이 근처가 통째로 달라졌다" 같은 것은 놓치기 쉽다.
+ * 이 화면만의 것은 **변경 표시**다. 판 위에 겹쳐 그리는 얇은 층 하나로, 어느 부품이
+ * 사라졌고 어디로 옮겨 갔는지를 색으로 말한다.
  *
- * SVG 가 아니라 캔버스로 그린다. 부품이 판마다 1,000개를 넘고 두 판이면 배가 되는데,
- * 그만큼의 DOM 노드를 만들면 팬 한 번에 프레임이 끊긴다.
+ * 기본은 나란히 보기다. 두 판이 카메라 하나를 공유하므로 배율이 같고 팬·줌도 함께
+ * 움직인다 — 배율이 다르면 14mm BGA 와 10mm QFP 가 같은 크기로 보여서 비교 자체가
+ * 성립하지 않는다. 겹쳐보기는 미세한 이동을 확인할 때 쓰는 옵션이다.
  */
 
 export type CompareView = "side" | "overlay";
 
 type ChangeRole = "added" | "removed" | "moved" | "replaced" | "rotated" | "flipped";
 
-const KIND_LABEL: Record<string, string> = {
+const ROLE_LABEL: Record<ChangeRole, string> = {
   added: "추가",
   removed: "삭제",
   moved: "이동",
@@ -30,43 +46,21 @@ const KIND_LABEL: Record<string, string> = {
   flipped: "면 이동",
 };
 
-/** 토큰에서 실제 색을 읽어 온다. 캔버스는 var() 를 모르고, 테마가 바뀌면 값도 바뀐다. */
+const ROLE_ORDER: ChangeRole[] = ["removed", "added", "moved", "replaced", "rotated", "flipped"];
+
+/** 변경 색은 표의 배지와 같은 토큰에서 온다. 캔버스는 var() 를 모르므로 값을 읽어 온다. */
 function palette(): Record<string, string> {
   const root = getComputedStyle(document.documentElement);
   const v = (name: string, fallback: string) => root.getPropertyValue(name).trim() || fallback;
   return {
-    added: v("--ok", "#2c6b4a"),
-    removed: v("--crit", "#a33a33"),
-    moved: v("--warn", "#8a6010"),
-    replaced: v("--accent", "#a85f2b"),
-    rotated: v("--info", "#15687e"),
-    flipped: v("--info", "#15687e"),
-    board: v("--surface-3", "#e8eded"),
-    edge: v("--line-3", "#adb7b7"),
-    quiet: v("--line-2", "#c5cdcd"),
-    ink: v("--ink", "#14181a"),
-    bg: v("--surface-2", "#f3f6f6"),
+    added: v("--ok", "#43a06b"),
+    removed: v("--crit", "#d05a52"),
+    moved: v("--warn", "#d09a30"),
+    replaced: v("--accent", "#e08a4a"),
+    rotated: v("--info", "#4aa8c0"),
+    flipped: v("--info", "#4aa8c0"),
+    ink: v("--ink", "#e6eef7"),
   };
-}
-
-interface Camera {
-  cx: number;
-  cy: number;
-  scale: number;
-}
-
-function outlineBox(outline: Polygon[]) {
-  const xs: number[] = [];
-  const ys: number[] = [];
-  for (const p of outline) {
-    if (p.is_cutout) continue;
-    for (let i = 0; i < p.points_nm.length; i += 2) {
-      xs.push(p.points_nm[i]!);
-      ys.push(p.points_nm[i + 1]!);
-    }
-  }
-  if (!xs.length) return { x0: 0, y0: 0, x1: 1, y1: 1 };
-  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
 }
 
 const bodyOf = (c: { body_w_nm?: number | null; body_h_nm?: number | null; rotation_mdeg: number }) => {
@@ -75,212 +69,107 @@ const bodyOf = (c: { body_w_nm?: number | null; body_h_nm?: number | null; rotat
   return Math.round(c.rotation_mdeg / 90_000) % 2 ? ([h, w] as const) : ([w, h] as const);
 };
 
-interface PanelData {
-  label: string;
-  outline: Polygon[];
-  components: ComponentRow[];
-  /** RefDes → 이 판에서의 변경 역할. 없으면 바뀌지 않은 부품이다. */
-  roles: Map<string, ChangeRole>;
+/** A 판에서 보여 줄 역할과 B 판의 것은 다르다 — 삭제는 A 에만, 추가는 B 에만 있다. */
+function rolesFor(changes: ComponentChange[], side: "a" | "b"): Map<string, ChangeRole> {
+  const out = new Map<string, ChangeRole>();
+  for (const c of changes) {
+    const kind = c.kind as ChangeRole;
+    if (side === "a" && kind === "added") continue;
+    if (side === "b" && kind === "removed") continue;
+    out.set(c.refdes, kind);
+  }
+  return out;
 }
 
-function drawPanel(
-  canvas: HTMLCanvasElement,
-  dpr: number,
-  cam: Camera,
-  data: PanelData,
+/* ── 변경 표시 ─────────────────────────────── */
+
+type Project = (x: number, y: number) => [number, number];
+
+/** 나란히 보기 — 이 판에서 달라진 부품에 색 상자를 씌운다. */
+function markChanged(
+  ctx: CanvasRenderingContext2D,
+  project: Project,
+  camera: Camera,
+  detail: RevisionDetail,
+  roles: Map<string, ChangeRole>,
   pal: Record<string, string>,
-  labels: boolean,
 ) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-
-  const sx = (x: number) => (x - cam.cx) * cam.scale + w / 2;
-  const sy = (y: number) => -(y - cam.cy) * cam.scale + h / 2;
-
-  // 기판
-  ctx.lineWidth = 1;
-  for (const poly of data.outline) {
-    if (poly.points_nm.length < 6) continue;
-    ctx.beginPath();
-    for (let i = 0; i < poly.points_nm.length; i += 2) {
-      const px = sx(poly.points_nm[i]!);
-      const py = sy(poly.points_nm[i + 1]!);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    if (poly.is_cutout) {
-      ctx.fillStyle = pal.bg!;
-      ctx.fill();
-      ctx.setLineDash([4, 3]);
-    } else {
-      ctx.fillStyle = pal.board!;
-      ctx.globalAlpha = 0.5;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.setLineDash([]);
-    }
-    ctx.strokeStyle = pal.edge!;
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-
-  // 바뀌지 않은 부품은 눌러서 배경으로 보낸다. 지우면 "이 자리에 뭔가 있다"가 사라지고,
-  // 그대로 칠하면 변경된 것이 묻힌다.
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = pal.quiet!;
-  for (const c of data.components) {
-    if (data.roles.has(c.refdes)) continue;
+  for (const c of detail.components) {
+    const role = roles.get(c.refdes);
+    if (!role) continue;
     const [bw, bh] = bodyOf(c);
-    const pw = Math.max(bw * cam.scale, 1);
-    const ph = Math.max(bh * cam.scale, 1);
-    ctx.fillRect(sx(c.x_nm) - pw / 2, sy(c.y_nm) - ph / 2, pw, ph);
-  }
-  ctx.globalAlpha = 1;
-
-  // 변경된 부품
-  const changed = data.components.filter((c) => data.roles.has(c.refdes));
-  for (const c of changed) {
-    const role = data.roles.get(c.refdes)!;
-    const [bw, bh] = bodyOf(c);
-    const pw = Math.max(bw * cam.scale, 3);
-    const ph = Math.max(bh * cam.scale, 3);
-    const x = sx(c.x_nm) - pw / 2;
-    const y = sy(c.y_nm) - ph / 2;
-    ctx.fillStyle = pal[role] ?? pal.ink!;
-    ctx.globalAlpha = 0.92;
-    ctx.fillRect(x, y, pw, ph);
+    const pw = Math.max(bw * camera.scale, 5);
+    const ph = Math.max(bh * camera.scale, 5);
+    const [cx, cy] = project(c.x_nm, c.y_nm);
+    const color = pal[role] ?? pal.ink!;
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = color;
+    ctx.fillRect(cx - pw / 2, cy - ph / 2, pw, ph);
     ctx.globalAlpha = 1;
-    // 작은 부품은 칠만으로는 눈에 안 띈다. 테두리를 둘러 시선을 잡는다.
-    if (pw < 9 || ph < 9) {
-      ctx.strokeStyle = pal[role] ?? pal.ink!;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x - 2.5, y - 2.5, pw + 5, ph + 5);
-    }
-  }
-
-  if (labels) {
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    for (const c of changed) {
-      const [bw, bh] = bodyOf(c);
-      const pw = bw * cam.scale;
-      if (pw < 26) continue;
-      const size = Math.max(9, Math.min(pw / (c.refdes.length * 0.62), bh * cam.scale * 0.6, 18));
-      ctx.font = `600 ${size}px ui-monospace, Consolas, monospace`;
-      ctx.fillStyle = pal.bg!;
-      ctx.fillText(c.refdes, sx(c.x_nm), sy(c.y_nm));
-    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx - pw / 2 - 2, cy - ph / 2 - 2, pw + 4, ph + 4);
   }
 }
 
-/** 겹쳐보기 — 같은 판 위에 이전은 파선, 이후는 채움. 미세한 이동을 볼 때 정확하다. */
-function drawOverlay(
-  canvas: HTMLCanvasElement,
-  dpr: number,
-  cam: Camera,
-  outline: Polygon[],
+/** 겹쳐보기 — 이전 위치는 파선, 이후 위치는 채움, 그 사이를 선으로 잇는다. */
+function markMoves(
+  ctx: CanvasRenderingContext2D,
+  project: Project,
+  camera: Camera,
   changes: ComponentChange[],
-  quiet: ComponentRow[],
   pal: Record<string, string>,
 ) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-
-  const sx = (x: number) => (x - cam.cx) * cam.scale + w / 2;
-  const sy = (y: number) => -(y - cam.cy) * cam.scale + h / 2;
-
-  for (const poly of outline) {
-    if (poly.points_nm.length < 6 || poly.is_cutout) continue;
-    ctx.beginPath();
-    for (let i = 0; i < poly.points_nm.length; i += 2) {
-      const px = sx(poly.points_nm[i]!);
-      const py = sy(poly.points_nm[i + 1]!);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
+  const box = (snap: ComponentSnapshot, dashed: boolean, color: string) => {
+    const [bw, bh] = bodyOf(snap);
+    const pw = Math.max(bw * camera.scale, 5);
+    const ph = Math.max(bh * camera.scale, 5);
+    const [cx, cy] = project(snap.x_nm, snap.y_nm);
+    if (!dashed) {
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = color;
+      ctx.fillRect(cx - pw / 2, cy - ph / 2, pw, ph);
+      ctx.globalAlpha = 1;
     }
-    ctx.closePath();
-    ctx.fillStyle = pal.board!;
-    ctx.globalAlpha = 0.45;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = pal.edge!;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  // 바뀌지 않은 부품을 눌러서 깔아 둔다. 없으면 판이 비어 보이고, "이 근처가 통째로
-  // 달라졌다" 같은 것을 읽을 수 없다 — 나란히 보기와 같은 이유다.
-  const changedRefs = new Set(changes.map((c) => c.refdes));
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = pal.quiet!;
-  for (const c of quiet) {
-    if (changedRefs.has(c.refdes)) continue;
-    const [bw, bh] = bodyOf(c);
-    const pw = Math.max(bw * cam.scale, 1);
-    const ph = Math.max(bh * cam.scale, 1);
-    ctx.fillRect(sx(c.x_nm) - pw / 2, sy(c.y_nm) - ph / 2, pw, ph);
-  }
-  ctx.globalAlpha = 1;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash(dashed ? [3, 2] : []);
+    ctx.strokeRect(cx - pw / 2, cy - ph / 2, pw, ph);
+    ctx.setLineDash([]);
+  };
 
   for (const c of changes) {
     const color = pal[c.kind] ?? pal.ink!;
-    const to = c.after ?? c.before;
-    if (!to) continue;
-    const moved = c.kind === "moved" && c.before && c.after;
-
-    if (moved) {
-      const [bw, bh] = bodyOf(c.before!);
+    if (c.before) box(c.before, true, color);
+    if (c.after) box(c.after, false, color);
+    if (c.before && c.after && c.kind === "moved") {
+      const [ax, ay] = project(c.before.x_nm, c.before.y_nm);
+      const [bx, by] = project(c.after.x_nm, c.after.y_nm);
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 2]);
-      ctx.strokeRect(
-        sx(c.before!.x_nm) - (bw * cam.scale) / 2,
-        sy(c.before!.y_nm) - (bh * cam.scale) / 2,
-        Math.max(bw * cam.scale, 3),
-        Math.max(bh * cam.scale, 3),
-      );
-      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.7;
       ctx.beginPath();
-      ctx.moveTo(sx(c.before!.x_nm), sy(c.before!.y_nm));
-      ctx.lineTo(sx(c.after!.x_nm), sy(c.after!.y_nm));
-      ctx.globalAlpha = 0.6;
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
       ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    const [bw, bh] = bodyOf(to);
-    const pw = Math.max(bw * cam.scale, 3);
-    const ph = Math.max(bh * cam.scale, 3);
-    const x = sx(to.x_nm) - pw / 2;
-    const y = sy(to.y_nm) - ph / 2;
-    if (c.kind === "removed") {
-      // 이제 없는 것을 실체처럼 칠하지 않는다
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([3, 2]);
-      ctx.strokeRect(x, y, pw, ph);
-      ctx.setLineDash([]);
-    } else {
-      ctx.fillStyle = color;
-      ctx.globalAlpha = 0.9;
-      ctx.fillRect(x, y, pw, ph);
       ctx.globalAlpha = 1;
     }
   }
 }
+
+/* ── 화면 ──────────────────────────────────── */
+
+const EMPTY_FAMILIES = new Set<FamilyKey>();
+
+/** 한쪽만 골랐을 때도 훅 개수를 맞추려고 쓰는 빈 리비전. */
+const EMPTY_DETAIL = {
+  revision: { id: "" },
+  stackup: [],
+  layer_geometry: [],
+  components: [],
+  nets: [],
+  outline: [],
+} as unknown as RevisionDetail;
 
 export function CompareBoards({
   view,
@@ -290,7 +179,8 @@ export function CompareBoards({
   detailB,
   labelA,
   labelB,
-  height = 380,
+  unit,
+  height = 420,
 }: {
   view: CompareView;
   labels: boolean;
@@ -299,156 +189,283 @@ export function CompareBoards({
   detailB: RevisionDetail | null;
   labelA: string;
   labelB: string;
+  unit: DisplayUnit;
   height?: number;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const canvasA = useRef<HTMLCanvasElement>(null);
-  const canvasB = useRef<HTMLCanvasElement>(null);
-  const cameraRef = useRef<Camera>({ cx: 0, cy: 0, scale: 1e-5 });
-  const dragRef = useRef<{ x: number; y: number } | null>(null);
-  const [, bump] = useState(0);
-  const redraw = useCallback(() => bump((n) => n + 1), []);
+  const sceneA = useRef<SceneHandle>(null);
+  const sceneB = useRef<SceneHandle>(null);
+  // 카메라 하나를 두 판이 나눠 쓴다. 배율이 다르면 크기 비교가 성립하지 않는다.
+  const camera = useRef<Camera>({ cx: 0, cy: 0, scale: 1e-5 });
 
-  /** A 쪽 역할: 사라지는 것들. B 쪽 역할: 새로 생기는 것들. */
-  const roles = useMemo(() => {
-    const a = new Map<string, ChangeRole>();
-    const b = new Map<string, ChangeRole>();
-    for (const c of changes) {
-      const kind = c.kind as ChangeRole;
-      if (c.kind === "removed") a.set(c.refdes, "removed");
-      else if (c.kind === "added") b.set(c.refdes, "added");
-      else {
-        a.set(c.refdes, kind);
-        b.set(c.refdes, kind);
-      }
-    }
-    return { a, b };
-  }, [changes]);
+  // 뷰어와 같은 조작을 여기서도 준다. 다만 두 판에 **같은 값**을 먹인다 — 한쪽만 동박이고
+  // 다른 쪽은 배치도이면 그것은 비교가 아니다.
+  //
+  // 무엇을 보고 있었는지는 URL 에 남긴다. 나란히/겹쳐보기와 같은 이유다 — "이 비교의
+  // 동박 좀 봐 주세요"를 링크 하나로 보낼 수 있어야 한다.
+  const [params, setParams] = useSearchParams();
+  const mode = ((): ViewMode => {
+    const v = params.get("bmode");
+    return v === "placement" || v === "copper" ? v : "both";
+  })();
+  const setMode = (next: ViewMode) =>
+    setParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.set("bmode", next);
+      return p;
+    }, { replace: true });
+  const [sideView, setSideView] = useState<SideView>("top");
+  const [marks, setMarks] = useState(true);
+  const [hiddenNo, setHiddenNo] = useState<Set<number>>(() => new Set());
+  const [selection, setSelection] = useState<{ side: "a" | "b"; value: Selection } | null>(null);
+  const [netName, setNetName] = useState<string | null>(null);
+  const [cursor, setCursor] = useState("—");
 
-  const fit = useCallback(() => {
-    // 캔버스의 실제 크기를 재서 맞춘다. 바깥 상자에서 여백·간격을 빼 계산하면 조금씩
-    // 어긋나고, 그 차이만큼 판이 패널 밖으로 잘린다.
-    const canvas = canvasA.current;
-    if (!canvas || !canvas.clientWidth) return;
+  const layersA = useLayerInfos(detailA ?? EMPTY_DETAIL);
+  const layersB = useLayerInfos(detailB ?? EMPTY_DETAIL);
+  const pal = useMemo(palette, []);
+
+  /** 층 번호로 켜고 끈다. 보드마다 층 인덱스는 달라도 "L3 을 본다"는 뜻은 같다. */
+  const conductors = useMemo(() => {
+    const all = new Map<number, LayerInfo>();
+    for (const l of [...layersA, ...layersB]) if (!all.has(l.no)) all.set(l.no, l);
+    return [...all.values()].sort((x, y) => x.no - y.no);
+  }, [layersA, layersB]);
+
+  const visibleOf = useCallback(
+    (layers: LayerInfo[]) => Object.fromEntries(layers.map((l) => [l.index, !hiddenNo.has(l.no)])),
+    [hiddenNo],
+  );
+
+  const rolesA = useMemo(() => rolesFor(changes, "a"), [changes]);
+  const rolesB = useMemo(() => rolesFor(changes, "b"), [changes]);
+
+  const redraw = useCallback(() => {
+    sceneA.current?.invalidate();
+    sceneB.current?.invalidate();
+  }, []);
+
+  /** 두 보드를 함께 담는 범위로 한 번만 맞춘다. 각자 맞추면 서로를 밀어낸다. */
+  const fitBoth = useCallback(() => {
     const boxes = [detailA, detailB].filter(Boolean).map((d) => outlineBox(d!.outline));
-    if (!boxes.length) return;
-    // 두 판을 같은 배율로 묶는다. 큰 쪽에 맞춰야 둘 다 들어온다.
+    const stage = sceneA.current?.stage() ?? sceneB.current?.stage();
+    if (!boxes.length || !stage || !stage.clientWidth) return;
+    // 큰 쪽에 맞춰야 둘 다 들어온다
     const w = Math.max(...boxes.map((b) => b.x1 - b.x0), 1);
     const h = Math.max(...boxes.map((b) => b.y1 - b.y0), 1);
-    const scale = Math.min(canvas.clientWidth / w, canvas.clientHeight / h) * 0.92;
-    const box = boxes[0]!;
-    cameraRef.current = { cx: (box.x0 + box.x1) / 2, cy: (box.y0 + box.y1) / 2, scale };
+    const first = boxes[0]!;
+    camera.current = {
+      cx: (first.x0 + first.x1) / 2,
+      cy: (first.y0 + first.y1) / 2,
+      scale: Math.min(stage.clientWidth / w, stage.clientHeight / h) * 0.92,
+    };
     redraw();
   }, [detailA, detailB, redraw]);
 
-  // 창 크기가 바뀌면 다시 맞춘다
-  useEffect(() => {
-    const onResize = () => fit();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [fit]);
+  // 넷 강조는 **이름**으로 맞춘다. 넷 번호는 리비전마다 다른 배열의 인덱스라 그대로 쓰면
+  // 다른 판에서 엉뚱한 넷이 켜진다.
+  const netIdIn = (detail: RevisionDetail | null) =>
+    netName && detail ? detail.nets.findIndex((n) => n.name === netName) : -1;
+  const highlightA = netIdIn(detailA);
+  const highlightB = netIdIn(detailB);
 
-  // 보기 방식이 바뀌면 패널 크기가 달라지므로 다시 맞춘다
-  useEffect(() => {
-    fit();
-  }, [fit, view]);
-
-  useEffect(() => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const pal = palette();
-    const cam = cameraRef.current;
-    if (view === "overlay") {
-      if (canvasA.current && detailB) {
-        drawOverlay(canvasA.current, dpr, cam, detailB.outline, changes, detailB.components, pal);
-      }
-      return;
-    }
-    if (canvasA.current && detailA) {
-      drawPanel(canvasA.current, dpr, cam,
-        { label: labelA, outline: detailA.outline, components: detailA.components, roles: roles.a }, pal, labels);
-    }
-    if (canvasB.current && detailB) {
-      drawPanel(canvasB.current, dpr, cam,
-        { label: labelB, outline: detailB.outline, components: detailB.components, roles: roles.b }, pal, labels);
-    }
-  });
-
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const cam = cameraRef.current;
-    const next = Math.min(Math.max(cam.scale * Math.exp(-e.deltaY * 0.0015), 1e-7), 0.02);
-    cameraRef.current = { ...cam, scale: next };
-    redraw();
-  };
-  const onPointerDown = (e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    dragRef.current = { x: e.clientX, y: e.clientY };
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const cam = cameraRef.current;
-    cameraRef.current = {
-      ...cam,
-      cx: cam.cx - (e.clientX - drag.x) / cam.scale,
-      cy: cam.cy + (e.clientY - drag.y) / cam.scale,
-    };
-    dragRef.current = { x: e.clientX, y: e.clientY };
-    redraw();
-  };
-  const stopDrag = () => {
-    dragRef.current = null;
+  const onSelect = (side: "a" | "b", detail: RevisionDetail | null) => (next: Selection | null) => {
+    setSelection(next ? { side, value: next } : null);
+    const id = next?.hit?.netId;
+    setNetName(id != null && detail ? detail.nets[id]?.name ?? null : null);
   };
 
-  const ready = detailA && detailB;
-  const box = detailA ? outlineBox(detailA.outline) : null;
+  const overlayA = useCallback(
+    (ctx: CanvasRenderingContext2D, project: Project, cam: Camera) => {
+      if (!marks) return;
+      if (view === "overlay") markMoves(ctx, project, cam, changes, pal);
+      else if (detailA) markChanged(ctx, project, cam, detailA, rolesA, pal);
+    },
+    [marks, detailA, view, changes, rolesA, pal],
+  );
+
+  const overlayB = useCallback(
+    (ctx: CanvasRenderingContext2D, project: Project, cam: Camera) => {
+      if (marks && detailB) markChanged(ctx, project, cam, detailB, rolesB, pal);
+    },
+    [marks, detailB, rolesB, pal],
+  );
+
+  const counts = useMemo(() => {
+    const out = new Map<ChangeRole, number>();
+    for (const c of changes) out.set(c.kind as ChangeRole, (out.get(c.kind as ChangeRole) ?? 0) + 1);
+    return out;
+  }, [changes]);
+
+  // 겹쳐보기는 B 판 하나 위에 두 시점을 겹친다. 두 판의 동박을 정말로 포개면 어느 쪽
+  // 배선인지 알 수 없는 뭉개진 그림이 되고, 정작 보려던 미세한 이동이 묻힌다.
+  const paneDetail = view === "overlay" ? detailB ?? detailA : detailA;
+  const paneLayers = view === "overlay" ? (detailB ? layersB : layersA) : layersA;
+  const paneHighlight = view === "overlay" ? (detailB ? highlightB : highlightA) : highlightA;
+
+  const common = {
+    mode,
+    sideView,
+    labels,
+    alpha: 0.85,
+    hiddenFamilies: EMPTY_FAMILIES,
+    unit,
+    camera,
+    onCameraChange: redraw,
+    autoFit: false,
+    onCursor: setCursor,
+  };
+
+  const picked = selection?.value;
+  const pickedDetail = selection?.side === "a" ? paneDetail : detailB;
+  const boxA = detailA ? outlineBox(detailA.outline) : null;
 
   return (
-    <div>
-      <div
-        ref={wrapRef}
-        className={view === "side" ? s.boardsSide : s.boardsOne}
-        style={{ height }}
-        onWheel={onWheel}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={stopDrag}
-        onPointerLeave={stopDrag}
-      >
-        <figure className={s.boardPanel}>
-          <figcaption className={`${s.boardCap} ${s.capA}`}>
-            {view === "overlay" ? `${labelA} → ${labelB} 겹쳐보기` : labelA}
-          </figcaption>
-          <canvas ref={canvasA} className={s.boardCanvas} />
-        </figure>
-        {view === "side" && (
-          <figure className={s.boardPanel}>
-            <figcaption className={`${s.boardCap} ${s.capB}`}>{labelB}</figcaption>
-            <canvas ref={canvasB} className={s.boardCanvas} />
-          </figure>
+    <div className={s.boards}>
+      <div className={s.boardTools}>
+        <div className={s.seg} role="group" aria-label="보기 종류">
+          {([["placement", "배치"], ["copper", "동박"], ["both", "둘 다"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={mode === k ? s.segOn : ""}
+              aria-pressed={mode === k}
+              onClick={() => setMode(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className={s.seg} role="group" aria-label="보는 면">
+          {([["top", "TOP"], ["bottom", "BOTTOM"], ["both", "양면"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={sideView === k ? s.segOn : ""}
+              aria-pressed={sideView === k}
+              onClick={() => setSideView(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={`${s.filterChip} ${marks ? s.filterChipOn : ""}`}
+          aria-pressed={marks}
+          onClick={() => setMarks((v) => !v)}
+        >
+          변경 표시
+        </button>
+        <button type="button" className={s.filterChip} onClick={fitBoth}>
+          전체 보기
+        </button>
+        {netName && (
+          <button
+            type="button"
+            className={s.filterChip}
+            onClick={() => {
+              setNetName(null);
+              setSelection(null);
+            }}
+          >
+            강조 해제 · {netName}
+          </button>
         )}
-        {!ready && <div className={s.boardsLoading}>보드를 불러오는 중…</div>}
+        {mode !== "placement" && conductors.length > 0 && (
+          <span className={s.layerChips}>
+            {conductors.map((info) => {
+              const on = !hiddenNo.has(info.no);
+              return (
+                <button
+                  key={info.no}
+                  type="button"
+                  className={`${s.layerChip} ${on ? "" : s.layerChipOff}`}
+                  aria-pressed={on}
+                  title={`L${info.no} 끄고 켜기`}
+                  onClick={() =>
+                    setHiddenNo((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(info.no)) next.delete(info.no);
+                      else next.add(info.no);
+                      return next;
+                    })
+                  }
+                >
+                  <i style={{ background: css(info.color) }} />
+                  L{info.no}
+                </button>
+              );
+            })}
+          </span>
+        )}
       </div>
 
-      <div className={s.mapLegend}>
-        {(["moved", "replaced", "removed", "added"] as const).map((k) => {
-          const n = changes.filter((c) => c.kind === k).length;
-          if (!n) return null;
-          return (
-            <span key={k}>
-              <i className={s.mapDot} style={{ background: `var(--${k === "moved" ? "warn" : k === "replaced" ? "accent" : k === "removed" ? "crit" : "ok"})` }} />
-              {KIND_LABEL[k]} <b className="tnum">{n}</b>
-            </span>
-          );
-        })}
-        <span style={{ color: "var(--ink-4)" }}>
-          <i className={s.mapDot} style={{ background: "var(--line-2)", opacity: 0.5 }} />
-          변경 없음
-        </span>
-        {box && (
-          <span style={{ marginLeft: "auto", color: "var(--ink-4)" }}>
-            1 px = {formatCoarse(Math.round(1 / cameraRef.current.scale))} · 보드{" "}
-            {toMm(box.x1 - box.x0).toFixed(1)} × {toMm(box.y1 - box.y0).toFixed(1)} mm
+      <div className={view === "side" ? s.boardsSide : s.boardsOne} style={{ height }}>
+        <div className={s.boardPane}>
+          <span className={`${s.paneLabel} ${s.sideA}`}>
+            {view === "overlay" ? `${labelA} → ${labelB}` : labelA}
+          </span>
+          {paneDetail && (
+            <BoardScene
+              {...common}
+              ref={sceneA}
+              detail={paneDetail}
+              layers={paneLayers}
+              visible={visibleOf(paneLayers)}
+              highlightNet={paneHighlight}
+              selection={selection?.side === "a" ? selection.value : null}
+              onSelect={onSelect("a", paneDetail)}
+              onLoadedChange={(n, total) => n === total && fitBoth()}
+              extraOverlay={overlayA}
+              overlayKey={`${view}|${marks}|${changes.length}`}
+            />
+          )}
+        </div>
+        {view === "side" && (
+          <div className={s.boardPane}>
+            <span className={`${s.paneLabel} ${s.sideB}`}>{labelB}</span>
+            {detailB && (
+              <BoardScene
+                {...common}
+                ref={sceneB}
+                detail={detailB}
+                layers={layersB}
+                visible={visibleOf(layersB)}
+                highlightNet={highlightB}
+                selection={selection?.side === "b" ? selection.value : null}
+                onSelect={onSelect("b", detailB)}
+                extraOverlay={overlayB}
+                overlayKey={`${view}|${marks}|${changes.length}`}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className={s.boardLegend}>
+        {ROLE_ORDER.filter((r) => counts.get(r)).map((r) => (
+          <span key={r} className={s.legendItem}>
+            <i className={s.legendDot} style={{ background: pal[r] }} />
+            {ROLE_LABEL[r]} <b className="tnum">{counts.get(r)}</b>
+          </span>
+        ))}
+        <span className={s.headSpacer} />
+        {picked && (
+          <span className={s.legendPick}>
+            {picked.component?.refdes ?? ""}
+            {picked.hit
+              ? ` · ${{ pad: "패드", via: "비아", trace: "배선", plane: "플레인" }[picked.hit.kind]}`
+              : ""}
+            {picked.hit?.netId != null && pickedDetail
+              ? ` · ${pickedDetail.nets[picked.hit.netId]?.name ?? ""}`
+              : ""}
+            {picked.hit?.width ? ` · ${formatCoarse(picked.hit.width, unit)}` : ""}
+          </span>
+        )}
+        <span className={s.legendQuiet}>커서 {cursor}</span>
+        {boxA && (
+          <span className={s.legendQuiet}>
+            보드 {toMm(boxA.x1 - boxA.x0).toFixed(1)} × {toMm(boxA.y1 - boxA.y0).toFixed(1)} mm
           </span>
         )}
       </div>

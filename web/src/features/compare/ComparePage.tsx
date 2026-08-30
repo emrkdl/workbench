@@ -464,13 +464,14 @@ export function ComparePage() {
                     detailB={detailB.data}
                     labelA={labelA}
                     labelB={labelB}
-                    height={380}
+                    unit="mm"
+                    height={460}
                   />
                   <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>
                     {boardView === "side" ? (
                       <>
                         두 판이 <b>같은 배율</b>을 씁니다 — 배율이 다르면 크기 비교가 성립하지 않습니다. 팬·줌도 함께
-                        움직입니다. 바뀌지 않은 부품은 눌러서 배경으로 보냈습니다.
+                        움직입니다.
                       </>
                     ) : (
                       <>
@@ -478,8 +479,9 @@ export function ComparePage() {
                         판이 둘 다 보이지 않아 넓은 범위의 변화는 놓치기 쉽습니다.
                       </>
                     )}{" "}
-                    배선 기하 비교는 <code style={{ margin: "0 4px" }}>.blg</code> 버퍼가 만들어지는 Phase 2
-                    이후입니다.
+                    그림은 <b>뷰어와 같은 렌더러</b>가 그립니다 — 배선·비아·플레인·계열색이 모두 같고, 층을 끄거나
+                    배선을 눌러 넷을 강조하는 것도 뷰어와 똑같이 됩니다. 넷은 이름으로 맞추므로 한쪽에서 고른 넷이
+                    다른 판에서도 같이 켜집니다.
                   </p>
                 </Panel>
 

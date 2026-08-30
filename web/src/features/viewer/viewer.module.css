@@ -368,3 +368,11 @@
   border: 3px solid;
   background: transparent;
 }
+
+/* 화면 자리 — 안에 BoardScene 이 깔리고, 적재 표시와 선택 패널이 그 위에 뜬다. */
+.stageHost {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
