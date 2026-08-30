@@ -43,6 +43,8 @@ def _snapshot(c: Component) -> ComponentSnapshot:
         side=c.side.value,
         package=c.package,
         part_number=c.part_number,
+        body_w_nm=c.body_w_nm,
+        body_h_nm=c.body_h_nm,
     )
 
 

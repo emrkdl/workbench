@@ -158,6 +158,7 @@ def revision_detail(session: Session, revision_id: str) -> RevisionDetail | None
             refdes=c.refdes, part_number=c.part_number, manufacturer=c.manufacturer, value=c.value,
             package=c.package, x_nm=c.x_nm, y_nm=c.y_nm, rotation_mdeg=c.rotation_mdeg,
             side=c.side, pin_count=c.pin_count, pin_pitch_nm=c.pin_pitch_nm,
+            body_w_nm=c.body_w_nm, body_h_nm=c.body_h_nm,
         )
         for c in session.scalars(
             select(m.Component).where(m.Component.revision_id == revision_id).order_by(m.Component.refdes)
@@ -264,7 +265,8 @@ def reconstruct_design(session: Session, revision_id: str) -> Design | None:
         CdmComponent(
             refdes=c.refdes, part_number=c.part_number, manufacturer=c.manufacturer, value=c.value,
             package=c.package, x_nm=c.x_nm, y_nm=c.y_nm, rotation_mdeg=c.rotation_mdeg,
-            side=c.side, pin_pitch_nm=c.pin_pitch_nm, pins=[],
+            side=c.side, pin_pitch_nm=c.pin_pitch_nm,
+            body_w_nm=c.body_w_nm, body_h_nm=c.body_h_nm, pins=[],
         )
         for c in session.scalars(select(m.Component).where(m.Component.revision_id == revision_id)).all()
     ]

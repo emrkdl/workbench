@@ -225,10 +225,20 @@
   background: var(--surface-2);
   border-radius: var(--r);
 }
+/* 기판을 옅게 깔아 변경된 부품이 "보드 위"에 있다는 것이 읽히게 한다.
+   진하게 칠하면 변경 사각형과의 대비가 죽는다. */
+.mapBoard {
+  fill: var(--surface-3);
+  fill-opacity: 0.55;
+  stroke: var(--line-3);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
 .mapOutline {
   fill: none;
   stroke: var(--line-3);
-  stroke-width: 1.5;
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke;
 }
 .mapLegend {

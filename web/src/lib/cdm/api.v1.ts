@@ -293,7 +293,7 @@ export type ChangeKind = "added" | "removed" | "moved" | "rotated" | "flipped" |
 export const CHANGE_KIND_VALUES = ["added", "removed", "moved", "rotated", "flipped", "replaced", "renamed", "rewired", "spec_changed", "inserted"] as const;
 
 /**
- * 부품 변경 전후 상태.
+ * 부품 변경 전후 상태. 몸통 크기를 함께 담는다 — 패키지가 바뀌면 차지하는 면적도 바뀌고, 그것이 리뷰에서 실제로 봐야 하는 변화다.
  */
 export interface ComponentSnapshot {
   x_nm: number;
@@ -302,6 +302,8 @@ export interface ComponentSnapshot {
   side: string;
   package: string;
   part_number?: string | null;
+  body_w_nm?: number | null;
+  body_h_nm?: number | null;
 }
 
 /**

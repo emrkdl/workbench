@@ -193,6 +193,9 @@ class Component(Base):
     side: Mapped[str] = mapped_column(String(8))
     pin_count: Mapped[int] = mapped_column(Integer)
     pin_pitch_nm: Mapped[int | None] = mapped_column(BigInteger)
+    #: 배치도와 비교 지도가 그리는 사각형의 크기. 파일에 없으면 비어 있다.
+    body_w_nm: Mapped[int | None] = mapped_column(BigInteger)
+    body_h_nm: Mapped[int | None] = mapped_column(BigInteger)
 
     __table_args__ = (
         # RefDes 는 리비전 내에서 유일해야 한다 — Diff 의 매칭 키라 중복되면 비교가 깨진다
