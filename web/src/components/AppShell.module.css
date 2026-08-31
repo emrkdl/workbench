@@ -149,6 +149,68 @@
   padding: 0 4px;
 }
 
+/* 최근 본 보드 — 메뉴 항목보다 한 단 낮은 무게로 둔다. 이동 수단이지 메뉴가 아니다.
+   지우기 버튼은 마우스를 올렸을 때만 보인다. 늘 떠 있으면 목록이 버튼 밭이 된다. */
+.recentRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  align-items: center;
+}
+.recentItem {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 5px var(--sp-3);
+  border-radius: var(--r);
+  border-left: 2px solid transparent;
+}
+.recentItem:hover {
+  background: var(--surface-2);
+}
+.recentItemOn {
+  background: var(--accent-wash);
+  border-left-color: var(--accent);
+}
+.recentKey {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recentItemOn .recentKey {
+  color: var(--accent-ink);
+}
+.recentName {
+  font-size: 10px;
+  color: var(--ink-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recentDrop {
+  border: 0;
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px;
+  border-radius: var(--r-sm);
+  opacity: 0;
+}
+.recentRow:hover .recentDrop {
+  opacity: 1;
+}
+.recentDrop:hover {
+  color: var(--crit);
+  background: var(--surface-2);
+}
+.recentDrop:focus-visible {
+  opacity: 1;
+}
+
 .railFoot {
   margin-top: auto;
   padding: var(--sp-3);

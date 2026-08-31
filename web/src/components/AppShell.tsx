@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { fetchManifest, LIVE, setToken, whoami } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { forget, useRecentBoards } from "@/lib/recent";
+import { revisionPath } from "@/lib/routes";
 import s from "./AppShell.module.css";
 
 type Theme = "system" | "light" | "dark";
@@ -59,6 +61,7 @@ const NAV: { label: string; items: NavEntry[] }[] = [
 
 export function AppShell() {
   const { theme, cycle } = useTheme();
+  const recent = useRecentBoards();
   const { data: manifest } = useAsync(fetchManifest, []);
   const { data: session } = useAsync(whoami, []);
 
@@ -126,6 +129,35 @@ export function AppShell() {
             ))}
           </div>
         ))}
+
+        {/* 보드가 쌓일수록 사람은 결국 같은 몇 장을 오간다. 메뉴가 넷뿐이라 남는 자리를
+            장식으로 메우는 대신, 그 몇 장으로 바로 가는 길을 둔다. */}
+        {recent.length > 0 && (
+          <div className={s.navGroup}>
+            <span className={s.navLabel}>최근 본 보드</span>
+            {recent.map((b) => (
+              <div className={s.recentRow} key={b.boardId}>
+                <NavLink
+                  to={revisionPath(b.boardId, b.seg)}
+                  className={({ isActive }) => `${s.recentItem} ${isActive ? s.recentItemOn : ""}`}
+                  title={`${b.boardKey} · ${b.name}`}
+                >
+                  <span className={s.recentKey}>{b.boardKey}</span>
+                  <span className={s.recentName}>{b.name}</span>
+                </NavLink>
+                <button
+                  type="button"
+                  className={s.recentDrop}
+                  title="목록에서 빼기"
+                  aria-label={`${b.boardKey} 를 최근 목록에서 빼기`}
+                  onClick={() => forget(b.boardId)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className={s.railFoot}>
           {manifest ? (

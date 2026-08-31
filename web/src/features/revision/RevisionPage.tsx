@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { ErrorState, Loading } from "@/components/ui";
 import { isTabKey, revisionId, revisionPath, TABS, type TabKey } from "@/lib/routes";
+import { remember } from "@/lib/recent";
 import type { DisplayUnit } from "@/lib/units";
 import { OverviewTab } from "./OverviewTab";
 import { StackupTab } from "./StackupTab";
@@ -24,6 +25,15 @@ export function RevisionPage() {
   const { data: detail, error, loading } = useAsync(() => fetchRevision(id), [id]);
 
   const active: TabKey = isTabKey(tab) ? tab : "overview";
+
+  // 왼쪽 레일의 "최근 본 보드"에 남긴다. 보던 리비전 조각까지 들고 가므로
+  // 돌아왔을 때 최신이 아니라 보던 그 리비전이 열린다.
+  const seen = detail?.revision;
+  useEffect(() => {
+    if (seen) {
+      remember({ boardId, boardKey: seen.board_key, name: seen.board_name, seg: rev });
+    }
+  }, [seen, boardId, rev]);
 
   if (loading) return <Loading label="리비전을 불러오는 중" />;
   if (error) return <ErrorState error={error} />;
