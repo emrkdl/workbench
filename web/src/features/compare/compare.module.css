@@ -536,3 +536,19 @@
   font-family: var(--font-mono);
   color: var(--ink-4);
 }
+
+/* 확장 — 두 판을 크게 맞대어 볼 때. 도구 막대와 범례는 남긴다. 층을 못 끄고 무엇이
+   달라졌는지 못 읽으면 넓혀 놓은 의미가 없다. */
+.boardsExpanded {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--surface);
+  padding: var(--sp-3) var(--sp-4) var(--sp-2);
+}
+/* 남는 높이를 판이 전부 가져간다 — 인라인 height 는 확장 상태에서 붙이지 않는다. */
+.boardsExpanded .boardsSide,
+.boardsExpanded .boardsOne {
+  flex: 1;
+  min-height: 0;
+}

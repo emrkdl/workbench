@@ -434,8 +434,17 @@ export const BoardScene = forwardRef<SceneHandle, BoardSceneProps>(function Boar
   }, []);
 
   // ── 입력 ──────────────────────────────────
-  const onWheel = useCallback(
-    (e: React.WheelEvent) => {
+  /**
+   * 휠 확대. React 의 onWheel 이 아니라 직접 붙인다.
+   *
+   * React 는 wheel 을 passive 리스너로 달기 때문에 그 안에서 preventDefault() 를 불러도
+   * 먹지 않는다. 그러면 보드는 확대되는데 페이지도 같이 스크롤돼서, 판을 들여다보려던
+   * 손짓이 화면을 통째로 밀어버린다. 트랙패드에서 특히 심하다.
+   */
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const [bx, by] = toBoard(e.clientX, e.clientY);
       const cam = camera.current;
@@ -449,9 +458,24 @@ export const BoardScene = forwardRef<SceneHandle, BoardSceneProps>(function Boar
       };
       dirtyRef.current = true;
       onCameraChange?.();
-    },
-    [toBoard, camera, onCameraChange],
-  );
+    };
+    stage.addEventListener("wheel", onWheel, { passive: false });
+    return () => stage.removeEventListener("wheel", onWheel);
+  }, [toBoard, camera, onCameraChange]);
+
+  /**
+   * 자리 크기가 바뀌면 다시 그린다. 창 크기가 아니라 **이 요소**의 크기다 — 패널을
+   * 확장하거나 옆 목록을 접으면 창은 그대로인데 캔버스만 넓어진다.
+   */
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      dirtyRef.current = true;
+    });
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -525,7 +549,6 @@ export const BoardScene = forwardRef<SceneHandle, BoardSceneProps>(function Boar
     <div
       ref={stageRef}
       className={`${s.stage} ${className ?? ""}`}
-      onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

@@ -376,3 +376,12 @@
   min-width: 0;
   min-height: 0;
 }
+
+/* 확장 — 판을 크게 보려고 온 화면이므로 머리글·탭·레일을 다 덮는다. 도구 막대와 층 목록은
+   그대로 남는다. 확대해 놓고 층을 못 끄면 확장한 보람이 없다. */
+.wrapExpanded {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  border-radius: 0;
+}

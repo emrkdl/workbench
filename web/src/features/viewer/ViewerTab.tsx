@@ -64,6 +64,8 @@ export function ViewerTab({
   const [labels, setLabels] = useState(true);
   const [hiddenFamilies, setHiddenFamilies] = useState<Set<FamilyKey>>(() => new Set());
   const [alpha, setAlpha] = useState(0.85);
+  // 확장 — 판을 크게 보려고 여기 온 것이므로, 머리글·탭·왼쪽 레일을 전부 덮고 화면을 다 쓴다.
+  const [expanded, setExpanded] = useState(false);
 
   const conductorNo = useMemo(() => conductorNumbers(detail.stackup), [detail.stackup]);
   const layerInfos = useLayerInfos(detail);
@@ -152,6 +154,14 @@ export function ViewerTab({
     [detail.components, hiddenFamilies, sideView],
   );
 
+  // 확장 상태에서는 Esc 로 빠져나온다. 전체 화면을 덮는 것에는 언제나 나가는 길이 있어야 한다.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
   const measured =
     measure.a && measure.b ? Math.hypot(measure.b[0] - measure.a[0], measure.b[1] - measure.a[1]) : null;
 
@@ -170,7 +180,7 @@ export function ViewerTab({
   }
 
   return (
-    <div className={s.wrap}>
+    <div className={`${s.wrap} ${expanded ? s.wrapExpanded : ""}`}>
       <div className={s.toolbar}>
         <div className={s.seg} role="group" aria-label="보기 종류">
           {(
@@ -277,6 +287,15 @@ export function ViewerTab({
         </button>
         <span className={s.spacer} />
         <span className={s.hintText}>휠 확대 · 끌어서 이동 · 클릭으로 선택</span>
+        <button
+          type="button"
+          className={`${s.btn} ${expanded ? s.btnOn : ""}`}
+          title={expanded ? "축소 (Esc)" : "화면 전체로 넓히기"}
+          aria-pressed={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "⤡ 축소" : "⤢ 확장"}
+        </button>
       </div>
 
       <aside className={s.layers}>

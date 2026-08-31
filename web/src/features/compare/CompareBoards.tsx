@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ComponentChange, ComponentSnapshot, RevisionDetail } from "@/lib/cdm";
 import type { FamilyKey } from "@/lib/families";
@@ -219,6 +219,15 @@ export function CompareBoards({
   const [selection, setSelection] = useState<{ side: "a" | "b"; value: Selection } | null>(null);
   const [netName, setNetName] = useState<string | null>(null);
   const [cursor, setCursor] = useState("—");
+  // 확장 — 두 판을 크게 맞대어 볼 때 요약 표와 탭이 자리를 차지할 이유가 없다.
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
 
   const layersA = useLayerInfos(detailA ?? EMPTY_DETAIL);
   const layersB = useLayerInfos(detailB ?? EMPTY_DETAIL);
@@ -320,7 +329,7 @@ export function CompareBoards({
   const boxA = detailA ? outlineBox(detailA.outline) : null;
 
   return (
-    <div className={s.boards}>
+    <div className={`${s.boards} ${expanded ? s.boardsExpanded : ""}`}>
       <div className={s.boardTools}>
         <div className={s.seg} role="group" aria-label="보기 종류">
           {([["placement", "배치"], ["copper", "동박"], ["both", "둘 다"]] as const).map(([k, label]) => (
@@ -358,6 +367,15 @@ export function CompareBoards({
         </button>
         <button type="button" className={s.filterChip} onClick={fitBoth}>
           전체 보기
+        </button>
+        <button
+          type="button"
+          className={`${s.filterChip} ${expanded ? s.filterChipOn : ""}`}
+          title={expanded ? "축소 (Esc)" : "화면 전체로 넓히기"}
+          aria-pressed={expanded}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "⤡ 축소" : "⤢ 확장"}
         </button>
         {netName && (
           <button
@@ -400,7 +418,10 @@ export function CompareBoards({
         )}
       </div>
 
-      <div className={view === "side" ? s.boardsSide : s.boardsOne} style={{ height }}>
+      <div
+        className={view === "side" ? s.boardsSide : s.boardsOne}
+        style={expanded ? undefined : { height }}
+      >
         <div className={s.boardPane}>
           <span className={`${s.paneLabel} ${s.sideA}`}>
             {view === "overlay" ? `${labelA} → ${labelB}` : labelA}
