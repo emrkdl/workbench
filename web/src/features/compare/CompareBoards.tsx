@@ -173,7 +173,11 @@ const EMPTY_DETAIL = {
 
 export function CompareBoards({
   view,
+  onViewChange,
   labels,
+  onLabelsChange,
+  expanded,
+  onExpandedChange,
   changes,
   detailA,
   detailB,
@@ -183,7 +187,12 @@ export function CompareBoards({
   height = 420,
 }: {
   view: CompareView;
+  onViewChange: (view: CompareView) => void;
   labels: boolean;
+  onLabelsChange: (labels: boolean) => void;
+  /** 확장은 패널 전체를 덮는 일이라 상태를 패널 쪽이 들고 있다. */
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
   changes: ComponentChange[];
   detailA: RevisionDetail | null;
   detailB: RevisionDetail | null;
@@ -219,15 +228,14 @@ export function CompareBoards({
   const [selection, setSelection] = useState<{ side: "a" | "b"; value: Selection } | null>(null);
   const [netName, setNetName] = useState<string | null>(null);
   const [cursor, setCursor] = useState("—");
-  // 확장 — 두 판을 크게 맞대어 볼 때 요약 표와 탭이 자리를 차지할 이유가 없다.
-  const [expanded, setExpanded] = useState(false);
 
+  // 화면을 다 덮는 것에는 언제나 나가는 길이 있어야 한다.
   useEffect(() => {
     if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onExpandedChange(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [expanded]);
+  }, [expanded, onExpandedChange]);
 
   const layersA = useLayerInfos(detailA ?? EMPTY_DETAIL);
   const layersB = useLayerInfos(detailB ?? EMPTY_DETAIL);
@@ -357,6 +365,27 @@ export function CompareBoards({
             </button>
           ))}
         </div>
+        <div className={s.seg} role="group" aria-label="맞대는 방식">
+          {([["side", "나란히"], ["overlay", "겹쳐보기"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={view === k ? s.segOn : ""}
+              aria-pressed={view === k}
+              onClick={() => onViewChange(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className={`${s.filterChip} ${labels ? s.filterChipOn : ""}`}
+          aria-pressed={labels}
+          onClick={() => onLabelsChange(!labels)}
+        >
+          라벨
+        </button>
         <button
           type="button"
           className={`${s.filterChip} ${marks ? s.filterChipOn : ""}`}
@@ -368,15 +397,18 @@ export function CompareBoards({
         <button type="button" className={s.filterChip} onClick={fitBoth}>
           전체 보기
         </button>
-        <button
-          type="button"
-          className={`${s.filterChip} ${expanded ? s.filterChipOn : ""}`}
-          title={expanded ? "축소 (Esc)" : "화면 전체로 넓히기"}
-          aria-pressed={expanded}
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? "⤡ 축소" : "⤢ 확장"}
-        </button>
+        {/* 확장 단추는 패널 머리에 있는데, 펼치면 그 머리가 이 화면에 덮인다.
+            그래서 나가는 단추는 여기에 둔다. */}
+        {expanded && (
+          <button
+            type="button"
+            className={`${s.filterChip} ${s.filterChipOn}`}
+            title="축소 (Esc)"
+            onClick={() => onExpandedChange(false)}
+          >
+            ⤡ 축소
+          </button>
+        )}
         {netName && (
           <button
             type="button"

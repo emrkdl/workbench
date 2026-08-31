@@ -182,6 +182,7 @@ export function ComparePage() {
       return p;
     }, { replace: true });
   const [boardLabels, setBoardLabels] = useState(true);
+  const [boardsExpanded, setBoardsExpanded] = useState(false);
 
   // 비교 대상은 URL 이 들고 있다. 화면 상태로 두면 "이 비교 좀 봐 주세요"를 링크로 못 보낸다.
   const a = params.get("a");
@@ -429,37 +430,28 @@ export function ComparePage() {
                 <Panel
                   title="보드 맞대어 보기"
                   action={
+                    /* 확장은 패널 전체를 화면 가득 펼치는 일이라 패널 머리에 둔다. 나란히·
+                       겹쳐보기·라벨은 판을 어떻게 그릴지에 대한 것이라 판 위 도구 막대로
+                       내려보냈다 — 배치·동박·면 고르기와 같은 줄에 있어야 손이 짧다. */
                     <span className={s.filters}>
                       <button
                         type="button"
-                        className={`${s.filterChip} ${boardView === "side" ? s.filterChipOn : ""}`}
-                        aria-pressed={boardView === "side"}
-                        onClick={() => setBoardView("side")}
+                        className={s.filterChip}
+                        title="화면 전체로 넓히기"
+                        onClick={() => setBoardsExpanded(true)}
                       >
-                        나란히
-                      </button>
-                      <button
-                        type="button"
-                        className={`${s.filterChip} ${boardView === "overlay" ? s.filterChipOn : ""}`}
-                        aria-pressed={boardView === "overlay"}
-                        onClick={() => setBoardView("overlay")}
-                      >
-                        겹쳐보기
-                      </button>
-                      <button
-                        type="button"
-                        className={`${s.filterChip} ${boardLabels ? s.filterChipOn : ""}`}
-                        aria-pressed={boardLabels}
-                        onClick={() => setBoardLabels((v) => !v)}
-                      >
-                        라벨
+                        ⤢ 확장
                       </button>
                     </span>
                   }
                 >
                   <CompareBoards
                     view={boardView}
+                    onViewChange={setBoardView}
                     labels={boardLabels}
+                    onLabelsChange={setBoardLabels}
+                    expanded={boardsExpanded}
+                    onExpandedChange={setBoardsExpanded}
                     changes={components}
                     detailA={detailA.data}
                     detailB={detailB.data}
