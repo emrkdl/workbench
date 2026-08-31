@@ -114,11 +114,16 @@ export interface RecentPair {
   label: string;
 }
 
+const pairKey = (p: RecentPair) => `${p.a}__${p.b}`;
+
 /**
  * 최근 조합을 기억해 둔다. 조합이 목록에서 사라진 대신, 방금 보던 비교로 돌아가는 길은
  * 남아 있어야 한다. 브라우저에만 저장하므로 사람마다 자기가 보던 것이 남는다.
+ *
+ * 지우는 길도 함께 준다. 자동으로 쌓이는 목록은 스스로 지울 수 없으면 금세 쓸모없는
+ * 조합으로 차고, 그러면 여섯 칸이 다 낭비된다.
  */
-export function useRecentPairs(current: RecentPair | null): RecentPair[] {
+export function useRecentPairs(current: RecentPair | null): [RecentPair[], (key: string) => void] {
   const [recent, setRecent] = useState<RecentPair[]>(() => {
     try {
       const raw = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as RecentPair[];
@@ -128,50 +133,64 @@ export function useRecentPairs(current: RecentPair | null): RecentPair[] {
     }
   });
 
-  const key = current ? `${current.a}__${current.b}` : null;
+  const save = (next: RecentPair[]) => {
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    } catch {
+      /* 저장이 막혀도 이번 세션은 동작해야 한다 */
+    }
+    return next;
+  };
+
+  const drop = (key: string) => setRecent((prev) => save(prev.filter((p) => pairKey(p) !== key)));
+
+  const key = current ? pairKey(current) : null;
   useEffect(() => {
     if (!current || !key) return;
     setRecent((prev) => {
       if (prev[0]?.a === current.a && prev[0]?.b === current.b) return prev;
-      const next = [current, ...prev.filter((p) => `${p.a}__${p.b}` !== key)].slice(0, RECENT_MAX);
-      try {
-        localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      } catch {
-        /* 저장이 막혀도 이번 세션은 동작해야 한다 */
-      }
-      return next;
+      return save([current, ...prev.filter((p) => pairKey(p) !== key)].slice(0, RECENT_MAX));
     });
     // current 는 매 렌더 새 객체다. 조합이 실제로 바뀐 경우에만 돌린다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, current?.label]);
 
-  return recent;
+  return [recent, drop];
 }
 
 export function RecentPairs({
   pairs,
   current,
   onSelect,
+  onDrop,
 }: {
   pairs: RecentPair[];
   current: string | null;
   onSelect: (pair: RecentPair) => void;
+  onDrop: (key: string) => void;
 }) {
   if (pairs.length === 0) return null;
   return (
     <div className={s.recent}>
       <span className={s.recentLabel}>최근</span>
       {pairs.map((p) => {
-        const key = `${p.a}__${p.b}`;
+        const key = pairKey(p);
+        // 버튼 안에 버튼을 넣을 수 없어 칩을 감싸는 껍데기를 하나 둔다.
         return (
-          <button
-            key={key}
-            type="button"
-            className={`${s.recentChip} ${current === key ? s.recentChipOn : ""}`}
-            onClick={() => onSelect(p)}
-          >
-            {p.label}
-          </button>
+          <span key={key} className={`${s.recentChip} ${current === key ? s.recentChipOn : ""}`}>
+            <button type="button" className={s.recentPick} onClick={() => onSelect(p)}>
+              {p.label}
+            </button>
+            <button
+              type="button"
+              className={s.recentDrop}
+              title="최근 목록에서 빼기"
+              aria-label={`${p.label} 를 최근 목록에서 빼기`}
+              onClick={() => onDrop(key)}
+            >
+              ×
+            </button>
+          </span>
         );
       })}
     </div>

@@ -150,7 +150,7 @@
 }
 
 /* 최근 본 보드 — 메뉴 항목보다 한 단 낮은 무게로 둔다. 이동 수단이지 메뉴가 아니다.
-   지우기 버튼은 마우스를 올렸을 때만 보인다. 늘 떠 있으면 목록이 버튼 밭이 된다. */
+   지우기 버튼은 늘 보이되 흐리게 둔다. 마우스를 올려야만 나타나면 있는 줄 모른다. */
 .recentRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 18px;
@@ -198,7 +198,7 @@
   line-height: 1;
   padding: 2px;
   border-radius: var(--r-sm);
-  opacity: 0;
+  opacity: 0.4;
 }
 .recentRow:hover .recentDrop {
   opacity: 1;

@@ -134,22 +134,52 @@
   text-transform: uppercase;
   color: var(--ink-4);
 }
+/* 칩 안에 고르기 버튼과 지우기 버튼이 나란히 들어간다. 버튼 안에 버튼을 넣을 수 없어
+   칩 자체는 껍데기다. 지우기는 늘 보이되 흐리게 둔다 — 마우스를 올려야만 나타나면
+   있는 줄 모르고, 터치 화면에서는 아예 못 누른다. */
 .recentChip {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 0 3px 0 0;
 }
-.recentChip:hover {
+.recentPick {
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px 0 0 999px;
+}
+.recentChip:hover .recentPick {
   color: var(--ink);
 }
+.recentDrop {
+  border: 0;
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 999px;
+  opacity: 0.45;
+}
+.recentChip:hover .recentDrop,
+.recentDrop:focus-visible {
+  opacity: 1;
+}
+.recentDrop:hover {
+  color: var(--crit);
+}
 .recentChipOn {
-  color: var(--accent-ink);
   background: var(--accent-wash);
   border-color: var(--accent-line);
+}
+.recentChipOn .recentPick {
+  color: var(--accent-ink);
 }
 
 /* ── 본문 ──────────────────────────────────── */

@@ -235,7 +235,7 @@ export function ComparePage() {
   const sameBoard =
     !!detailA.data && !!detailB.data && detailA.data.revision.board_id === detailB.data.revision.board_id;
 
-  const recent = useRecentPairs(
+  const [recent, dropRecent] = useRecentPairs(
     a && b && detailA.data && detailB.data ? { a, b, label: `${labelA} → ${labelB}` } : null,
   );
 
@@ -330,6 +330,7 @@ export function ComparePage() {
               return p;
             })
           }
+          onDrop={dropRecent}
         />
       </header>
 
