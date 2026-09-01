@@ -633,6 +633,12 @@
 }
 
 /* 과거 설계 참조 — 대상 옆에 선다. 둘 다 "재료"라서 나란히 있는 편이 읽힌다. */
+/* 세로 flex 안에서는 자식이 가로로 늘어난다. 세그먼트는 내용만큼만 잡아야
+   버튼 뒤로 빈 테두리가 뻗지 않는다. */
+.refBox > .seg {
+  align-self: flex-start;
+}
+
 .refBox {
   display: flex;
   flex-direction: column;
