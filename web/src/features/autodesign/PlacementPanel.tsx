@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import type { Board, ComponentRow, RevisionDetail } from "@/lib/cdm";
+import type { ComponentRow, RevisionDetail } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Panel } from "@/components/ui";
 import { familyOf, FAMILIES, css as familyCss, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
-import { formatFine } from "@/lib/units";
 import {
   DEFAULT_RULE,
   REGIONS,
@@ -33,14 +32,15 @@ const ROTATIONS: [PlaceRotation, string][] = [
 
 export function PlacementPanel({
   detail,
-  boards,
   spec,
   onChange,
+  preview,
 }: {
   detail: RevisionDetail | null;
-  boards: Board[];
   spec: PlacementSpec;
   onChange: (next: PlacementSpec) => void;
+  /** 파서가 붙기 전까지 부품 목록을 대신 읽어 올 자리. 임시 발판이다. */
+  preview: React.ReactNode;
 }) {
   const [family, setFamily] = useState<FamilyKey | null>(null);
   const selected = useMemo(() => new Set(spec.refdes), [spec.refdes]);
@@ -152,17 +152,18 @@ export function PlacementPanel({
 
   if (!detail) {
     return (
-      <Panel title="자동 배치">
+      <Panel title="자동 배치" action={preview}>
         <p className={s.hint}>
-          부품을 고르려면 먼저 위에서 <b>리비전을 고르세요</b>. 올린 HKP 는 문법이 붙기
-          전까지 열어 볼 수 없어 부품 목록이 나오지 않습니다.
+          올린 HKP 는 <b>문법이 붙기 전까지 열어 볼 수 없어</b> 부품 목록이 나오지 않습니다.
+          화면을 확인하려면 오른쪽에서 이미 들어와 있는 리비전을 골라 부품 목록을 대신
+          띄우세요 — 파서가 붙으면 이 자리는 사라집니다.
         </p>
       </Panel>
     );
   }
 
   return (
-    <Panel title="자동 배치">
+    <Panel title="자동 배치" action={preview}>
       <div className={s.row}>
         <div className={s.seg} role="group" aria-label="배치 범위">
           {([["all", "판 전체 다시 배치"], ["selected", "고른 부품만"]] as const).map(([k, label]) => (
@@ -348,61 +349,6 @@ export function PlacementPanel({
         </>
       )}
 
-      {/* ── 이전 데이터 참조 ── */}
-      <div className={s.subHead}>
-        <span>이전 설계 참조</span>
-      </div>
-      <label className={s.check}>
-        <input
-          type="checkbox"
-          checked={spec.reference.enabled}
-          onChange={() =>
-            onChange({ ...spec, reference: { ...spec.reference, enabled: !spec.reference.enabled } })
-          }
-        />
-        비슷한 이전 보드의 배치를 참고하게 한다
-      </label>
-      {spec.reference.enabled && (
-        <>
-          <p className={s.hint}>
-            고른 보드에서 <b>같은 파트넘버 부품의 상대 위치와 방향</b>을 뽑아 참고합니다. 잘
-            돌던 전원부·RF 블록의 배치를 그대로 물려주려는 것이지, 판 전체를 베끼는 것이
-            아닙니다.
-          </p>
-          <div className={s.refList}>
-            {boards
-              .filter((b) => b.latest_revision_id !== detail.revision.id)
-              .map((b) => {
-                const on = spec.reference.revisionIds.includes(b.latest_revision_id);
-                return (
-                  <label key={b.id} className={`${s.refItem} ${on ? s.refItemOn : ""}`}>
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() =>
-                        onChange({
-                          ...spec,
-                          reference: {
-                            ...spec.reference,
-                            revisionIds: on
-                              ? spec.reference.revisionIds.filter((id) => id !== b.latest_revision_id)
-                              : [...spec.reference.revisionIds, b.latest_revision_id],
-                          },
-                        })
-                      }
-                    />
-                    <span className={s.refKey}>{b.board_key}</span>
-                    <span className={s.refName}>{b.name}</span>
-                    <span className={s.refMeta}>
-                      {b.summary.layer_count}층 · {b.summary.component_count.toLocaleString()}개 ·{" "}
-                      {formatFine(b.summary.min_trace_width_nm)}
-                    </span>
-                  </label>
-                );
-              })}
-          </div>
-        </>
-      )}
     </Panel>
   );
 }

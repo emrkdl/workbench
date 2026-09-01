@@ -44,6 +44,19 @@ interface NavEntry {
   soon?: boolean;
 }
 
+/**
+ * 맨 위에 홀로 서는 항목.
+ *
+ * 나머지는 쌓인 것을 들여다보는 화면이고 이것만 새 설계를 만들어 낸다. 같은 줄에 같은
+ * 무게로 놓으면 목록 중 하나로 읽히므로, 자리와 생김새를 따로 준다.
+ */
+const HERO: NavEntry & { blurb: string } = {
+  to: "/auto",
+  glyph: "✳",
+  label: "자동 설계",
+  blurb: "배치·배선을 엔진에 맡기기",
+};
+
 const NAV: { label: string; items: NavEntry[] }[] = [
   {
     label: "설계 자산",
@@ -51,10 +64,6 @@ const NAV: { label: string; items: NavEntry[] }[] = [
       { to: "/boards", glyph: "▤", label: "카탈로그" },
       { to: "/compare", glyph: "⇄", label: "비교" },
     ],
-  },
-  {
-    label: "설계",
-    items: [{ to: "/auto", glyph: "✳", label: "자동 설계" }],
   },
   {
     label: "분석",
@@ -135,6 +144,17 @@ export function AppShell() {
       </header>
 
       <nav className={s.rail} aria-label="주요 메뉴">
+        <NavLink
+          to={HERO.to}
+          className={({ isActive }) => `${s.hero} ${isActive ? s.heroOn : ""}`}
+        >
+          <span className={s.heroGlyph} aria-hidden="true">{HERO.glyph}</span>
+          <span className={s.heroText}>
+            <b>{HERO.label}</b>
+            <span>{HERO.blurb}</span>
+          </span>
+        </NavLink>
+
         {NAV.map((group) => (
           <div className={s.navGroup} key={group.label}>
             <span className={s.navLabel}>{group.label}</span>

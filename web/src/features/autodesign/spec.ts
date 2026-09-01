@@ -54,7 +54,17 @@ export interface PlacementSpec {
   keepPlaced: boolean;
   /** 부품 사이 최소 간격. 엔진의 기본값을 덮어쓴다. */
   clearanceUm: number;
-  reference: { enabled: boolean; revisionIds: string[] };
+}
+
+/**
+ * 과거 설계 참조.
+ *
+ * 배치에만 걸리는 조건이 아니라 작업 전체에 걸린다 — 배선도 "이 보드에서 쓰던 층 배분과
+ * 비아 규격을 따라가라"를 참고할 수 있다. 그래서 배치 조건 안이 아니라 대상 옆에 둔다.
+ */
+export interface ReferenceSpec {
+  enabled: boolean;
+  revisionIds: string[];
 }
 
 export type RoutingEffort = "fast" | "balanced" | "thorough";
@@ -76,14 +86,19 @@ export interface RoutingSpec {
 
 export interface AutoDesignSpec {
   source: Source | null;
+  reference: ReferenceSpec;
   modes: { place: boolean; route: boolean };
   prompt: string;
   placement: PlacementSpec;
   routing: RoutingSpec;
+  /** 파서가 붙기 전까지 부품 목록을 대신 읽어 올 리비전. 임시 발판이다. */
+  previewRevisionId: string | null;
 }
 
 export const EMPTY_SPEC: AutoDesignSpec = {
   source: null,
+  reference: { enabled: false, revisionIds: [] },
+  previewRevisionId: null,
   // 둘 다 켠 상태가 기본이다. 배치와 배선을 따로 돌리는 것은 한쪽이 이미 끝났을 때뿐이고,
   // 새 판을 맡길 때는 둘 다 맡긴다.
   modes: { place: true, route: true },
@@ -94,7 +109,6 @@ export const EMPTY_SPEC: AutoDesignSpec = {
     rules: {},
     keepPlaced: false,
     clearanceUm: 130,
-    reference: { enabled: false, revisionIds: [] },
   },
   routing: {
     scope: "all",
@@ -112,7 +126,7 @@ export const EMPTY_SPEC: AutoDesignSpec = {
 
 /** 엔진에 넘길 형태. 화면 상태에서 지금 모드에 해당하지 않는 부분을 덜어낸다. */
 export function toRequest(spec: AutoDesignSpec) {
-  const { source, modes, prompt, placement, routing } = spec;
+  const { source, reference, modes, prompt, placement, routing } = spec;
   return {
     source: source
       ? source.kind === "upload"
@@ -121,6 +135,7 @@ export function toRequest(spec: AutoDesignSpec) {
       : null,
     tasks: [modes.place && "place", modes.route && "route"].filter(Boolean),
     instruction: prompt.trim() || null,
+    reference: reference.enabled ? reference.revisionIds : null,
     placement: modes.place
       ? {
           scope: placement.scope,
@@ -134,7 +149,6 @@ export function toRequest(spec: AutoDesignSpec) {
           ),
           keep_placed: placement.keepPlaced,
           clearance_nm: placement.clearanceUm * 1000,
-          reference: placement.reference.enabled ? placement.reference.revisionIds : null,
         }
       : null,
     routing: modes.route

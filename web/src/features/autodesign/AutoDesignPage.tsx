@@ -38,19 +38,37 @@ export function AutoDesignPage() {
     [catalog.data],
   );
 
-  // 대상이 리비전일 때만 부품·넷·적층을 읽어 올 수 있다. 올린 HKP 는 문법이 붙기 전까지
-  // 열어 볼 수 없다 — 그 사실은 SourceCard 가 화면에 적어 둔다.
-  const revisionId = spec.source?.kind === "revision" ? spec.source.revisionId ?? null : null;
+  // 파서가 붙기 전까지 부품 목록을 대신 읽어 올 자리. 올린 HKP 는 열어 볼 수 없으므로
+  // 이미 들어와 있는 리비전으로 화면을 채워 본다 — 임시 발판이고, 파서가 붙으면 사라진다.
   const detail = useAsync(
-    () => (revisionId ? fetchRevision(revisionId) : Promise.resolve(null)),
-    [revisionId],
+    () => (spec.previewRevisionId ? fetchRevision(spec.previewRevisionId) : Promise.resolve(null)),
+    [spec.previewRevisionId],
+  );
+
+  const previewPicker = (
+    <label className={s.previewPick}>
+      <span>미리보기</span>
+      <select
+        value={spec.previewRevisionId ?? ""}
+        onChange={(e) => setSpec({ ...spec, previewRevisionId: e.target.value || null })}
+      >
+        <option value="">리비전 없음</option>
+        {boards.map((b) => (
+          <option key={b.id} value={b.latest_revision_id}>
+            {b.board_key}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 
   const request = useMemo(() => toRequest(spec), [spec]);
 
   const problems = useMemo(() => {
     const out: string[] = [];
-    if (!spec.source) out.push("설계 파일이나 리비전을 고르지 않았습니다.");
+    if (!spec.source) out.push("설계 파일을 올리지 않았습니다.");
+    if (spec.reference.enabled && spec.reference.revisionIds.length === 0)
+      out.push("과거 설계를 참조하기로 했는데 참조할 보드를 고르지 않았습니다.");
     if (!spec.modes.place && !spec.modes.route) out.push("배치와 배선 중 적어도 하나는 맡겨야 합니다.");
     if (spec.modes.place && spec.placement.scope === "selected" && spec.placement.refdes.length === 0)
       out.push("‘고른 부품만’ 을 골랐는데 부품을 하나도 고르지 않았습니다.");
@@ -81,7 +99,9 @@ export function AutoDesignPage() {
             <SourceCard
               boards={boards}
               source={spec.source}
-              onChange={(source) => setSpec({ ...spec, source })}
+              reference={spec.reference}
+              onSourceChange={(source) => setSpec({ ...spec, source })}
+              onReferenceChange={(reference) => setSpec({ ...spec, reference })}
             />
           </Panel>
 
@@ -141,9 +161,9 @@ export function AutoDesignPage() {
           {spec.modes.place && (
             <PlacementPanel
               detail={detail.data}
-              boards={boards}
               spec={spec.placement}
               onChange={(placement) => setSpec({ ...spec, placement })}
+              preview={previewPicker}
             />
           )}
 
@@ -162,12 +182,14 @@ export function AutoDesignPage() {
             <Panel title="요청서">
               <dl className={s.summary}>
                 <dt>대상</dt>
+                <dd>{spec.source?.fileName ?? "—"}</dd>
+                <dt>참조</dt>
                 <dd>
-                  {spec.source
-                    ? spec.source.kind === "upload"
-                      ? spec.source.fileName
-                      : `${spec.source.boardKey} · ${spec.source.boardName}`
-                    : "—"}
+                  {spec.reference.enabled
+                    ? spec.reference.revisionIds.length
+                      ? `${spec.reference.revisionIds.length}장`
+                      : "켬 (고른 보드 없음)"
+                    : "안 함"}
                 </dd>
                 <dt>맡길 일</dt>
                 <dd>
@@ -177,11 +199,7 @@ export function AutoDesignPage() {
                   <>
                     <dt>배치 대상</dt>
                     <dd>
-                      {spec.placement.scope === "all"
-                        ? "판 전체"
-                        : `${spec.placement.refdes.length}개 부품`}
-                      {spec.placement.reference.enabled &&
-                        ` · 참조 ${spec.placement.reference.revisionIds.length}장`}
+                      {spec.placement.scope === "all" ? "판 전체" : `${spec.placement.refdes.length}개 부품`}
                     </dd>
                   </>
                 )}

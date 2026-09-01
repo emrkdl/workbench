@@ -683,3 +683,48 @@
   border-radius: 0 0 var(--r) var(--r);
   white-space: pre;
 }
+
+/* 과거 설계 참조 — 대상 옆에 선다. 둘 다 "재료"라서 나란히 있는 편이 읽힌다. */
+.refBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 132px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.refSearch {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  padding: 5px 8px;
+}
+.refFoot {
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+}
+
+/* 파서가 붙기 전까지만 있는 임시 발판. 패널 머리에 작게 둔다. */
+.previewPick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+}
+.previewPick select {
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  padding: 2px 5px;
+}
