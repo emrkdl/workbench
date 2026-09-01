@@ -22,13 +22,6 @@ import s from "./autodesign.module.css";
  * 그 자리에서 보인다.
  */
 
-const PROMPT_EXAMPLES = [
-  "커넥터는 보드 가장자리에 붙이고 안테나 주변 5mm 는 비워 둘 것",
-  "전원부는 좌하단에 모으고 스위칭 소자와 인덕터는 서로 붙일 것",
-  "고속 차동쌍은 층을 바꾸지 말고 L1 으로만 뺄 것",
-  "이전 세대 보드와 커넥터 위치를 같게 맞출 것",
-];
-
 export function AutoDesignPage() {
   const [spec, setSpec] = useState<AutoDesignSpec>(EMPTY_SPEC);
   const catalog = useAsync(fetchCatalog, []);
@@ -86,7 +79,25 @@ export function AutoDesignPage() {
     <div className={s.page}>
       <header className={s.head}>
         <h1 className={s.title}>자동 설계</h1>
-        <span className={s.lede}>배치와 배선을 엔진에 맡기기 위한 조건을 적습니다.</span>
+        {/* 무엇을 맡길지가 이 화면의 첫 갈림길이다 — 이 둘에 따라 아래 조건이 통째로
+            나타나고 사라진다. 그래서 맨 위에 두되, 자리는 조금만 쓴다. */}
+        <div className={s.modeBar}>
+          <ModePill
+            on={spec.modes.place}
+            glyph="▦"
+            label="자동 배치"
+            onToggle={() => setSpec({ ...spec, modes: { ...spec.modes, place: !spec.modes.place } })}
+          />
+          <ModePill
+            on={spec.modes.route}
+            glyph="⌁"
+            label="자동 배선"
+            onToggle={() => setSpec({ ...spec, modes: { ...spec.modes, route: !spec.modes.route } })}
+          />
+        </div>
+        {!spec.modes.place && !spec.modes.route && (
+          <span className={s.warn}>둘 다 끄면 엔진에 맡길 일이 없습니다.</span>
+        )}
         <span className={s.spacer} />
         <button type="button" className={s.linkBtn} onClick={() => setSpec(EMPTY_SPEC)}>
           모두 지우기
@@ -103,57 +114,6 @@ export function AutoDesignPage() {
               onSourceChange={(source) => setSpec({ ...spec, source })}
               onReferenceChange={(reference) => setSpec({ ...spec, reference })}
             />
-          </Panel>
-
-          <Panel title="무엇을 맡길까">
-            {/* 둘 다 켠 것이 기본이다. 따로 돌리는 것은 한쪽이 이미 끝났을 때뿐이다. */}
-            <div className={s.modeGrid}>
-              <ModeCard
-                on={spec.modes.place}
-                title="자동 배치"
-                glyph="▦"
-                body="부품을 판 위에 놓는다. 면·회전·대략적 위치를 조건으로 준다."
-                onToggle={() => setSpec({ ...spec, modes: { ...spec.modes, place: !spec.modes.place } })}
-              />
-              <ModeCard
-                on={spec.modes.route}
-                title="자동 배선"
-                glyph="⌁"
-                body="넷을 잇는다. 쓸 층과 허용할 비아가 곧 제조 단가다."
-                onToggle={() => setSpec({ ...spec, modes: { ...spec.modes, route: !spec.modes.route } })}
-              />
-            </div>
-            {!spec.modes.place && !spec.modes.route && (
-              <p className={s.warn}>둘 다 끄면 엔진에 맡길 일이 없습니다.</p>
-            )}
-          </Panel>
-
-          <Panel title="지시문">
-            <textarea
-              className={s.prompt}
-              rows={4}
-              placeholder="아래 조건으로 다 담기지 않는 것을 문장으로 적습니다. 예: 안테나 주변은 비워 둘 것"
-              value={spec.prompt}
-              onChange={(e) => setSpec({ ...spec, prompt: e.target.value })}
-            />
-            <div className={s.examples}>
-              {PROMPT_EXAMPLES.map((text) => (
-                <button
-                  key={text}
-                  type="button"
-                  className={s.exampleChip}
-                  onClick={() =>
-                    setSpec({ ...spec, prompt: spec.prompt ? `${spec.prompt}\n${text}` : text })
-                  }
-                >
-                  + {text}
-                </button>
-              ))}
-            </div>
-            <p className={s.hint}>
-              아래 조건표로 적을 수 있는 것은 조건표에 적으세요. 문장은 기계가 해석해야 하고,
-              해석은 틀릴 수 있습니다 — 조건표의 값은 틀리지 않습니다.
-            </p>
           </Panel>
 
           {detail.loading && <Loading label="리비전을 읽는 중" />}
@@ -245,26 +205,22 @@ export function AutoDesignPage() {
   );
 }
 
-function ModeCard({
+/** 작고 또렷하게. 켜져 있으면 액센트로 채우고, 꺼져 있으면 테두리만 남긴다. */
+function ModePill({
   on,
-  title,
   glyph,
-  body,
+  label,
   onToggle,
 }: {
   on: boolean;
-  title: string;
   glyph: string;
-  body: string;
+  label: string;
   onToggle: () => void;
 }) {
   return (
-    <button type="button" className={`${s.modeCard} ${on ? s.modeCardOn : ""}`} aria-pressed={on} onClick={onToggle}>
-      <span className={s.modeGlyph} aria-hidden="true">{glyph}</span>
-      <span className={s.modeText}>
-        <b>{title}</b>
-        <span>{body}</span>
-      </span>
+    <button type="button" className={`${s.modePill} ${on ? s.modePillOn : ""}`} aria-pressed={on} onClick={onToggle}>
+      <span className={s.modePillGlyph} aria-hidden="true">{glyph}</span>
+      {label}
       <span className={`${s.switch} ${on ? s.switchOn : ""}`} aria-hidden="true">
         <i />
       </span>

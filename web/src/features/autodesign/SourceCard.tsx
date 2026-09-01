@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Board } from "@/lib/cdm";
 import { formatBytes, formatFine } from "@/lib/units";
-import type { ReferenceSpec, Source } from "./spec";
+import { FORM_FACTORS, formFactorOf, type ReferenceSpec, type Source } from "./spec";
 import s from "./autodesign.module.css";
 
 /**
@@ -27,20 +27,33 @@ export function SourceCard({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const [query, setQuery] = useState("");
+  const [form, setForm] = useState("");
+  const [model, setModel] = useState("");
 
   const take = (file: File | null | undefined) => {
     if (!file) return;
     onSourceChange({ kind: "upload", fileName: file.name, byteSize: file.size });
   };
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return boards;
-    return boards.filter(
-      (b) => b.board_key.toLowerCase().includes(q) || b.name.toLowerCase().includes(q),
-    );
-  }, [boards, query]);
+  /** 있는 폼팩터만, 많은 것부터. 없는 종류를 목록에 두면 고르고 나서 빈 화면을 본다. */
+  const forms = useMemo(() => {
+    const out = new Map<string, number>();
+    for (const b of boards) {
+      const key = formFactorOf(b.board_key);
+      if (key) out.set(key, (out.get(key) ?? 0) + 1);
+    }
+    return [...out.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [boards]);
+
+  const models = useMemo(
+    () => (form ? boards.filter((b) => formFactorOf(b.board_key) === form) : []),
+    [boards, form],
+  );
+
+  const picked = useMemo(
+    () => boards.filter((b) => reference.revisionIds.includes(b.latest_revision_id)),
+    [boards, reference.revisionIds],
+  );
 
   const toggle = (revisionId: string) =>
     onReferenceChange({
@@ -103,63 +116,104 @@ export function SourceCard({
       <div>
         <span className={s.fieldLabel}>과거 설계 참조</span>
         <div className={s.refBox}>
-          <label className={s.check}>
-            <input
-              type="checkbox"
-              checked={reference.enabled}
-              onChange={() => onReferenceChange({ ...reference, enabled: !reference.enabled })}
-            />
-            지난 보드를 참고하게 한다
-          </label>
+          {/* 반영/미반영 — 참조를 "쓴다/안 쓴다"로 못박는다. 체크박스는 무엇이 기본인지
+              애매한데, 이건 결과가 크게 달라지는 갈림길이라 두 갈래를 다 보여 준다. */}
+          <div className={s.seg} role="group" aria-label="과거 설계 참조">
+            {([[true, "반영"], [false, "미반영"]] as const).map(([v, label]) => (
+              <button
+                key={label}
+                type="button"
+                className={reference.enabled === v ? s.segOn : ""}
+                aria-pressed={reference.enabled === v}
+                onClick={() => onReferenceChange({ ...reference, enabled: v })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
           {reference.enabled ? (
             <>
+              {/* 폼팩터로 먼저 좁히고 그 안에서 모델을 고른다. 서른 장을 한 줄로 늘어놓으면
+                  메인보드를 찾다가 플렉스를 고른다. */}
+              <div className={s.pickSteps}>
+                <label className={s.step}>
+                  <span>1. 폼팩터</span>
+                  <select
+                    value={form}
+                    onChange={(e) => {
+                      setForm(e.target.value);
+                      setModel("");
+                    }}
+                  >
+                    <option value="">고르세요</option>
+                    {forms.map(([key, count]) => (
+                      <option key={key} value={key}>
+                        {FORM_FACTORS[key] ?? key} ({count})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={s.step}>
+                  <span>2. 모델</span>
+                  <select
+                    value={model}
+                    disabled={!form}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setModel("");
+                      if (id && !reference.revisionIds.includes(id)) {
+                        onReferenceChange({ ...reference, revisionIds: [...reference.revisionIds, id] });
+                      }
+                    }}
+                  >
+                    <option value="">{form ? "고르세요" : "폼팩터를 먼저"}</option>
+                    {models.map((b) => (
+                      <option
+                        key={b.id}
+                        value={b.latest_revision_id}
+                        disabled={reference.revisionIds.includes(b.latest_revision_id)}
+                      >
+                        {b.board_key} · {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {picked.length > 0 ? (
+                <div className={s.pickedList}>
+                  {picked.map((b) => (
+                    <span key={b.id} className={s.picked}>
+                      <b>{b.board_key}</b>
+                      <span>
+                        {b.summary.layer_count}층 · {b.summary.component_count.toLocaleString()}개 ·{" "}
+                        {formatFine(b.summary.min_trace_width_nm)}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`${b.board_key} 참조에서 빼기`}
+                        onClick={() => toggle(b.latest_revision_id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className={s.hint}>고른 모델이 없습니다. 위에서 폼팩터와 모델을 차례로 고르세요.</p>
+              )}
+
               <p className={s.hint}>
                 고른 보드에서 <b>같은 파트넘버 부품의 상대 위치와 방향</b>, 그리고 층 배분과
                 비아 규격을 뽑아 참고합니다. 잘 돌던 블록을 물려주려는 것이지 판 전체를
                 베끼는 것이 아닙니다.
               </p>
-              <input
-                className={s.refSearch}
-                type="search"
-                placeholder="보드 코드 · 이름"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <div className={s.refList}>
-                {shown.map((b) => {
-                  const on = reference.revisionIds.includes(b.latest_revision_id);
-                  return (
-                    <label key={b.id} className={`${s.refItem} ${on ? s.refItemOn : ""}`}>
-                      <input type="checkbox" checked={on} onChange={() => toggle(b.latest_revision_id)} />
-                      <span className={s.refKey}>{b.board_key}</span>
-                      <span className={s.refName}>{b.name}</span>
-                      <span className={s.refMeta}>
-                        {b.summary.layer_count}층 · {b.summary.component_count.toLocaleString()}개 ·{" "}
-                        {formatFine(b.summary.min_trace_width_nm)}
-                      </span>
-                    </label>
-                  );
-                })}
-                {shown.length === 0 && <p className={s.hint}>찾는 보드가 없습니다.</p>}
-              </div>
-              <div className={s.refFoot}>
-                <span>{reference.revisionIds.length}장 선택</span>
-                <span className={s.spacer} />
-                <button
-                  type="button"
-                  className={s.linkBtn}
-                  disabled={!reference.revisionIds.length}
-                  onClick={() => onReferenceChange({ ...reference, revisionIds: [] })}
-                >
-                  선택 해제
-                </button>
-              </div>
             </>
           ) : (
             <p className={s.hint}>
               참고 없이 맡기면 엔진이 룰만 보고 처음부터 짭니다. 비슷한 판을 이미 만들어
-              봤다면 켜는 편이 결과가 낫습니다.
+              봤다면 반영하는 편이 결과가 낫습니다.
             </p>
           )}
         </div>

@@ -128,11 +128,6 @@
   display: none;
 }
 
-.pickBoard {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .fieldLabel {
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -140,70 +135,50 @@
   text-transform: uppercase;
   color: var(--ink-4);
 }
-.select {
-  font: inherit;
-  font-size: var(--fs-sm);
-  color: var(--ink);
-  background: var(--surface-2);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  padding: 6px 8px;
-  width: 100%;
-}
 
-/* ── 맡길 일 ───────────────────────────────── */
-.modeGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--sp-3);
+/* ── 맡길 일 — 머리글의 작은 토글 두 개 ─────── */
+.modeBar {
+  display: inline-flex;
+  gap: 6px;
+}
+.modePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 7px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+.modePill:hover {
+  color: var(--ink);
+}
+.modePillOn {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.modePillGlyph {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.75;
+}
+.modePillOn .modePillGlyph {
+  opacity: 1;
 }
 @media (max-width: 860px) {
   .modeGrid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.modeCard {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp-3);
-  text-align: left;
-  padding: var(--sp-3);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  background: var(--surface-2);
-}
-.modeCardOn {
-  border-color: var(--accent-line);
-  background: var(--accent-wash);
-}
-.modeGlyph {
-  font-family: var(--font-mono);
-  font-size: 17px;
-  text-align: center;
-  color: var(--ink-4);
-}
-.modeCardOn .modeGlyph {
-  color: var(--accent);
-}
-.modeText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.modeText b {
-  font-size: var(--fs-md);
-  color: var(--ink);
-}
-.modeText > span {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  line-height: 1.5;
-}
 .switch {
-  width: 32px;
-  height: 18px;
+  width: 26px;
+  height: 14px;
   border-radius: 999px;
   background: var(--surface-3);
   border: 1px solid var(--line-2);
@@ -212,10 +187,10 @@
 }
 .switch i {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--ink-4);
   transition: transform 0.12s ease;
@@ -226,40 +201,13 @@
 }
 .switchOn i {
   background: var(--surface);
-  transform: translateX(14px);
+  transform: translateX(12px);
 }
 
 /* ── 지시문 ────────────────────────────────── */
-.prompt {
-  width: 100%;
-  font: inherit;
-  font-size: var(--fs-base);
-  line-height: 1.6;
-  color: var(--ink);
-  background: var(--surface-2);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  padding: 9px 10px;
-  resize: vertical;
-}
 .prompt:focus-visible {
   border-color: var(--accent);
   outline: none;
-}
-.examples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 8px;
-}
-.exampleChip {
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  color: var(--ink-3);
-  border-radius: var(--r);
-  padding: 3px 9px;
-  font-size: var(--fs-xs);
-  text-align: left;
 }
 .exampleChip:hover {
   color: var(--accent-ink);
@@ -695,21 +643,6 @@
   border-radius: var(--r);
   background: var(--surface-2);
 }
-.refSearch {
-  font: inherit;
-  font-size: var(--fs-sm);
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line-2);
-  border-radius: var(--r);
-  padding: 5px 8px;
-}
-.refFoot {
-  display: flex;
-  align-items: center;
-  font-size: var(--fs-xs);
-  color: var(--ink-4);
-}
 
 /* 파서가 붙기 전까지만 있는 임시 발판. 패널 머리에 작게 둔다. */
 .previewPick {
@@ -727,4 +660,74 @@
   border: 1px dashed var(--line-2);
   border-radius: var(--r);
   padding: 2px 5px;
+}
+
+/* 폼팩터 → 모델 순서로 좁힌다. 두 칸을 나란히 두고 번호를 붙여 순서를 못박는다. */
+.pickSteps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--sp-2);
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  min-width: 0;
+}
+.step select {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  padding: 5px 7px;
+  width: 100%;
+}
+.step select:disabled {
+  color: var(--ink-4);
+}
+
+.pickedList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.picked {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 4px 6px;
+  border-radius: var(--r);
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-line);
+  font-size: var(--fs-xs);
+}
+.picked b {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--accent-ink);
+}
+.picked > span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.picked button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px;
+  border-radius: var(--r-sm);
+}
+.picked button:hover {
+  color: var(--crit);
 }

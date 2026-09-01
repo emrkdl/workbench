@@ -67,6 +67,24 @@ export interface ReferenceSpec {
   revisionIds: string[];
 }
 
+/**
+ * 폼팩터 — 보드 코드 가운데 토막이 그대로 판의 종류다(TTN-**MAIN**-A1).
+ *
+ * 메인보드와 플렉스는 같은 회사에서 나와도 다른 물건이다 — 크기도 층수도 배치 규칙도
+ * 다르다. 참조할 판을 고를 때 서른 장을 한 줄로 늘어놓는 대신 먼저 종류로 좁히는 이유다.
+ */
+export const FORM_FACTORS: Record<string, string> = {
+  MAIN: "메인 보드",
+  PWR: "전원 보드",
+  RF: "무선 모듈",
+  IF: "인터페이스",
+  SNS: "센서",
+  DSP: "신호 처리",
+  FLX: "플렉스",
+};
+
+export const formFactorOf = (boardKey: string) => boardKey.split("-")[1] ?? "";
+
 export type RoutingEffort = "fast" | "balanced" | "thorough";
 export type RoutingOrder = "auto" | "power_first" | "critical_first";
 
@@ -88,7 +106,6 @@ export interface AutoDesignSpec {
   source: Source | null;
   reference: ReferenceSpec;
   modes: { place: boolean; route: boolean };
-  prompt: string;
   placement: PlacementSpec;
   routing: RoutingSpec;
   /** 파서가 붙기 전까지 부품 목록을 대신 읽어 올 리비전. 임시 발판이다. */
@@ -102,7 +119,6 @@ export const EMPTY_SPEC: AutoDesignSpec = {
   // 둘 다 켠 상태가 기본이다. 배치와 배선을 따로 돌리는 것은 한쪽이 이미 끝났을 때뿐이고,
   // 새 판을 맡길 때는 둘 다 맡긴다.
   modes: { place: true, route: true },
-  prompt: "",
   placement: {
     scope: "all",
     refdes: [],
@@ -126,7 +142,7 @@ export const EMPTY_SPEC: AutoDesignSpec = {
 
 /** 엔진에 넘길 형태. 화면 상태에서 지금 모드에 해당하지 않는 부분을 덜어낸다. */
 export function toRequest(spec: AutoDesignSpec) {
-  const { source, reference, modes, prompt, placement, routing } = spec;
+  const { source, reference, modes, placement, routing } = spec;
   return {
     source: source
       ? source.kind === "upload"
@@ -134,7 +150,6 @@ export function toRequest(spec: AutoDesignSpec) {
         : { kind: "revision", revision_id: source.revisionId, board_key: source.boardKey }
       : null,
     tasks: [modes.place && "place", modes.route && "route"].filter(Boolean),
-    instruction: prompt.trim() || null,
     reference: reference.enabled ? reference.revisionIds : null,
     placement: modes.place
       ? {
