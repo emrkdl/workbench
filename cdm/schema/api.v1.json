@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "boardlens/api.v1",
-  "title": "BoardLens API v1",
+  "title": "BoardForge API v1",
   "description": "웹이 소비하는 계약. CDM이 '설계 파일 안에 무엇이 있는가'라면 이쪽은 '애플리케이션이 무엇을 돌려주는가'다. 목데이터 로더와 실제 bl-core는 동일하게 이 형태를 내놓는다.",
   "x-module": "api_v1",
   "x-version": "1.0.0",

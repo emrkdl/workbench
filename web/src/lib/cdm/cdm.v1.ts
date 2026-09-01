@@ -281,7 +281,7 @@ export interface DesignRules {
 }
 
 /**
- * CAD 툴이 낸 DRC 결과 한 건. BoardLens는 DRC를 재실행하지 않고 결과를 표시만 한다.
+ * CAD 툴이 낸 DRC 결과 한 건. 이 시스템은 DRC를 재실행하지 않고 결과를 표시만 한다.
  */
 export interface DrcFinding {
   /** 위반한 룰 이름. */

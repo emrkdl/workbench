@@ -1,4 +1,4 @@
-# PCB Design Workbench (BoardLens)
+# PCB Design Workbench (BoardForge)
 
 사내에 축적되는 PCB 설계 데이터(HKP)를 한곳에 적재하고, 웹에서 레이아웃을 열람하며,
 리비전 간 변경을 기계적으로 비교하는 온프렘 시스템.

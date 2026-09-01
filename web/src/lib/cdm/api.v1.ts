@@ -1,5 +1,5 @@
 /**
- * BoardLens API v1
+ * BoardForge API v1
  *
  * 생성된 파일이다 — 직접 고치지 말 것.
  * 원본: cdm/schema/api.v1.json

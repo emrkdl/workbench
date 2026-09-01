@@ -85,7 +85,7 @@ export function AppShell() {
       <header className={s.header}>
         <div className={s.brand}>
           <span className={s.brandMark}>PCB Design Workbench</span>
-          <span className={s.brandSub}>BoardLens</span>
+          <span className={s.brandSub}>BoardForge</span>
         </div>
 
         <span className={s.headerSpacer} />

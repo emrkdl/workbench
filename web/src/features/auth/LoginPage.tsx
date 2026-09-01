@@ -38,12 +38,12 @@ export function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
         <section className={s.intro}>
           <div className={s.brand}>
             <span className={s.mark}>PCB Design Workbench</span>
-            <span className={s.sub}>BoardLens</span>
+            <span className={s.sub}>BoardForge</span>
           </div>
 
           <p className={s.lede}>
-            사내에 쌓인 PCB 설계를 한곳에서 열람하고, 리비전 사이에 무엇이 달라졌는지
-            기계적으로 견주는 곳입니다.
+            사내에 쌓인 PCB 설계를 한곳에서 열람하고, 무엇이 달라졌는지 기계적으로 견주고,
+            그 축적을 재료로 새 레이아웃을 맡기는 곳입니다.
           </p>
 
           <ul className={s.points}>
@@ -58,6 +58,10 @@ export function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
             <li>
               <span className={s.pointGlyph} aria-hidden="true">⌗</span>
               부품 역검색과 재사용 현황
+            </li>
+            <li>
+              <span className={s.pointGlyph} aria-hidden="true">✳</span>
+              자동 레이아웃 — 배치·배선 맡기기
             </li>
           </ul>
 

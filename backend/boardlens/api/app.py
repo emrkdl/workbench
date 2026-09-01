@@ -43,7 +43,7 @@ from boardlens.ingest.pipeline import ingest_payload
 from boardlens.storage import BlobStore, default_store
 from boardlens.units import DEFAULT_MOVE_THRESHOLD_NM
 
-app = FastAPI(title="BoardLens API", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="BoardForge API", version="1.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 # 운영에서는 nginx 가 API 와 정적 파일을 같은 오리진으로 묶으므로 CORS 가 필요 없다.
 # 개발에서 Vite(5174)와 API(8000)가 갈리는 동안만 허용 목록을 연다.
