@@ -45,6 +45,22 @@ export interface Source {
   boardName?: string;
 }
 
+/**
+ * 밀도 등급.
+ *
+ * 부품 간 간격을 µm 로 물으면 답할 수 있는 사람이 몇 없다 — 그 숫자는 설계자가 정하는
+ * 값이 아니라 **어떤 제품인가**에서 따라 나온다. 그래서 제품의 성격을 고르게 하고 간격은
+ * 엔진이 그 등급에서 끌어낸다. 옆에 적은 µm 는 참고값이지 입력이 아니다.
+ */
+export const DENSITIES = [
+  ["normal", "노멀", "일반 기기. 검사와 리워크에 손이 들어갈 만큼 띄운다", "≈200 µm"],
+  ["hdi", "초고밀도", "스마트폰급. 마이크로비아를 전제로 붙여 놓는다", "≈130 µm"],
+  ["extreme", "극밀도", "빈 자리를 남기지 않는다. 리워크는 사실상 포기", "≈80 µm"],
+  ["wearable", "웨어러블", "판이 작고 양면을 다 쓴다. 두께와 굽힘을 함께 본다", "≈100 µm"],
+] as const;
+
+export type Density = (typeof DENSITIES)[number][0];
+
 export interface PlacementSpec {
   /** 전체를 다시 배치할지, 고른 것만 손댈지. */
   scope: "all" | "selected";
@@ -52,8 +68,8 @@ export interface PlacementSpec {
   rules: Record<string, ComponentRule>;
   /** 이미 배치된 부품은 그대로 두고 빈 것만 채운다. */
   keepPlaced: boolean;
-  /** 부품 사이 최소 간격. 엔진의 기본값을 덮어쓴다. */
-  clearanceUm: number;
+  /** 밀도 등급. 부품 간 간격은 엔진이 이 등급에서 끌어낸다. */
+  density: Density;
 }
 
 /**
@@ -124,7 +140,7 @@ export const EMPTY_SPEC: AutoDesignSpec = {
     refdes: [],
     rules: {},
     keepPlaced: false,
-    clearanceUm: 130,
+    density: "normal",
   },
   routing: {
     scope: "all",
@@ -163,7 +179,7 @@ export function toRequest(spec: AutoDesignSpec) {
             ),
           ),
           keep_placed: placement.keepPlaced,
-          clearance_nm: placement.clearanceUm * 1000,
+          density: placement.density,
         }
       : null,
     routing: modes.route

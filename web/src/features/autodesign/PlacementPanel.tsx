@@ -5,6 +5,7 @@ import { Panel } from "@/components/ui";
 import { familyOf, FAMILIES, css as familyCss, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
 import {
   DEFAULT_RULE,
+  DENSITIES,
   REGIONS,
   type ComponentRule,
   type PlaceRotation,
@@ -43,6 +44,7 @@ export function PlacementPanel({
   preview: React.ReactNode;
 }) {
   const [family, setFamily] = useState<FamilyKey | null>(null);
+  const density = DENSITIES.find(([k]) => k === spec.density);
   const selected = useMemo(() => new Set(spec.refdes), [spec.refdes]);
 
   const rows = useMemo(() => {
@@ -186,19 +188,30 @@ export function PlacementPanel({
           />
           이미 놓인 부품은 그대로 두기
         </label>
-        <label className={s.numField}>
-          부품 간 최소 간격
-          <input
-            type="number"
-            min={0}
-            max={2000}
-            step={10}
-            value={spec.clearanceUm}
-            onChange={(e) => onChange({ ...spec, clearanceUm: Number(e.target.value) })}
-          />
-          µm
-        </label>
+        <span className={s.densityWrap}>
+          <span className={s.fieldLabel}>밀도</span>
+          <span className={s.seg} role="group" aria-label="밀도 등급">
+            {DENSITIES.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={spec.density === key ? s.segOn : ""}
+                aria-pressed={spec.density === key}
+                onClick={() => onChange({ ...spec, density: key })}
+              >
+                {label}
+              </button>
+            ))}
+          </span>
+        </span>
       </div>
+
+      {/* 고른 등급이 무엇을 뜻하는지 한 줄. 등급 이름만으로는 "극밀도"가 얼마나 빽빽한지 모른다. */}
+      {density && (
+        <p className={s.densityNote}>
+          <b>{density[1]}</b> — {density[2]} <span>부품 간 {density[3]}</span>
+        </p>
+      )}
 
       {/* ── 부품 고르기 ── */}
       <div className={s.subHead}>

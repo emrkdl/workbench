@@ -731,3 +731,24 @@
 .picked button:hover {
   color: var(--crit);
 }
+
+/* 밀도 등급 — µm 를 묻는 대신 제품의 성격을 고르게 한다. */
+.densityWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.densityNote {
+  margin-top: 8px;
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+.densityNote b {
+  color: var(--ink);
+}
+.densityNote span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  margin-left: 6px;
+}
