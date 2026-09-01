@@ -53,6 +53,10 @@ const NAV: { label: string; items: NavEntry[] }[] = [
     ],
   },
   {
+    label: "설계",
+    items: [{ to: "/auto", glyph: "✳", label: "자동 설계" }],
+  },
+  {
     label: "분석",
     items: [
       { to: "/insights", glyph: "◱", label: "인사이트" },

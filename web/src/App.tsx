@@ -8,6 +8,7 @@ import { RevisionPage } from "@/features/revision/RevisionPage";
 import { ComparePage } from "@/features/compare/ComparePage";
 import { InsightsPage } from "@/features/insights/InsightsPage";
 import { PartsPage } from "@/features/parts/PartsPage";
+import { AutoDesignPage } from "@/features/autodesign/AutoDesignPage";
 import { EmptyState } from "@/components/ui";
 
 export function App() {
@@ -27,6 +28,7 @@ export function App() {
         <Route path="boards/:boardId/:rev" element={<RevisionPage />} />
         <Route path="boards/:boardId/:rev/:tab" element={<RevisionPage />} />
         <Route path="compare" element={<ComparePage />} />
+        <Route path="auto" element={<AutoDesignPage />} />
         <Route path="insights" element={<InsightsPage />} />
         <Route path="parts" element={<PartsPage />} />
         <Route

@@ -1,0 +1,155 @@
+/**
+ * 자동 설계 요청서.
+ *
+ * 이 화면이 실제로 만들어 내는 것은 그림이 아니라 **엔진에 넘길 요청서**다. 배치·배선
+ * 엔진은 따로 돌아가는 물건이고(사내 라우팅 엔진), 이 시스템이 할 일은 "무엇을, 어떤
+ * 조건으로 맡길 것인가"를 사람이 빠뜨림 없이 적게 하는 것이다.
+ *
+ * 그래서 화면 상태를 그대로 이 형태로 두고, 마지막에 사람이 눈으로 확인할 수 있게
+ * 보여준다. 나중에 엔진이 붙으면 이 값을 그대로 던지면 된다.
+ */
+
+export type PlaceSide = "keep" | "top" | "bottom";
+export type PlaceRotation = "keep" | "free" | 0 | 90 | 180 | 270;
+
+/** 대략적 위치 — 기판을 3×3 으로 나눈 칸. 좌표를 요구하면 사람이 답할 수 없다. */
+export const REGIONS = [
+  ["tl", "좌상"], ["tc", "상"], ["tr", "우상"],
+  ["ml", "좌"], ["mc", "중앙"], ["mr", "우"],
+  ["bl", "좌하"], ["bc", "하"], ["br", "우하"],
+] as const;
+
+export type RegionKey = (typeof REGIONS)[number][0];
+
+export interface ComponentRule {
+  side: PlaceSide;
+  rotation: PlaceRotation;
+  /** null 이면 자리를 엔진에 맡긴다. */
+  region: RegionKey | null;
+  /** 지금 자리에서 움직이지 말 것. 커넥터·안테나처럼 기구가 정한 자리에 쓴다. */
+  lock: boolean;
+}
+
+export const DEFAULT_RULE: ComponentRule = { side: "keep", rotation: "keep", region: null, lock: false };
+
+export type SourceKind = "upload" | "revision";
+
+export interface Source {
+  kind: SourceKind;
+  /** 업로드일 때 파일 이름과 크기. */
+  fileName?: string;
+  byteSize?: number;
+  /** 카탈로그에서 골랐을 때. */
+  revisionId?: string;
+  boardKey?: string;
+  boardName?: string;
+}
+
+export interface PlacementSpec {
+  /** 전체를 다시 배치할지, 고른 것만 손댈지. */
+  scope: "all" | "selected";
+  refdes: string[];
+  rules: Record<string, ComponentRule>;
+  /** 이미 배치된 부품은 그대로 두고 빈 것만 채운다. */
+  keepPlaced: boolean;
+  /** 부품 사이 최소 간격. 엔진의 기본값을 덮어쓴다. */
+  clearanceUm: number;
+  reference: { enabled: boolean; revisionIds: string[] };
+}
+
+export type RoutingEffort = "fast" | "balanced" | "thorough";
+export type RoutingOrder = "auto" | "power_first" | "critical_first";
+
+export interface RoutingSpec {
+  scope: "all" | "classes";
+  netClasses: string[];
+  /** 배선에 쓸 도체층 번호. 비우면 엔진이 정한다. */
+  layers: number[];
+  viaKinds: string[];
+  maxViasPerNet: number | null;
+  keepRouted: boolean;
+  diffPairs: boolean;
+  lengthMatch: boolean;
+  order: RoutingOrder;
+  effort: RoutingEffort;
+}
+
+export interface AutoDesignSpec {
+  source: Source | null;
+  modes: { place: boolean; route: boolean };
+  prompt: string;
+  placement: PlacementSpec;
+  routing: RoutingSpec;
+}
+
+export const EMPTY_SPEC: AutoDesignSpec = {
+  source: null,
+  // 둘 다 켠 상태가 기본이다. 배치와 배선을 따로 돌리는 것은 한쪽이 이미 끝났을 때뿐이고,
+  // 새 판을 맡길 때는 둘 다 맡긴다.
+  modes: { place: true, route: true },
+  prompt: "",
+  placement: {
+    scope: "all",
+    refdes: [],
+    rules: {},
+    keepPlaced: false,
+    clearanceUm: 130,
+    reference: { enabled: false, revisionIds: [] },
+  },
+  routing: {
+    scope: "all",
+    netClasses: [],
+    layers: [],
+    viaKinds: ["through"],
+    maxViasPerNet: null,
+    keepRouted: true,
+    diffPairs: true,
+    lengthMatch: false,
+    order: "auto",
+    effort: "balanced",
+  },
+};
+
+/** 엔진에 넘길 형태. 화면 상태에서 지금 모드에 해당하지 않는 부분을 덜어낸다. */
+export function toRequest(spec: AutoDesignSpec) {
+  const { source, modes, prompt, placement, routing } = spec;
+  return {
+    source: source
+      ? source.kind === "upload"
+        ? { kind: "upload", file: source.fileName, bytes: source.byteSize }
+        : { kind: "revision", revision_id: source.revisionId, board_key: source.boardKey }
+      : null,
+    tasks: [modes.place && "place", modes.route && "route"].filter(Boolean),
+    instruction: prompt.trim() || null,
+    placement: modes.place
+      ? {
+          scope: placement.scope,
+          targets: placement.scope === "selected" ? placement.refdes : "all",
+          rules: Object.fromEntries(
+            Object.entries(placement.rules).filter(
+              ([refdes, r]) =>
+                (placement.scope === "all" || placement.refdes.includes(refdes)) &&
+                (r.side !== "keep" || r.rotation !== "keep" || r.region !== null || r.lock),
+            ),
+          ),
+          keep_placed: placement.keepPlaced,
+          clearance_nm: placement.clearanceUm * 1000,
+          reference: placement.reference.enabled ? placement.reference.revisionIds : null,
+        }
+      : null,
+    routing: modes.route
+      ? {
+          scope: routing.scope,
+          net_classes: routing.scope === "classes" ? routing.netClasses : "all",
+          layers: routing.layers.length ? routing.layers : "auto",
+          via_kinds: routing.viaKinds,
+          max_vias_per_net: routing.maxViasPerNet,
+          keep_routed: routing.keepRouted,
+          diff_pairs: routing.diffPairs,
+          length_match: routing.lengthMatch,
+          order: routing.order,
+          effort: routing.effort,
+        }
+      : null,
+  };
+}
