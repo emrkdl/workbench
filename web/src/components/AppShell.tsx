@@ -75,6 +75,20 @@ export function AppShell() {
           <span className={s.brandSub}>BoardLens</span>
         </div>
 
+        <span className={s.headerSpacer} />
+        {LIVE ? (
+          <span className={s.env} title="실제 bl-core 에 연결되어 있습니다">
+            <i className={s.envDot} style={{ background: "var(--ok)" }} />
+            연결됨
+          </span>
+        ) : (
+          <span className={s.env} title="아직 실제 DB와 HKP 파서가 붙지 않았습니다. 화면은 목데이터로 동작합니다.">
+            <i className={s.envDot} />
+            목데이터
+            {manifest && ` · CDM ${manifest.cdm_version}`}
+          </span>
+        )}
+
         {/* 사용자 자리. 로그인 여부와 상관없이 늘 같은 크기로 잡아 둔다 — 로그인 뒤에
             자리가 새로 생기면 그 옆의 단추들이 통째로 밀린다. */}
         <div className={s.user}>
@@ -90,19 +104,6 @@ export function AppShell() {
             <span>{session ? session.role : LIVE ? "세션 확인 중" : "목데이터 모드"}</span>
           </span>
         </div>
-        <span className={s.headerSpacer} />
-        {LIVE ? (
-          <span className={s.env} title="실제 bl-core 에 연결되어 있습니다">
-            <i className={s.envDot} style={{ background: "var(--ok)" }} />
-            연결됨
-          </span>
-        ) : (
-          <span className={s.env} title="아직 실제 DB와 HKP 파서가 붙지 않았습니다. 화면은 목데이터로 동작합니다.">
-            <i className={s.envDot} />
-            목데이터
-            {manifest && ` · CDM ${manifest.cdm_version}`}
-          </span>
-        )}
 
         {LIVE && session && (
           <button
