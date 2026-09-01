@@ -10,7 +10,11 @@ import { formatDuration, useJobRun, type Stage } from "./useJobRun";
 import s from "./autodesign.module.css";
 
 /**
- * 자동 설계.
+ * 자동 레이아웃.
+ *
+ * 이름을 "자동 설계"에서 옮겼다. 설계라고 하면 회로(스키매틱)까지 포함하는 것처럼
+ * 들리는데 이 화면은 회로를 손대지 않는다 — 부품을 놓고 선을 잇는 일만 한다. 실무에서
+ * 그 일을 통칭하는 말이 레이아웃이다.
  *
  * 이 화면은 배치도 배선도 하지 않는다 — 그 일은 따로 도는 엔진의 몫이다. 여기서 하는 것은
  * **무엇을 어떤 조건으로 맡길지 사람이 빠짐없이 적게 하는 일**이다. 엔진에 "알아서 해 줘"만
@@ -102,7 +106,7 @@ export function AutoDesignPage() {
   return (
     <div className={s.page}>
       <header className={s.head}>
-        <h1 className={s.title}>자동 설계</h1>
+        <h1 className={s.title}>자동 레이아웃</h1>
         {/* 무엇을 맡길지가 이 화면의 첫 갈림길이다 — 이 둘에 따라 아래 조건이 통째로
             나타나고 사라진다. 그래서 맨 위에 두되, 자리는 조금만 쓴다. */}
         <div className={s.modeBar}>

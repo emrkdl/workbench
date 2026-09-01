@@ -53,7 +53,7 @@ interface NavEntry {
 const HERO: NavEntry & { blurb: string } = {
   to: "/auto",
   glyph: "✳",
-  label: "자동 설계",
+  label: "자동 레이아웃",
   blurb: "배치·배선을 엔진에 맡기기",
 };
 
