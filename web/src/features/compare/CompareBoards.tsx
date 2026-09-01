@@ -228,6 +228,9 @@ export function CompareBoards({
   const [selection, setSelection] = useState<{ side: "a" | "b"; value: Selection } | null>(null);
   const [netName, setNetName] = useState<string | null>(null);
   const [cursor, setCursor] = useState("—");
+  // 부품 투명도. 뷰어와 같은 조작이다 — 몸통을 흐리게 하면 그 밑에 깔린 동박과 변경 표시가
+  // 비쳐 보인다. 무엇이 달라졌는지 보러 온 화면이라 여기서는 뷰어보다 더 자주 쓴다.
+  const [alpha, setAlpha] = useState(0.85);
 
   // 화면을 다 덮는 것에는 언제나 나가는 길이 있어야 한다.
   useEffect(() => {
@@ -323,7 +326,7 @@ export function CompareBoards({
     mode,
     sideView,
     labels,
-    alpha: 0.85,
+    alpha,
     hiddenFamilies: EMPTY_FAMILIES,
     unit,
     camera,
@@ -386,6 +389,22 @@ export function CompareBoards({
         >
           라벨
         </button>
+        {/* 동박만 보는 중에는 부품 몸통을 안 그리므로 이 손잡이가 아무 일도 하지 않는다.
+            안 듣는 조작을 띄워 두면 사람이 붙잡고 시간을 쓴다. */}
+        {mode !== "copper" && (
+          <label className={s.range} title="부품 투명도">
+            α
+            <input
+              type="range"
+              min={20}
+              max={100}
+              step={5}
+              value={Math.round(alpha * 100)}
+              onChange={(e) => setAlpha(Number(e.target.value) / 100)}
+              aria-label="부품 투명도"
+            />
+          </label>
+        )}
         <button
           type="button"
           className={`${s.filterChip} ${marks ? s.filterChipOn : ""}`}

@@ -552,3 +552,17 @@
   flex: 1;
   min-height: 0;
 }
+
+/* 부품 투명도 손잡이. 뷰어 도구 막대와 같은 모양이다. */
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.range input {
+  width: 86px;
+  accent-color: var(--accent);
+}
