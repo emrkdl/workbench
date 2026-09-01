@@ -245,3 +245,55 @@
     width: auto;
   }
 }
+
+/* 사용자 자리 — 로그인 여부와 상관없이 늘 같은 크기다. 로그인 뒤에 자리가 새로 생기면
+   그때마다 옆의 단추들이 밀려서, 같은 자리를 누르려던 손이 헛짚는다. */
+.user {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 150px;
+  padding: 3px 4px;
+  flex: none;
+}
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  line-height: 1;
+  flex: none;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+}
+/* 계정이 있으면 그 계정의 색을 옅게 깐다. 이모지 16종에 사람이 스물이면 겹치는데,
+   색까지 같을 확률은 낮아서 둘을 합치면 갈린다. */
+.avatarOn {
+  background: hsl(var(--cat-h) 48% 50% / var(--cat-fill));
+  border-color: hsl(var(--cat-h) 40% 50% / 0.35);
+}
+.userText {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.25;
+}
+.userText b {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userText > span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

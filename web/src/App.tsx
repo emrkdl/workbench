@@ -17,6 +17,9 @@ export function App() {
 
   return (
     <Routes>
+      {/* 로그인 화면은 주소로도 열린다. 인증이 붙기 전에도 이 화면을 손보고 확인할 수
+          있어야 하고, 붙은 뒤에는 세션이 끊겼을 때 돌아올 자리가 된다. */}
+      <Route path="login" element={<LoginPage onSignedIn={() => setSignedIn(true)} />} />
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/boards" replace />} />
         <Route path="boards" element={<CatalogPage />} />

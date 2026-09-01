@@ -1,8 +1,10 @@
+import type React from "react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { fetchManifest, LIVE, setToken, whoami } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { forget, useRecentBoards } from "@/lib/recent";
+import { avatarHue, avatarOf } from "@/lib/avatar";
 import { revisionPath } from "@/lib/routes";
 import s from "./AppShell.module.css";
 
@@ -76,7 +78,7 @@ export function AppShell() {
         {LIVE ? (
           <span className={s.env} title="실제 bl-core 에 연결되어 있습니다">
             <i className={s.envDot} style={{ background: "var(--ok)" }} />
-            {session ? `${session.display_name} · ${session.role}` : "연결됨"}
+            연결됨
           </span>
         ) : (
           <span className={s.env} title="아직 실제 DB와 HKP 파서가 붙지 않았습니다. 화면은 목데이터로 동작합니다.">
@@ -85,6 +87,23 @@ export function AppShell() {
             {manifest && ` · CDM ${manifest.cdm_version}`}
           </span>
         )}
+
+        {/* 사용자 자리. 로그인 여부와 상관없이 늘 같은 크기로 잡아 둔다 — 로그인 뒤에
+            자리가 새로 생기면 그 옆의 단추들이 통째로 밀린다. */}
+        <div className={s.user}>
+          <span
+            className={`${s.avatar} ${session ? s.avatarOn : ""}`}
+            style={session ? ({ "--cat-h": avatarHue(session.username) } as React.CSSProperties) : undefined}
+            aria-hidden="true"
+          >
+            {session ? avatarOf(session.username) : "○"}
+          </span>
+          <span className={s.userText}>
+            <b>{session ? session.display_name : "로그인 안 됨"}</b>
+            <span>{session ? session.role : LIVE ? "세션 확인 중" : "목데이터 모드"}</span>
+          </span>
+        </div>
+
         {LIVE && session && (
           <button
             type="button"
