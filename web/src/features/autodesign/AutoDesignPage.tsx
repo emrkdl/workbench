@@ -6,6 +6,7 @@ import { SourceCard } from "./SourceCard";
 import { PlacementPanel } from "./PlacementPanel";
 import { RoutingPanel } from "./RoutingPanel";
 import { EMPTY_SPEC, toRequest, type AutoDesignSpec } from "./spec";
+import { formatDuration, useJobRun, type Stage } from "./useJobRun";
 import s from "./autodesign.module.css";
 
 /**
@@ -56,6 +57,31 @@ export function AutoDesignPage() {
   );
 
   const request = useMemo(() => toRequest(spec), [spec]);
+
+  /** 맡긴 일에 따라 단계가 달라진다. 배선을 끄면 배선 단계가 아예 없다. */
+  const stages = useMemo<Stage[]>(() => {
+    const out: Stage[] = [
+      { key: "read", label: "설계 읽기", weight: 1 },
+      { key: "rules", label: "제약 확인", weight: 1 },
+    ];
+    if (spec.modes.place) out.push({ key: "place", label: "부품 배치", weight: 6 });
+    if (spec.modes.route) out.push({ key: "route", label: "배선", weight: 14 });
+    out.push({ key: "check", label: "규칙 검사", weight: 2 });
+    return out;
+  }, [spec.modes.place, spec.modes.route]);
+
+  /**
+   * 예상 소요. 판이 클수록 오래 걸린다 — 부품 수와 넷 수로 가늠한다. 미리보기 리비전이
+   * 없으면 중간 규모를 가정한다.
+   */
+  const estimateMs = useMemo(() => {
+    const sm = detail.data?.revision.summary;
+    const comps = sm?.component_count ?? 600;
+    const nets = sm?.net_count ?? 700;
+    return Math.round(3000 + (spec.modes.place ? comps * 6 : 0) + (spec.modes.route ? nets * 14 : 0));
+  }, [detail.data, spec.modes.place, spec.modes.route]);
+
+  const job = useJobRun(stages, estimateMs);
 
   const problems = useMemo(() => {
     const out: string[] = [];
@@ -176,22 +202,75 @@ export function AutoDesignPage() {
                 )}
               </dl>
 
-              {problems.length > 0 ? (
-                <ul className={s.problems}>
-                  {problems.map((p) => (
-                    <li key={p}>{p}</li>
-                  ))}
-                </ul>
+              {job.status === "idle" &&
+                (problems.length > 0 ? (
+                  <ul className={s.problems}>
+                    {problems.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={s.ready}>실행할 준비가 됐습니다.</p>
+                ))}
+
+              {job.status === "running" ? (
+                <button type="button" className={`${s.submit} ${s.stop}`} onClick={job.stop}>
+                  중지
+                </button>
               ) : (
-                <p className={s.ready}>보낼 준비가 됐습니다.</p>
+                <button
+                  type="button"
+                  className={s.submit}
+                  disabled={job.status === "idle" && problems.length > 0}
+                  onClick={job.start}
+                >
+                  {job.status === "idle" ? "작업 실행" : "다시 실행"}
+                </button>
               )}
 
-              <button type="button" className={s.submit} disabled title="엔진 연결은 아직입니다">
-                작업 보내기
-              </button>
+              {(job.status === "running" || job.status === "done") && (
+                <div className={s.progress}>
+                  <div className={s.progressBar}>
+                    <div
+                      className={`${s.progressFill} ${job.status === "done" ? s.progressDone : ""}`}
+                      style={{ width: `${Math.round(job.progress * 100)}%` }}
+                    />
+                  </div>
+                  <div className={s.progressText}>
+                    <b>{Math.round(job.progress * 100)}%</b>
+                    <span>{job.status === "done" ? "완료" : job.stage?.label}</span>
+                    <span className={s.spacer} />
+                    <span className={s.progressEta}>
+                      {job.status === "done"
+                        ? `${formatDuration(job.elapsedMs)} 걸림`
+                        : job.remainingMs !== null
+                          ? `남은 시간 약 ${formatDuration(job.remainingMs)}`
+                          : "남은 시간 가늠 중"}
+                    </span>
+                  </div>
+                  <ol className={s.stageList}>
+                    {stages.map((st, at) => {
+                      const now = job.stage ? stages.indexOf(job.stage) : -1;
+                      const cls =
+                        job.status === "done" || at < now ? s.stageDone : at === now ? s.stageNow : s.stageWait;
+                      return (
+                        <li key={st.key} className={cls}>
+                          {st.label}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              )}
+
+              {job.status === "stopped" && (
+                <p className={s.stoppedNote}>중간에 멈췄습니다. 결과는 남지 않습니다.</p>
+              )}
+
               <p className={s.hint}>
-                배치·배선 엔진은 아직 붙지 않았습니다. 지금 이 화면이 만드는 것은 아래 요청서
-                하나이고, 엔진이 붙으면 이 값을 그대로 넘깁니다.
+                배치·배선 엔진은 아직 붙지 않아 지금 실행은 <b>예행</b>입니다 — 시간만 흐르고
+                판은 달라지지 않습니다. 엔진이 붙으면 진행률의 출처만 바뀌고 이 화면은
+                그대로입니다.
               </p>
             </Panel>
 
