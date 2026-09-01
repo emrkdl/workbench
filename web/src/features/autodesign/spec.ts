@@ -109,7 +109,6 @@ export interface RoutingSpec {
   netClasses: string[];
   /** 배선에 쓸 도체층 번호. 비우면 엔진이 정한다. */
   layers: number[];
-  viaKinds: string[];
   maxViasPerNet: number | null;
   keepRouted: boolean;
   diffPairs: boolean;
@@ -146,7 +145,6 @@ export const EMPTY_SPEC: AutoDesignSpec = {
     scope: "all",
     netClasses: [],
     layers: [],
-    viaKinds: ["through"],
     maxViasPerNet: null,
     keepRouted: true,
     diffPairs: true,
@@ -187,7 +185,6 @@ export function toRequest(spec: AutoDesignSpec) {
           scope: routing.scope,
           net_classes: routing.scope === "classes" ? routing.netClasses : "all",
           layers: routing.layers.length ? routing.layers : "auto",
-          via_kinds: routing.viaKinds,
           max_vias_per_net: routing.maxViasPerNet,
           keep_routed: routing.keepRouted,
           diff_pairs: routing.diffPairs,

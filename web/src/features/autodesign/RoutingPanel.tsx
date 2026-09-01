@@ -10,18 +10,14 @@ import s from "./autodesign.module.css";
  * 자동 배선 조건.
  *
  * 배선 엔진에 필요한 것은 "다 이어 줘"가 아니라 **어디까지 허락하느냐**다. 어느 층을 써도
- * 되는지, 마이크로비아를 뚫어도 되는지, 넷 하나에 비아를 몇 개까지 허용하는지 — 이 답이
- * 곧 제조 단가이고, 엔진은 그걸 스스로 정할 수 없다.
+ * 되는지, 넷 하나에 비아를 몇 개까지 허용하는지 — 이 답이 곧 제조 단가이고, 엔진은 그걸
+ * 스스로 정할 수 없다.
  *
- * 사내 라우팅 엔진의 입력이 그대로 이 항목들이다(스팬·층·비아 종류·넷 클래스).
+ * 비아 종류는 여기서 묻지 않는다. 설계 파일의 적층과 비아 규격이 이미 무엇을 쓸 수 있는지
+ * 말하고 있어서, 화면에서 다시 고르게 하면 두 값이 어긋날 자리를 만든다.
+ *
+ * 사내 라우팅 엔진의 입력이 그대로 이 항목들이다(층·넷 클래스·배선 순서).
  */
-
-const VIA_KINDS: [string, string, string][] = [
-  ["through", "관통", "가장 싸고 가장 자리를 많이 먹는다"],
-  ["blind", "블라인드", "바깥 층에서 안쪽 몇 층까지"],
-  ["buried", "베리드", "안쪽 층끼리만"],
-  ["micro", "마이크로", "HDI. 단가가 올라간다"],
-];
 
 const ORDERS: [RoutingOrder, string, string][] = [
   ["auto", "엔진에 맡김", "혼잡도를 보고 스스로 정한다"],
@@ -137,26 +133,6 @@ export function RoutingPanel({
             >
               L{l.no}
             </button>
-          );
-        })}
-      </div>
-
-      <div className={s.subHead}>
-        <span>허용할 비아</span>
-      </div>
-      <div className={s.optionList}>
-        {VIA_KINDS.map(([key, label, why]) => {
-          const on = spec.viaKinds.includes(key);
-          return (
-            <label key={key} className={`${s.optionRow} ${on ? s.optionRowOn : ""}`}>
-              <input
-                type="checkbox"
-                checked={on}
-                onChange={() => onChange({ ...spec, viaKinds: toggleIn(spec.viaKinds, key) })}
-              />
-              <span className={s.optionLabel}>{label}</span>
-              <span className={s.optionWhy}>{why}</span>
-            </label>
           );
         })}
       </div>

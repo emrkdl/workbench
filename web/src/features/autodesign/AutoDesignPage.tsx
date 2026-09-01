@@ -93,8 +93,6 @@ export function AutoDesignPage() {
       out.push("‘고른 부품만’ 을 골랐는데 부품을 하나도 고르지 않았습니다.");
     if (spec.modes.route && spec.routing.scope === "classes" && spec.routing.netClasses.length === 0)
       out.push("‘고른 넷 클래스만’ 을 골랐는데 클래스를 하나도 고르지 않았습니다.");
-    if (spec.modes.route && spec.routing.viaKinds.length === 0)
-      out.push("허용한 비아가 하나도 없습니다 — 층을 넘을 방법이 없습니다.");
     return out;
   }, [spec]);
 
@@ -196,8 +194,6 @@ export function AutoDesignPage() {
                       {spec.routing.scope === "all" ? "모든 넷" : `${spec.routing.netClasses.length}개 클래스`}
                       {spec.routing.layers.length > 0 && ` · L${spec.routing.layers.join(", L")}`}
                     </dd>
-                    <dt>비아</dt>
-                    <dd>{spec.routing.viaKinds.join(" · ") || "없음"}</dd>
                   </>
                 )}
               </dl>
