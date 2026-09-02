@@ -94,6 +94,22 @@ export function BoardPointPicker({
     return { x: Math.round(x0 + fx * w), y: Math.round(y0 + (1 - fy) * h) };
   };
 
+  const ghostW = (c: ComponentRow) => Math.max(bodySize(c)[0] * k, 3);
+  const ghostH = (c: ComponentRow) => Math.max(bodySize(c)[1] * k, 3);
+
+  /** 강조할 자리 — 자리를 정했으면 그 자리, 아니면 지금 있는 자리. 표시 단위(nm)로 준다. */
+  const spot = (() => {
+    if (!highlight) return null;
+    const m = marks.find((x) => x.refdes === highlight);
+    if (m) return { x: m.x, y: m.y, w: Math.max(m.w * k, 6), h: Math.max(m.h * k, 6) };
+    const c = components.find((x) => x.refdes === highlight);
+    if (!c) return null;
+    const [bw, bh] = bodySize(c);
+    return { x: c.x_nm, y: c.y_nm, w: Math.max(bw * k, 6), h: Math.max(bh * k, 6) };
+  })();
+
+  const picked = new Set(marks.map((m) => m.refdes));
+
   const points = (p: Polygon) => {
     const out: string[] = [];
     for (let i = 0; i < p.points_nm.length; i += 2) {
@@ -124,27 +140,34 @@ export function BoardPointPicker({
             p.is_cutout ? null : <polygon key={`s${i}`} className={s.pickerBoard} points={points(p)} />,
           )}
 
-          {/* 판에 놓인 부품 전부 — "여기는 이미 자리가 찼다"만 말하면 되므로 아주 흐리게 깐다.
-              목록에서 누른 하나만 테두리를 둘러 지금 어느 것의 자리를 정하는지 드러낸다.
-              그 하나를 맨 나중에 그려 흐린 것들 위에 오게 한다. */}
-          {[...components]
-            .sort((a, b) => Number(a.refdes === highlight) - Number(b.refdes === highlight))
-            .map((c) => {
-              const [bw, bh] = bodySize(c);
-              const on = c.refdes === highlight;
-              const rw = Math.max(bw * k, on ? 6 : 3);
-              const rh = Math.max(bh * k, on ? 6 : 3);
-              return (
-                <rect
-                  key={`g${c.refdes}`}
-                  className={on ? s.pickerHere : s.pickerGhost}
-                  x={px(c.x_nm) - rw / 2}
-                  y={py(c.y_nm) - rh / 2}
-                  width={rw}
-                  height={rh}
-                />
-              );
-            })}
+          {/* 아직 자리를 안 정한 부품 — "여기는 이미 자리가 찼다"만 말하면 되므로 흐리게 깐다. */}
+          {components.map((c) =>
+            picked.has(c.refdes) ? null : (
+              <rect
+                key={`g${c.refdes}`}
+                className={s.pickerGhost}
+                x={px(c.x_nm) - ghostW(c) / 2}
+                y={py(c.y_nm) - ghostH(c) / 2}
+                width={ghostW(c)}
+                height={ghostH(c)}
+              />
+            ),
+          )}
+
+          {/* 자리를 정한 부품이 떠나온 자리 — 파선으로 남긴다. 어디서 옮기는지가 보여야
+              찍은 자리가 말이 되는지 알 수 있다. */}
+          {components.map((c) =>
+            picked.has(c.refdes) ? (
+              <rect
+                key={`d${c.refdes}`}
+                className={s.pickerFrom}
+                x={px(c.x_nm) - ghostW(c) / 2}
+                y={py(c.y_nm) - ghostH(c) / 2}
+                width={ghostW(c)}
+                height={ghostH(c)}
+              />
+            ) : null,
+          )}
 
           {outline.map((p, i) =>
             p.is_cutout ? <polygon key={`c${i}`} className={s.pickerCut} points={points(p)} /> : null,
@@ -172,6 +195,19 @@ export function BoardPointPicker({
               </g>
             );
           })}
+
+          {/* 목록에서 누른 하나 — 테두리는 부품을 따라간다. 자리를 정했으면 그 자리에,
+              아직 안 정했으면 지금 있는 자리에 그린다. 원래 자리에 붙박아 두면 부품을
+              옮겨 놓고도 테두리만 옛 자리에서 깜빡인다. */}
+          {spot && (
+            <rect
+              className={s.pickerHere}
+              x={px(spot.x) - spot.w / 2}
+              y={py(spot.y) - spot.h / 2}
+              width={spot.w}
+              height={spot.h}
+            />
+          )}
 
           {hover && !disabled && (
             <g className={s.pickerHover}>

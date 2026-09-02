@@ -913,11 +913,23 @@
   fill: var(--ink-4);
   opacity: 0.28;
 }
-/* 목록에서 누른 하나 — 지금 자리를 정하는 부품이다. 이것만 테두리로 드러낸다. */
+/* 자리를 정한 부품이 떠나온 자리 — 비어 있음을 파선으로 남긴다. */
+.pickerFrom {
+  fill: none;
+  stroke: var(--ink-4);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+  opacity: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+/* 목록에서 누른 하나 — 지금 자리를 정하는 부품이다. 이것만 테두리로 드러내고, 테두리는
+   부품을 따라간다(자리를 정했으면 그 자리에). 채우지 않는다 — 밑에 그려진 몸통을 가리면
+   무엇을 두른 것인지 알 수 없다. */
 .pickerHere {
-  fill: color-mix(in srgb, var(--accent) 30%, transparent);
+  fill: none;
   stroke: var(--accent);
-  stroke-width: 2;
+  stroke-width: 2.5;
   vector-effect: non-scaling-stroke;
 }
 /* 찍어 둔 부품 — 몸통은 계열색으로 채우고 테두리는 액센트로 둘러 바닥의 고스트와 갈린다. */
