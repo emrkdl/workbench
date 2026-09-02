@@ -913,7 +913,7 @@
   fill: var(--ink-4);
   opacity: 0.28;
 }
-/* 그중 고른 것 — 지금 옮기는 중인 부품이다. 테두리로 드러낸다. */
+/* 목록에서 누른 하나 — 지금 자리를 정하는 부품이다. 이것만 테두리로 드러낸다. */
 .pickerHere {
   fill: color-mix(in srgb, var(--accent) 30%, transparent);
   stroke: var(--accent);

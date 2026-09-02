@@ -436,7 +436,7 @@ export function PlacementPanel({
               <BoardPointPicker
                 outline={detail.outline}
                 components={detail.components}
-                selected={selected}
+                highlight={focus}
                 marks={marks}
                 onPick={(x, y) => {
                   if (focus) setRule(focus, { position: { x, y } });

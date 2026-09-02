@@ -32,7 +32,7 @@ export interface PickMark {
 export function BoardPointPicker({
   outline,
   components,
-  selected,
+  highlight,
   marks,
   onPick,
   disabled,
@@ -43,8 +43,13 @@ export function BoardPointPicker({
    * 남의 자리인지 알 수 없다. 전부 깔되 아주 흐리게 둔다.
    */
   components: ComponentRow[];
-  /** 그중 고른 것 — 이것만 테두리를 둘러 어느 것을 옮기는 중인지 드러낸다. */
-  selected: Set<string>;
+  /**
+   * 조건 목록에서 지금 누른 부품 하나. 이것만 테두리를 두른다.
+   *
+   * 목록에 담긴 것을 전부 두르면 열두 개를 고른 순간 판이 테두리로 뒤덮여서, 정작 지금
+   * 자리를 정하려는 부품이 어느 것인지 알 수 없다.
+   */
+  highlight: string | null;
   /** 자리를 지정한 부품들. */
   marks: PickMark[];
   onPick: (x: number, y: number) => void;
@@ -119,16 +124,16 @@ export function BoardPointPicker({
             p.is_cutout ? null : <polygon key={`s${i}`} className={s.pickerBoard} points={points(p)} />,
           )}
 
-          {/* 판에 놓인 부품 전부. 고른 것은 테두리를 둘러 지금 무엇을 옮기는 중인지 드러낸다 —
-              나머지는 "여기는 이미 자리가 찼다"만 말하면 되므로 아주 흐리게 깐다.
-              고른 것을 나중에 그려 흐린 것들 위에 오게 한다. */}
+          {/* 판에 놓인 부품 전부 — "여기는 이미 자리가 찼다"만 말하면 되므로 아주 흐리게 깐다.
+              목록에서 누른 하나만 테두리를 둘러 지금 어느 것의 자리를 정하는지 드러낸다.
+              그 하나를 맨 나중에 그려 흐린 것들 위에 오게 한다. */}
           {[...components]
-            .sort((a, b) => Number(selected.has(a.refdes)) - Number(selected.has(b.refdes)))
+            .sort((a, b) => Number(a.refdes === highlight) - Number(b.refdes === highlight))
             .map((c) => {
               const [bw, bh] = bodySize(c);
-              const rw = Math.max(bw * k, 3);
-              const rh = Math.max(bh * k, 3);
-              const on = selected.has(c.refdes);
+              const on = c.refdes === highlight;
+              const rw = Math.max(bw * k, on ? 6 : 3);
+              const rh = Math.max(bh * k, on ? 6 : 3);
               return (
                 <rect
                   key={`g${c.refdes}`}
