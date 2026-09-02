@@ -48,11 +48,7 @@ export function PlacementPanel({
   const [focus, setFocus] = useState<string | null>(null);
   const density = DENSITIES.find(([k]) => k === spec.density);
 
-  /** 고른 부품이 지금 있는 자리 — 어디서 어디로 보내는지 판 위에 흐리게 깔린다. */
-  const ghosts = useMemo(() => {
-    const keep = new Set(spec.refdes);
-    return (detail?.components ?? []).filter((c) => keep.has(c.refdes));
-  }, [detail, spec.refdes]);
+
 
   const byRefdes = useMemo(
     () => new Map((detail?.components ?? []).map((c) => [c.refdes, c])),
@@ -353,18 +349,29 @@ export function PlacementPanel({
                   const rule = spec.rules[refdes] ?? DEFAULT_RULE;
                   const on = focus === refdes;
                   return (
-                    <div className={`${s.ruleRow} ${on ? s.ruleRowOn : ""}`} key={refdes}>
-                      {/* 줄을 누르면 그 부품만 판에서 자리를 받는다. 아무 줄도 안 눌렀으면
-                          찍은 자리가 고른 것 전부에 먹는다. */}
-                      <button
-                        type="button"
-                        className={s.ruleRef}
-                        aria-pressed={on}
-                        title={on ? "이 부품만 찍기 해제" : "이 부품만 자리 찍기"}
-                        onClick={() => setFocus(on ? null : refdes)}
-                      >
-                        {refdes}
-                      </button>
+                    // 줄 어디를 눌러도 그 부품만 판에서 자리를 받는다. 아무 줄도 안 눌렀으면
+                    // 찍은 자리가 고른 것 전부에 먹는다. 안쪽의 조작(고르개·체크·단추)을 누른
+                    // 것은 빼야 한다 — 회전을 바꾸려다 초점까지 옮겨지면 손이 어긋난다.
+                    <div
+                      className={`${s.ruleRow} ${on ? s.ruleRowOn : ""}`}
+                      key={refdes}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={on}
+                      title={on ? "이 부품만 찍기 해제" : "이 부품만 자리 찍기"}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest("select, input, button")) return;
+                        setFocus(on ? null : refdes);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setFocus(on ? null : refdes);
+                        }
+                      }}
+                    >
+                      <span className={s.ruleRef}>{refdes}</span>
                       <select
                         className={s.miniSelect}
                         value={rule.side}
@@ -428,7 +435,8 @@ export function PlacementPanel({
             <div className={s.placeBoard}>
               <BoardPointPicker
                 outline={detail.outline}
-                ghosts={ghosts}
+                components={detail.components}
+                selected={selected}
                 marks={marks}
                 onPick={(x, y) => {
                   if (focus) setRule(focus, { position: { x, y } });

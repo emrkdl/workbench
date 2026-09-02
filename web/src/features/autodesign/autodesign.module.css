@@ -430,9 +430,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 6px;
+  padding: 5px 6px 5px 10px;
   border-radius: var(--r);
   background: var(--surface-2);
+  cursor: pointer;
+}
+.ruleRow:hover {
+  background: var(--surface-3);
 }
 .ruleRef {
   font-family: var(--font-mono);
@@ -904,10 +908,17 @@
   stroke-dasharray: 8 6;
   vector-effect: non-scaling-stroke;
 }
-/* 지금 있는 자리 — 어디서 옮기는지 보이라고 깔아 둔다. 눈에 띄면 안 된다. */
+/* 판에 이미 놓인 부품 — "여기는 자리가 찼다"만 말하면 되므로 눈에 띄면 안 된다. */
 .pickerGhost {
   fill: var(--ink-4);
-  opacity: 0.35;
+  opacity: 0.28;
+}
+/* 그중 고른 것 — 지금 옮기는 중인 부품이다. 테두리로 드러낸다. */
+.pickerHere {
+  fill: color-mix(in srgb, var(--accent) 30%, transparent);
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 /* 찍어 둔 부품 — 몸통은 계열색으로 채우고 테두리는 액센트로 둘러 바닥의 고스트와 갈린다. */
 .pickerMark rect {
@@ -939,18 +950,21 @@
   color: var(--accent-ink);
 }
 
-/* 자리를 받은 줄은 눌러서 고를 수 있다 — 그 줄만 판에서 자리를 받는다. */
+/* 초점이 간 줄 — 다음에 찍는 자리를 이 부품이 받는다.
+   테두리(outline)로 두르면 목록이 스크롤 상자 안이라 위아래가 잘려 나간다. 안쪽으로
+   그리는 왼쪽 막대와 배경이면 잘릴 자리가 없다. */
 .ruleRowOn {
-  outline: 1px solid var(--accent);
+  background: var(--accent-wash);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
-.ruleRef {
-  border: 0;
-  background: transparent;
-  text-align: left;
-  padding: 0;
+.ruleRowOn:hover {
+  background: var(--accent-wash);
 }
 .ruleRowOn .ruleRef {
   color: var(--accent-ink);
+}
+.ruleRowOn .miniSelect {
+  border-color: var(--accent-line);
 }
 .posChip {
   display: inline-flex;

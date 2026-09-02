@@ -31,14 +31,20 @@ export interface PickMark {
 
 export function BoardPointPicker({
   outline,
-  ghosts,
+  components,
+  selected,
   marks,
   onPick,
   disabled,
 }: {
   outline: Polygon[];
-  /** 지금 그 자리에 있는 부품들 — 어디서 어디로 보내는지 보이게 흐리게 깔아 둔다. */
-  ghosts: ComponentRow[];
+  /**
+   * 판에 놓인 부품 전부. 고른 것만 그리면 판이 비어 보이고, 그러면 찍는 자리가 빈자리인지
+   * 남의 자리인지 알 수 없다. 전부 깔되 아주 흐리게 둔다.
+   */
+  components: ComponentRow[];
+  /** 그중 고른 것 — 이것만 테두리를 둘러 어느 것을 옮기는 중인지 드러낸다. */
+  selected: Set<string>;
   /** 자리를 지정한 부품들. */
   marks: PickMark[];
   onPick: (x: number, y: number) => void;
@@ -113,22 +119,27 @@ export function BoardPointPicker({
             p.is_cutout ? null : <polygon key={`s${i}`} className={s.pickerBoard} points={points(p)} />,
           )}
 
-          {/* 지금 그 자리에 있는 부품 — 어디서 옮기는지 보이라고 흐리게 깐다 */}
-          {ghosts.map((c) => {
-            const [bw, bh] = bodySize(c);
-            const rw = Math.max(bw * k, 3);
-            const rh = Math.max(bh * k, 3);
-            return (
-              <rect
-                key={`g${c.refdes}`}
-                className={s.pickerGhost}
-                x={px(c.x_nm) - rw / 2}
-                y={py(c.y_nm) - rh / 2}
-                width={rw}
-                height={rh}
-              />
-            );
-          })}
+          {/* 판에 놓인 부품 전부. 고른 것은 테두리를 둘러 지금 무엇을 옮기는 중인지 드러낸다 —
+              나머지는 "여기는 이미 자리가 찼다"만 말하면 되므로 아주 흐리게 깐다.
+              고른 것을 나중에 그려 흐린 것들 위에 오게 한다. */}
+          {[...components]
+            .sort((a, b) => Number(selected.has(a.refdes)) - Number(selected.has(b.refdes)))
+            .map((c) => {
+              const [bw, bh] = bodySize(c);
+              const rw = Math.max(bw * k, 3);
+              const rh = Math.max(bh * k, 3);
+              const on = selected.has(c.refdes);
+              return (
+                <rect
+                  key={`g${c.refdes}`}
+                  className={on ? s.pickerHere : s.pickerGhost}
+                  x={px(c.x_nm) - rw / 2}
+                  y={py(c.y_nm) - rh / 2}
+                  width={rw}
+                  height={rh}
+                />
+              );
+            })}
 
           {outline.map((p, i) =>
             p.is_cutout ? <polygon key={`c${i}`} className={s.pickerCut} points={points(p)} /> : null,
