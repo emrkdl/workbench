@@ -3,16 +3,16 @@ import type { ComponentRow, RevisionDetail } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Panel } from "@/components/ui";
 import { familyOf, FAMILIES, css as familyCss, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
+import { toMm } from "@/lib/units";
 import {
   DEFAULT_RULE,
   DENSITIES,
-  REGIONS,
   type ComponentRule,
   type PlaceRotation,
   type PlaceSide,
   type PlacementSpec,
-  type RegionKey,
 } from "./spec";
+import { BoardPointPicker, type PickMark } from "./BoardPointPicker";
 import s from "./autodesign.module.css";
 
 /**
@@ -44,7 +44,26 @@ export function PlacementPanel({
   preview: React.ReactNode;
 }) {
   const [family, setFamily] = useState<FamilyKey | null>(null);
+  /** 판을 눌렀을 때 그 자리를 받을 부품. 비어 있으면 고른 것 전부가 받는다. */
+  const [focus, setFocus] = useState<string | null>(null);
   const density = DENSITIES.find(([k]) => k === spec.density);
+
+  /** 고른 부품이 지금 있는 자리 — 어디서 어디로 보내는지 판 위에 흐리게 깔린다. */
+  const ghosts = useMemo(() => {
+    const keep = new Set(spec.refdes);
+    return (detail?.components ?? []).filter((c) => keep.has(c.refdes));
+  }, [detail, spec.refdes]);
+
+  const marks = useMemo<PickMark[]>(
+    () =>
+      spec.refdes
+        .map((refdes) => {
+          const pos = spec.rules[refdes]?.position;
+          return pos ? { refdes, x: pos.x, y: pos.y } : null;
+        })
+        .filter((m): m is PickMark => m !== null),
+    [spec.refdes, spec.rules],
+  );
   const selected = useMemo(() => new Set(spec.refdes), [spec.refdes]);
 
   const rows = useMemo(() => {
@@ -269,118 +288,138 @@ export function PlacementPanel({
           <div className={s.subHead}>
             <span>고른 부품에 줄 조건</span>
             <span className={s.spacer} />
-            <span className={s.subNote}>아래 값을 누르면 고른 {spec.refdes.length}개에 한 번에 먹입니다</span>
+            <span className={s.subNote}>
+              {focus
+                ? `판을 누르면 ${focus} 의 자리가 정해집니다`
+                : `판을 누르면 고른 ${spec.refdes.length}개 모두에 먹입니다`}
+            </span>
           </div>
 
-          <div className={s.bulkGrid}>
-            <div className={s.bulkRow}>
-              <span className={s.fieldLabel}>배치 면</span>
-              <div className={s.seg}>
-                {SIDES.map(([v, label]) => (
-                  <button key={v} type="button" onClick={() => applyToSelected({ side: v })}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className={s.bulkRow}>
-              <span className={s.fieldLabel}>회전</span>
-              <div className={s.seg}>
-                {ROTATIONS.map(([v, label]) => (
-                  <button key={String(v)} type="button" onClick={() => applyToSelected({ rotation: v })}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className={s.bulkRow}>
-              <span className={s.fieldLabel}>대략적 위치</span>
-              <RegionPad value={null} onPick={(region) => applyToSelected({ region })} />
-              <button type="button" className={s.linkBtn} onClick={() => applyToSelected({ lock: true })}>
-                움직이지 않기
-              </button>
-              <button type="button" className={s.linkBtn} onClick={() => applyToSelected({ ...DEFAULT_RULE })}>
-                조건 지우기
-              </button>
-            </div>
-          </div>
-
-          <div className={s.ruleList}>
-            {spec.refdes.map((refdes) => {
-              const rule = spec.rules[refdes] ?? DEFAULT_RULE;
-              return (
-                <div className={s.ruleRow} key={refdes}>
-                  <span className={s.ruleRef}>{refdes}</span>
-                  <select
-                    className={s.miniSelect}
-                    value={rule.side}
-                    aria-label={`${refdes} 배치 면`}
-                    onChange={(e) => setRule(refdes, { side: e.target.value as PlaceSide })}
-                  >
+          <div className={s.placeGrid}>
+            <div className={s.placeRules}>
+              <div className={s.bulkGrid}>
+                <div className={s.bulkRow}>
+                  <span className={s.fieldLabel}>배치 면</span>
+                  <div className={s.seg}>
                     {SIDES.map(([v, label]) => (
-                      <option key={v} value={v}>{label}</option>
+                      <button key={v} type="button" onClick={() => applyToSelected({ side: v })}>
+                        {label}
+                      </button>
                     ))}
-                  </select>
-                  <select
-                    className={s.miniSelect}
-                    value={String(rule.rotation)}
-                    aria-label={`${refdes} 회전`}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const v: PlaceRotation = raw === "keep" || raw === "free" ? raw : (Number(raw) as PlaceRotation);
-                      setRule(refdes, { rotation: v });
-                    }}
-                  >
+                  </div>
+                </div>
+                <div className={s.bulkRow}>
+                  <span className={s.fieldLabel}>회전</span>
+                  <div className={s.seg}>
                     {ROTATIONS.map(([v, label]) => (
-                      <option key={String(v)} value={String(v)}>{label}</option>
+                      <button key={String(v)} type="button" onClick={() => applyToSelected({ rotation: v })}>
+                        {label}
+                      </button>
                     ))}
-                  </select>
-                  <RegionPad
-                    value={rule.region}
-                    onPick={(region) => setRule(refdes, { region: rule.region === region ? null : region })}
-                  />
-                  <label className={s.check}>
-                    <input
-                      type="checkbox"
-                      checked={rule.lock}
-                      onChange={() => setRule(refdes, { lock: !rule.lock })}
-                    />
-                    고정
-                  </label>
-                  <button
-                    type="button"
-                    className={s.dropBtn2}
-                    aria-label={`${refdes} 선택 해제`}
-                    onClick={() => toggle(refdes)}
-                  >
-                    ×
+                  </div>
+                </div>
+                <div className={s.bulkRow}>
+                  <button type="button" className={s.linkBtn} onClick={() => applyToSelected({ lock: true })}>
+                    움직이지 않기
+                  </button>
+                  <button type="button" className={s.linkBtn} onClick={() => applyToSelected({ ...DEFAULT_RULE })}>
+                    조건 지우기
                   </button>
                 </div>
-              );
-            })}
+              </div>
+
+              <div className={s.ruleList}>
+                {spec.refdes.map((refdes) => {
+                  const rule = spec.rules[refdes] ?? DEFAULT_RULE;
+                  const on = focus === refdes;
+                  return (
+                    <div className={`${s.ruleRow} ${on ? s.ruleRowOn : ""}`} key={refdes}>
+                      {/* 줄을 누르면 그 부품만 판에서 자리를 받는다. 아무 줄도 안 눌렀으면
+                          찍은 자리가 고른 것 전부에 먹는다. */}
+                      <button
+                        type="button"
+                        className={s.ruleRef}
+                        aria-pressed={on}
+                        title={on ? "이 부품만 찍기 해제" : "이 부품만 자리 찍기"}
+                        onClick={() => setFocus(on ? null : refdes)}
+                      >
+                        {refdes}
+                      </button>
+                      <select
+                        className={s.miniSelect}
+                        value={rule.side}
+                        aria-label={`${refdes} 배치 면`}
+                        onChange={(e) => setRule(refdes, { side: e.target.value as PlaceSide })}
+                      >
+                        {SIDES.map(([v, label]) => (
+                          <option key={v} value={v}>{label}</option>
+                        ))}
+                      </select>
+                      <select
+                        className={s.miniSelect}
+                        value={String(rule.rotation)}
+                        aria-label={`${refdes} 회전`}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const v: PlaceRotation =
+                            raw === "keep" || raw === "free" ? raw : (Number(raw) as PlaceRotation);
+                          setRule(refdes, { rotation: v });
+                        }}
+                      >
+                        {ROTATIONS.map(([v, label]) => (
+                          <option key={String(v)} value={String(v)}>{label}</option>
+                        ))}
+                      </select>
+                      {rule.position ? (
+                        <button
+                          type="button"
+                          className={s.posChip}
+                          title="자리 지우기"
+                          onClick={() => setRule(refdes, { position: null })}
+                        >
+                          {toMm(rule.position.x).toFixed(1)}, {toMm(rule.position.y).toFixed(1)}
+                          <i>×</i>
+                        </button>
+                      ) : (
+                        <span className={s.posNone}>자리 맡김</span>
+                      )}
+                      <label className={s.check}>
+                        <input
+                          type="checkbox"
+                          checked={rule.lock}
+                          onChange={() => setRule(refdes, { lock: !rule.lock })}
+                        />
+                        고정
+                      </label>
+                      <button
+                        type="button"
+                        className={s.dropBtn2}
+                        aria-label={`${refdes} 선택 해제`}
+                        onClick={() => toggle(refdes)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={s.placeBoard}>
+              <BoardPointPicker
+                outline={detail.outline}
+                ghosts={ghosts}
+                marks={marks}
+                onPick={(x, y) => {
+                  if (focus) setRule(focus, { position: { x, y } });
+                  else applyToSelected({ position: { x, y } });
+                }}
+              />
+            </div>
           </div>
         </>
       )}
 
     </Panel>
-  );
-}
-
-/** 3×3 자리 고르개. "대략적 위치"에 좌표를 요구하면 사람이 답할 수 없다. */
-function RegionPad({ value, onPick }: { value: RegionKey | null; onPick: (region: RegionKey) => void }) {
-  return (
-    <span className={s.regionPad} role="group" aria-label="대략적 위치">
-      {REGIONS.map(([key, label]) => (
-        <button
-          key={key}
-          type="button"
-          className={`${s.regionCell} ${value === key ? s.regionCellOn : ""}`}
-          title={label}
-          aria-label={label}
-          aria-pressed={value === key}
-          onClick={() => onPick(key)}
-        />
-      ))}
-    </span>
   );
 }

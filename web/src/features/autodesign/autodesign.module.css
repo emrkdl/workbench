@@ -842,3 +842,142 @@
   font-size: var(--fs-xs);
   color: var(--warn);
 }
+
+/* 조건 목록과 판을 나란히. 판은 자리를 찍는 곳이라 작으면 못 쓴다 — 목록 쪽을 좁히고
+   판에 넉넉히 준다. */
+.placeGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: var(--sp-4);
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .placeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.placeRules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.placeBoard {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+}
+
+/* 판 위에서 자리 찍기 */
+.pickerWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pickerStage {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.pickerSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+.pickerOff {
+  cursor: default;
+  opacity: 0.5;
+}
+.pickerBoard {
+  fill: color-mix(in srgb, var(--ink) 8%, transparent);
+  stroke: var(--line-3, var(--line-2));
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.pickerCut {
+  fill: var(--surface-2);
+  stroke: var(--line-2);
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  vector-effect: non-scaling-stroke;
+}
+/* 지금 있는 자리 — 어디서 옮기는지 보이라고 깔아 둔다. 눈에 띄면 안 된다. */
+.pickerGhost {
+  fill: var(--ink-4);
+  opacity: 0.35;
+}
+.pickerMark circle {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.pickerMark line {
+  stroke: var(--accent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.pickerMark text {
+  fill: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+}
+.pickerHover line {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 6 6;
+  opacity: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+.pickerFoot {
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+  text-align: center;
+}
+.pickerCoord {
+  font-family: var(--font-mono);
+  color: var(--accent-ink);
+}
+
+/* 자리를 받은 줄은 눌러서 고를 수 있다 — 그 줄만 판에서 자리를 받는다. */
+.ruleRowOn {
+  outline: 1px solid var(--accent);
+}
+.ruleRef {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+}
+.ruleRowOn .ruleRef {
+  color: var(--accent-ink);
+}
+.posChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  border-radius: var(--r);
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.posChip i {
+  font-style: normal;
+  color: var(--ink-4);
+}
+.posChip:hover i {
+  color: var(--crit);
+}
+.posNone {
+  font-size: 10px;
+  color: var(--ink-4);
+  white-space: nowrap;
+}

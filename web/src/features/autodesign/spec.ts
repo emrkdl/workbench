@@ -12,25 +12,28 @@
 export type PlaceSide = "keep" | "top" | "bottom";
 export type PlaceRotation = "keep" | "free" | 0 | 90 | 180 | 270;
 
-/** 대략적 위치 — 기판을 3×3 으로 나눈 칸. 좌표를 요구하면 사람이 답할 수 없다. */
-export const REGIONS = [
-  ["tl", "좌상"], ["tc", "상"], ["tr", "우상"],
-  ["ml", "좌"], ["mc", "중앙"], ["mr", "우"],
-  ["bl", "좌하"], ["bc", "하"], ["br", "우하"],
-] as const;
-
-export type RegionKey = (typeof REGIONS)[number][0];
+/**
+ * 대략적 위치 — 보드 외곽선 위에 찍은 한 점(정수 나노미터).
+ *
+ * 3×3 칸으로 고르던 것을 실제 판 위의 점으로 바꿨다. "좌상"이 어디인지는 이형 보드에서
+ * 사람마다 다르게 읽히지만 판 그림 위의 점은 다르게 읽힐 여지가 없다. 정확한 좌표를
+ * 요구하는 것이 아니다 — 엔진은 이 점 근처에서 자리를 찾는다.
+ */
+export interface Position {
+  x: number;
+  y: number;
+}
 
 export interface ComponentRule {
   side: PlaceSide;
   rotation: PlaceRotation;
   /** null 이면 자리를 엔진에 맡긴다. */
-  region: RegionKey | null;
+  position: Position | null;
   /** 지금 자리에서 움직이지 말 것. 커넥터·안테나처럼 기구가 정한 자리에 쓴다. */
   lock: boolean;
 }
 
-export const DEFAULT_RULE: ComponentRule = { side: "keep", rotation: "keep", region: null, lock: false };
+export const DEFAULT_RULE: ComponentRule = { side: "keep", rotation: "keep", position: null, lock: false };
 
 export type SourceKind = "upload" | "revision";
 
@@ -173,7 +176,7 @@ export function toRequest(spec: AutoDesignSpec) {
             Object.entries(placement.rules).filter(
               ([refdes, r]) =>
                 (placement.scope === "all" || placement.refdes.includes(refdes)) &&
-                (r.side !== "keep" || r.rotation !== "keep" || r.region !== null || r.lock),
+                (r.side !== "keep" || r.rotation !== "keep" || r.position !== null || r.lock),
             ),
           ),
           keep_placed: placement.keepPlaced,
