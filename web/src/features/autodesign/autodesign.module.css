@@ -909,22 +909,18 @@
   fill: var(--ink-4);
   opacity: 0.35;
 }
-.pickerMark circle {
-  fill: none;
+/* 찍어 둔 부품 — 몸통은 계열색으로 채우고 테두리는 액센트로 둘러 바닥의 고스트와 갈린다. */
+.pickerMark rect {
   stroke: var(--accent);
   stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-}
-.pickerMark line {
-  stroke: var(--accent);
-  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 .pickerMark text {
   fill: var(--accent-ink);
   font-family: var(--font-mono);
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 600;
+  text-anchor: middle;
 }
 .pickerHover line {
   stroke: var(--accent);

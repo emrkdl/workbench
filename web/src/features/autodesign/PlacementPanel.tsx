@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ComponentRow, RevisionDetail } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Panel } from "@/components/ui";
-import { familyOf, FAMILIES, css as familyCss, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
+import { bodySize, familyOf, FAMILIES, css as familyCss, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
 import { toMm } from "@/lib/units";
 import {
   DEFAULT_RULE,
@@ -54,15 +54,35 @@ export function PlacementPanel({
     return (detail?.components ?? []).filter((c) => keep.has(c.refdes));
   }, [detail, spec.refdes]);
 
+  const byRefdes = useMemo(
+    () => new Map((detail?.components ?? []).map((c) => [c.refdes, c])),
+    [detail],
+  );
+
   const marks = useMemo<PickMark[]>(
     () =>
       spec.refdes
         .map((refdes) => {
-          const pos = spec.rules[refdes]?.position;
-          return pos ? { refdes, x: pos.x, y: pos.y } : null;
+          const rule = spec.rules[refdes];
+          const c = byRefdes.get(refdes);
+          if (!rule?.position || !c) return null;
+          // bodySize 는 지금 놓인 회전을 반영한다. 조건으로 회전을 못박았으면 그쪽이 이긴다.
+          const [bw, bh] = bodySize(c);
+          const turned =
+            typeof rule.rotation === "number" &&
+            Math.round(rule.rotation / 90) % 2 !== Math.round(c.rotation_mdeg / 90_000) % 2;
+          const family = FAMILY_BY_KEY.get(familyOf(c))!;
+          return {
+            refdes,
+            x: rule.position.x,
+            y: rule.position.y,
+            w: turned ? bh : bw,
+            h: turned ? bw : bh,
+            color: familyCss(family.rgb),
+          };
         })
         .filter((m): m is PickMark => m !== null),
-    [spec.refdes, spec.rules],
+    [spec.refdes, spec.rules, byRefdes],
   );
   const selected = useMemo(() => new Set(spec.refdes), [spec.refdes]);
 

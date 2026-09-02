@@ -22,6 +22,11 @@ export interface PickMark {
   refdes: string;
   x: number;
   y: number;
+  /** 회전을 반영한 몸통 크기(nm). 판과 같은 배율로 그려야 자리가 말이 된다. */
+  w: number;
+  h: number;
+  /** 계열색 — 뷰어·카드와 같은 색이라 눈이 다시 배우지 않는다. */
+  color: string;
 }
 
 export function BoardPointPicker({
@@ -129,19 +134,28 @@ export function BoardPointPicker({
             p.is_cutout ? <polygon key={`c${i}`} className={s.pickerCut} points={points(p)} /> : null,
           )}
 
-          {/* 찍어 둔 자리 */}
-          {marks.map((m) => (
-            <g key={m.refdes} className={s.pickerMark}>
-              <circle cx={px(m.x)} cy={py(m.y)} r={11} />
-              <line x1={px(m.x) - 20} y1={py(m.y)} x2={px(m.x) + 20} y2={py(m.y)} />
-              <line x1={px(m.x)} y1={py(m.y) - 20} x2={px(m.x)} y2={py(m.y) + 20} />
-              {marks.length <= 12 && (
-                <text x={px(m.x) + 15} y={py(m.y) - 13}>
-                  {m.refdes}
-                </text>
-              )}
-            </g>
-          ))}
+          {/* 찍어 둔 자리 — 과녁이 아니라 그 부품의 몸통을 판과 같은 배율로 그린다.
+              0402 는 100mm 판에서 2px 도 안 되므로 아주 작은 것만 최소 크기로 받쳐 준다. */}
+          {marks.map((m) => {
+            const rw = Math.max(m.w * k, 5);
+            const rh = Math.max(m.h * k, 5);
+            return (
+              <g key={m.refdes} className={s.pickerMark}>
+                <rect
+                  x={px(m.x) - rw / 2}
+                  y={py(m.y) - rh / 2}
+                  width={rw}
+                  height={rh}
+                  style={{ fill: m.color }}
+                />
+                {marks.length <= 12 && (
+                  <text x={px(m.x)} y={py(m.y) - rh / 2 - 8}>
+                    {m.refdes}
+                  </text>
+                )}
+              </g>
+            );
+          })}
 
           {hover && !disabled && (
             <g className={s.pickerHover}>
