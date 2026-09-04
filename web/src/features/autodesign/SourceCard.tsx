@@ -93,6 +93,8 @@ export function SourceCard({
   return (
     <div className={s.sourceGrid}>
       <div className={s.fileCol}>
+        <span className={s.fieldLabel}>설계 파일</span>
+
         {/* 파일 이름보다 모델명이 먼저다. 이름은 사람이 바꿔 붙이지만 파일 속 모델명은
             그렇지 않으므로, 정말로 무엇을 맡기는지는 그쪽이 말한다.
 
@@ -181,7 +183,7 @@ export function SourceCard({
         </div>
       </div>
 
-      <div>
+      <div className={s.refCol}>
         <span className={s.fieldLabel}>과거 설계 참조</span>
         <div className={s.refBox}>
           {/* 반영/미반영 — 참조를 "쓴다/안 쓴다"로 못박는다. 체크박스는 무엇이 기본인지

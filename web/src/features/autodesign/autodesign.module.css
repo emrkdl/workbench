@@ -74,6 +74,7 @@
 
 .drop {
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -649,6 +650,7 @@
 
 .refBox {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
   min-height: 132px;
@@ -1009,11 +1011,15 @@
 }
 
 /* ── 설계 파일 ─────────────────────────────── */
-.fileCol {
+/* 두 단을 같은 짜임으로 둔다 — 제목 한 줄, 그 아래로 남는 높이를 상자가 다 쓴다.
+   그래야 왼쪽에 모델 상자가 하나 더 붙어도 두 상자의 아래가 같은 줄에서 끝난다. */
+.fileCol,
+.refCol {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  height: 100%;
 }
 
 /* 모델명 — 파일 이름보다 크게. 정말로 무엇을 맡기는지는 파일 속 모델명이 말한다.
