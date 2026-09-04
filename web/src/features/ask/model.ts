@@ -125,3 +125,113 @@ export const newId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+/* ── 지금 오가는 대화 ───────────────────────────
+   화면 안이 아니라 모듈에 둔다. 물어 놓고 답을 기다리는 동안 사람은 카탈로그를 뒤지러
+   가는데, 상태가 화면에 매여 있으면 그 순간 화면이 사라지면서 짓던 답도 함께 사라진다.
+   물어본 사람은 답이 오지 않은 이유를 알 길이 없다.
+
+   여기 두면 화면을 떠나도 답은 도착하고, 돌아왔을 때 그 자리에 있다. 왼쪽 메뉴는
+   같은 것을 들여다보며 짓는 중인지, 다 됐는지를 알린다. */
+
+export interface ChatState {
+  talkId: string;
+  messages: Message[];
+  /** 답을 짓는 중. */
+  thinking: boolean;
+  /** 화면을 떠난 사이에 도착한 답의 수. 돌아와서 보면 0 이 된다. */
+  unread: number;
+  boardKey: string | null;
+}
+
+const blankChat = (): ChatState => ({
+  talkId: newId(),
+  messages: [],
+  thinking: false,
+  unread: 0,
+  boardKey: null,
+});
+
+let chat: ChatState = blankChat();
+const chatEars = new Set<() => void>();
+let chatTimer = 0;
+/** 문답 화면이 지금 이 대화를 보고 있는가. 보고 있으면 도착한 답을 "안 읽음"으로 세지 않는다. */
+let watching = 0;
+
+function setChat(next: ChatState) {
+  chat = next;
+  for (const fn of chatEars) fn();
+}
+
+/**
+ * 묻는다.
+ *
+ * 답은 이미 지어서 넘겨받는다 — 엔진이 없으니 지을 것이 시간밖에 없고, 무엇을 보고
+ * 답할지(고른 판, 찾아볼 곳)는 **물은 시점의 것**이어야 하기 때문이다. 기다리는 동안
+ * 사람이 조건을 바꿔도 방금 던진 물음의 답이 따라 바뀌면 안 된다.
+ */
+export function askChat(question: Message, answer: Message, delayMs: number, boardKey: string | null) {
+  window.clearTimeout(chatTimer);
+  const waiting = [...chat.messages, question];
+  setChat({ ...chat, messages: waiting, thinking: true, boardKey });
+
+  chatTimer = window.setTimeout(() => {
+    const done = [...waiting, answer];
+    setChat({
+      ...chat,
+      messages: done,
+      thinking: false,
+      unread: watching > 0 ? 0 : chat.unread + 1,
+    });
+    keepTalk({
+      id: chat.talkId,
+      title: titleOf(done),
+      at: new Date().toISOString(),
+      boardKey,
+      messages: done,
+    });
+  }, delayMs);
+}
+
+export function stopChat() {
+  window.clearTimeout(chatTimer);
+  setChat({ ...chat, thinking: false });
+}
+
+export function resetChat() {
+  window.clearTimeout(chatTimer);
+  setChat(blankChat());
+}
+
+export function loadChat(talk: Talk) {
+  window.clearTimeout(chatTimer);
+  setChat({
+    talkId: talk.id,
+    messages: talk.messages,
+    thinking: false,
+    unread: 0,
+    boardKey: talk.boardKey,
+  });
+}
+
+/** 문답 화면이 붙어 있는 동안 부른다. 보고 있는 답은 안 읽은 답이 아니다. */
+export function watchChat(): () => void {
+  watching += 1;
+  if (chat.unread) setChat({ ...chat, unread: 0 });
+  return () => {
+    watching -= 1;
+  };
+}
+
+export function useChat(): ChatState {
+  return useSyncExternalStore(
+    (fn) => {
+      chatEars.add(fn);
+      return () => {
+        chatEars.delete(fn);
+      };
+    },
+    () => chat,
+    () => chat,
+  );
+}

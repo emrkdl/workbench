@@ -9,11 +9,16 @@ import { SourcePanel, TalksPanel } from "./SourcePanel";
 import { draft } from "./draft";
 import {
   SCOPES,
+  askChat,
   dropTalk,
-  keepTalk,
+  loadChat,
   newId,
+  resetChat,
+  stopChat,
   titleOf,
+  useChat,
   useTalks,
+  watchChat,
   type Message,
   type ScopeId,
   type Source,
@@ -37,7 +42,7 @@ const SAMPLES_DOCS = [
 ];
 
 /** 사람이 읽는 답을 짓는 데 걸리는 시간. 실제 엔진이 붙으면 이 값은 사라진다. */
-const THINK_MS = 900;
+const THINK_MS = 2400;
 
 /**
  * 설계 문답.
@@ -59,17 +64,18 @@ export function AskPage() {
   const manifest = useAsync(fetchManifest, []);
   const talks = useTalks();
 
-  const [talkId, setTalkId] = useState(newId);
-  const [messages, setMessages] = useState<Message[]>([]);
+  // 오간 말은 이 화면 밖(모듈)에 있다. 물어 놓고 다른 화면으로 가도 답은 도착한다.
+  const chat = useChat();
+  const { messages, thinking } = chat;
+
   const [boardId, setBoardId] = useState("");
   const [source, setSource] = useState<Source>("docs");
   const [scopes, setScopes] = useState<ScopeId[]>(ALL_SCOPES);
   const [files, setFiles] = useState<Attached[]>([]);
   const [text, setText] = useState("");
-  const [thinking, setThinking] = useState(false);
-  const timer = useRef(0);
 
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // 보고 있는 동안 도착한 답은 "안 읽은 답"이 아니다. 메뉴의 표시는 떠나 있었을 때만 뜬다.
+  useEffect(() => watchChat(), []);
 
   const boards = useMemo(
     () => [...(catalog.data?.items ?? [])].sort((a, b) => a.board_key.localeCompare(b.board_key)),
@@ -98,17 +104,6 @@ export function AskPage() {
   const blocked =
     source === "design" && !board ? "설계 데이터를 보려면 위에서 판을 먼저 고르세요." : null;
 
-  const keep = (next: Message[]) => {
-    if (next.length === 0) return;
-    keepTalk({
-      id: talkId,
-      title: titleOf(next),
-      at: new Date().toISOString(),
-      boardKey: board?.board_key ?? null,
-      messages: next,
-    });
-  };
-
   const send = (raw?: string) => {
     const q = (raw ?? text).trim();
     if (!q || thinking || blocked) return;
@@ -123,41 +118,21 @@ export function AskPage() {
       ],
       files: files.map((f) => f.name),
     };
-    const after = [...messages, mine];
-    setMessages(after);
+    // 답은 물은 그 자리에서 짓고, 도착만 늦춘다. 기다리는 동안 사람이 조건을 바꿔도
+    // 방금 던진 물음의 답이 따라 바뀌면 안 된다.
+    askChat(mine, draft({ question: q, source, scopes, board }), THINK_MS, board?.board_key ?? null);
     setText("");
-    setThinking(true);
-
-    timer.current = window.setTimeout(() => {
-      const answer = draft({ question: q, source, scopes, board });
-      const done = [...after, answer];
-      setMessages(done);
-      setThinking(false);
-      keep(done);
-    }, THINK_MS);
-  };
-
-  const stop = () => {
-    window.clearTimeout(timer.current);
-    setThinking(false);
   };
 
   const fresh = () => {
-    stop();
-    keep(messages);
-    setTalkId(newId());
-    setMessages([]);
+    resetChat();
     setFiles([]);
     setText("");
   };
 
   const open = (id: string) => {
     const t = talks.find((x) => x.id === id);
-    if (!t) return;
-    stop();
-    keep(messages);
-    setTalkId(t.id);
-    setMessages(t.messages);
+    if (t) loadChat(t);
   };
 
   /** 대화를 글로 내린다. 결정의 근거가 된 문답은 화면 밖으로 나가 회의록에 붙는다. */
@@ -253,7 +228,7 @@ export function AskPage() {
             value={text}
             onChange={setText}
             onSend={() => send()}
-            onStop={stop}
+            onStop={stopChat}
             busy={thinking}
             files={files}
             onAttach={attach}
@@ -275,7 +250,7 @@ export function AskPage() {
               board={board}
               manifest={manifest.data}
             />
-            <TalksPanel talks={talks} currentId={talkId} onOpen={open} onDrop={dropTalk} />
+            <TalksPanel talks={talks} currentId={chat.talkId} onOpen={open} onDrop={dropTalk} />
             <p className={s.note}>
               답변 엔진은 아직 붙지 않았습니다. <b>설계 데이터</b> 쪽 답은 이미 들어와 있는
               요약값을 실제로 읽어 온 것이고, <b>문서·룰</b> 쪽은 읽을 문서가 없어 답하지

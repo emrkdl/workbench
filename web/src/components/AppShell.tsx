@@ -7,6 +7,7 @@ import { forget, useRecentBoards } from "@/lib/recent";
 import { avatarHue, avatarOf } from "@/lib/avatar";
 import { revisionPath } from "@/lib/routes";
 import { formatDuration, useJobRun } from "@/features/autodesign/useJobRun";
+import { useChat } from "@/features/ask/model";
 import s from "./AppShell.module.css";
 
 type Theme = "system" | "light" | "dark";
@@ -157,6 +158,8 @@ export function AppShell() {
             {group.items.map((item) =>
               item.to === "/auto" ? (
                 <AutoRow key={item.to} item={item} lead={group.lead} />
+              ) : item.to === "/ask" ? (
+                <AskRow key={item.to} item={item} lead={group.lead} />
               ) : (
                 <NavRow key={item.to} item={item} lead={group.lead} />
               ),
@@ -305,4 +308,30 @@ function AutoRow({ item, lead }: { item: NavEntry; lead?: boolean }) {
       }
     />
   );
+}
+
+/**
+ * 설계 문답 — 답이 도착했다는 것을 여기서 알린다.
+ *
+ * 물어 놓고 답을 기다리는 동안 사람은 카탈로그를 뒤지러 간다. 그동안 답이 와도 화면이
+ * 알려 주지 않으면, 언제 돌아가야 할지 몰라 몇 번씩 들락거리게 된다.
+ *
+ * 짓는 중에는 점 셋이 깜빡이고(문답 화면 안에서 쓰는 것과 같은 표시다), 떠나 있는 사이에
+ * 답이 도착하면 점 하나가 켜진다. 그 화면으로 돌아가면 꺼진다. 답의 내용을 여기에
+ * 미리 보여 주지는 않는다 — 메뉴는 "가 볼 만한 곳"을 말하는 자리지 읽는 자리가 아니다.
+ */
+function AskRow({ item, lead }: { item: NavEntry; lead?: boolean }) {
+  const chat = useChat();
+
+  const badge = chat.thinking ? (
+    <span className={s.navDots} role="status" aria-label="답을 짓는 중">
+      <i />
+      <i />
+      <i />
+    </span>
+  ) : chat.unread > 0 ? (
+    <span className={s.navNew} role="status" aria-label="새 답이 왔습니다" />
+  ) : undefined;
+
+  return <NavRow item={item} lead={lead} badge={badge} />;
 }
