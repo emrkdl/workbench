@@ -126,46 +126,54 @@ export function SourceCard({
               e.target.value = "";
             }}
           />
-          <span className={s.dropGlyph} aria-hidden="true">⬓</span>
-          <span className={s.dropName}>
-            {source.files.length ? "파일을 더 끌어다 놓을 수 있습니다" : "HKP 파일을 여기에 끌어다 놓기"}
-          </span>
-          <button type="button" className={s.dropBtn} onClick={() => fileRef.current?.click()}>
-            파일 선택
-          </button>
-        </div>
 
-        {source.files.length > 0 && (
-          <div className={s.fileList}>
-            {source.files.map((f) => (
-              <div className={s.fileRow} key={`${f.name}:${f.byteSize}`}>
-                <span className={s.fileName}>{f.name}</span>
-                <span className={s.fileSize}>{formatBytes(f.byteSize)}</span>
+          {/* 파일이 들어오면 안내는 물러나고 그 자리를 목록이 받는다. 이미 올린 사람에게
+              "여기에 끌어다 놓으세요"를 계속 보여 줄 이유가 없다. 상자는 그대로 놓는 자리라
+              끌어다 놓기는 목록 위에서도 그대로 된다. */}
+          {source.files.length === 0 ? (
+            <>
+              <span className={s.dropGlyph} aria-hidden="true">⬓</span>
+              <span className={s.dropName}>HKP 파일을 여기에 끌어다 놓기</span>
+              <button type="button" className={s.dropBtn} onClick={() => fileRef.current?.click()}>
+                파일 선택
+              </button>
+            </>
+          ) : (
+            <div className={s.fileList}>
+              {source.files.map((f) => (
+                <div className={s.fileRow} key={`${f.name}:${f.byteSize}`}>
+                  <span className={s.fileName}>{f.name}</span>
+                  <span className={s.fileSize}>{formatBytes(f.byteSize)}</span>
+                  <button
+                    type="button"
+                    aria-label={`${f.name} 빼기`}
+                    title="목록에서 빼기"
+                    onClick={() => drop(f.name, f.byteSize)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <div className={s.fileFoot}>
+                <span>
+                  {source.files.length}개 ·{" "}
+                  {formatBytes(source.files.reduce((sum, f) => sum + f.byteSize, 0))}
+                </span>
+                <span className={s.spacer} />
+                <button type="button" className={s.linkBtn} onClick={() => fileRef.current?.click()}>
+                  파일 추가
+                </button>
                 <button
                   type="button"
-                  aria-label={`${f.name} 빼기`}
-                  title="목록에서 빼기"
-                  onClick={() => drop(f.name, f.byteSize)}
+                  className={s.linkBtn}
+                  onClick={() => onSourceChange({ files: [], model: null })}
                 >
-                  ×
+                  모두 지우기
                 </button>
               </div>
-            ))}
-            <div className={s.fileFoot}>
-              <span>
-                {source.files.length}개 · {formatBytes(source.files.reduce((sum, f) => sum + f.byteSize, 0))}
-              </span>
-              <span className={s.spacer} />
-              <button
-                type="button"
-                className={s.linkBtn}
-                onClick={() => onSourceChange({ files: [], model: null })}
-              >
-                모두 지우기
-              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div>

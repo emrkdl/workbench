@@ -89,9 +89,13 @@
   border-color: var(--accent);
   background: var(--accent-wash);
 }
+/* 목록이 들어오면 가운데 정렬을 푼다 — 파일 이름은 왼쪽에서 읽기 시작해야 한다. */
 .dropFilled {
   border-style: solid;
   border-color: var(--accent-line);
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 6px;
 }
 .dropGlyph {
   font-family: var(--font-mono);
@@ -1050,15 +1054,15 @@
   color: var(--ink-4);
 }
 
+/* 상자 안에 들어가므로 테두리를 따로 두지 않는다. 상자가 이미 테두리다. */
 .fileList {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  padding: 4px;
-  max-height: 168px;
+  width: 100%;
+  max-height: 176px;
   overflow-y: auto;
+  text-align: left;
 }
 .fileRow {
   display: grid;
@@ -1100,12 +1104,17 @@
 .fileFoot {
   display: flex;
   align-items: center;
-  padding: 4px 6px 2px;
+  gap: var(--sp-3);
+  padding: 5px 6px 1px;
   border-top: 1px dashed var(--line-2);
-  margin-top: 2px;
+  margin-top: 3px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-4);
+  /* 목록이 길어 스크롤이 생겨도 합계와 단추는 늘 보여야 한다. */
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-2);
 }
 
 /* 요청서 요약의 모델명 */
