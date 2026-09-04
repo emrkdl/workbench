@@ -35,18 +35,31 @@ export interface ComponentRule {
 
 export const DEFAULT_RULE: ComponentRule = { side: "keep", rotation: "keep", position: null, lock: false };
 
-export type SourceKind = "upload" | "revision";
-
-export interface Source {
-  kind: SourceKind;
-  /** 업로드일 때 파일 이름과 크기. */
-  fileName?: string;
-  byteSize?: number;
-  /** 카탈로그에서 골랐을 때. */
-  revisionId?: string;
-  boardKey?: string;
-  boardName?: string;
+export interface SourceFile {
+  name: string;
+  byteSize: number;
 }
+
+/**
+ * 무엇을 맡길 것인가.
+ *
+ * 파일은 여러 개 올릴 수 있다. 판 하나가 파일 하나로 끝나는 경우는 드물고 — 배치본과
+ * 넷리스트, 세대별 파일이 따로 오는 일이 흔하다 — 하나만 받으면 사람이 어느 것을 올려야
+ * 할지 고르다가 잘못 고른다.
+ *
+ * 모델명은 파일 안에 적혀 있다. 파일 이름은 사람이 바꿔 붙이지만 파일 속의 모델명은
+ * 그렇지 않으므로, 정말로 무엇을 맡기는지는 그쪽이 말한다. 파서가 붙기 전까지는 자리만
+ * 잡아 두고 임시 값을 채운다.
+ */
+export interface Source {
+  files: SourceFile[];
+  model: string | null;
+}
+
+export const EMPTY_SOURCE: Source = { files: [], model: null };
+
+/** 파서가 붙기 전까지 쓰는 임시 모델명. 파일을 열어 읽는 순간 이 상수는 사라진다. */
+export const PLACEHOLDER_MODEL = "TTN-MAIN-A3";
 
 /**
  * 밀도 등급.
@@ -121,7 +134,7 @@ export interface RoutingSpec {
 }
 
 export interface AutoDesignSpec {
-  source: Source | null;
+  source: Source;
   reference: ReferenceSpec;
   modes: { place: boolean; route: boolean };
   placement: PlacementSpec;
@@ -131,7 +144,7 @@ export interface AutoDesignSpec {
 }
 
 export const EMPTY_SPEC: AutoDesignSpec = {
-  source: null,
+  source: EMPTY_SOURCE,
   reference: { enabled: false, revisionIds: [] },
   previewRevisionId: null,
   // 둘 다 켠 상태가 기본이다. 배치와 배선을 따로 돌리는 것은 한쪽이 이미 끝났을 때뿐이고,
@@ -161,10 +174,8 @@ export const EMPTY_SPEC: AutoDesignSpec = {
 export function toRequest(spec: AutoDesignSpec) {
   const { source, reference, modes, placement, routing } = spec;
   return {
-    source: source
-      ? source.kind === "upload"
-        ? { kind: "upload", file: source.fileName, bytes: source.byteSize }
-        : { kind: "revision", revision_id: source.revisionId, board_key: source.boardKey }
+    source: source.files.length
+      ? { model: source.model, files: source.files.map((f) => ({ name: f.name, bytes: f.byteSize })) }
       : null,
     tasks: [modes.place && "place", modes.route && "route"].filter(Boolean),
     reference: reference.enabled ? reference.revisionIds : null,

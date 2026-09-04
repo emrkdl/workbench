@@ -1,7 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import type { Board } from "@/lib/cdm";
 import { formatBytes, formatFine } from "@/lib/units";
-import { FORM_FACTORS, formFactorOf, type ReferenceSpec, type Source } from "./spec";
+import {
+  FORM_FACTORS,
+  formFactorOf,
+  PLACEHOLDER_MODEL,
+  type ReferenceSpec,
+  type Source,
+} from "./spec";
 import s from "./autodesign.module.css";
 
 /**
@@ -20,9 +26,9 @@ export function SourceCard({
   onReferenceChange,
 }: {
   boards: Board[];
-  source: Source | null;
+  source: Source;
   reference: ReferenceSpec;
-  onSourceChange: (next: Source | null) => void;
+  onSourceChange: (next: Source) => void;
   onReferenceChange: (next: ReferenceSpec) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -30,9 +36,30 @@ export function SourceCard({
   const [form, setForm] = useState("");
   const [model, setModel] = useState("");
 
-  const take = (file: File | null | undefined) => {
-    if (!file) return;
-    onSourceChange({ kind: "upload", fileName: file.name, byteSize: file.size });
+  /**
+   * 끌어다 놓은 것을 전부 받는다. 예전에는 첫 파일만 집었는데, 여러 개를 놓은 사람은
+   * 나머지가 조용히 사라진 것을 알아채지 못한다.
+   *
+   * 이름과 크기가 같은 것은 같은 파일로 본다 — 두 번 끌어다 놓아도 목록이 불어나지 않는다.
+   */
+  const take = (list: FileList | null) => {
+    const added = Array.from(list ?? []);
+    if (!added.length) return;
+    const seen = new Set(source.files.map((f) => `${f.name}:${f.byteSize}`));
+    const next = [...source.files];
+    for (const f of added) {
+      const key = `${f.name}:${f.size}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      next.push({ name: f.name, byteSize: f.size });
+    }
+    // 모델명은 파일 안에 있다. 아직 열어 볼 수 없어 임시 값으로 자리만 잡아 둔다.
+    onSourceChange({ files: next, model: source.model ?? PLACEHOLDER_MODEL });
+  };
+
+  const drop = (name: string, byteSize: number) => {
+    const next = source.files.filter((f) => !(f.name === name && f.byteSize === byteSize));
+    onSourceChange({ files: next, model: next.length ? source.model : null });
   };
 
   /** 있는 폼팩터만, 많은 것부터. 없는 종류를 목록에 두면 고르고 나서 빈 화면을 본다. */
@@ -65,10 +92,17 @@ export function SourceCard({
 
   return (
     <div className={s.sourceGrid}>
-      <div>
-        <span className={s.fieldLabel}>설계 파일</span>
+      <div className={s.fileCol}>
+        {/* 파일 이름보다 모델명이 먼저다. 이름은 사람이 바꿔 붙이지만 파일 속 모델명은
+            그렇지 않으므로, 정말로 무엇을 맡기는지는 그쪽이 말한다. */}
+        <div className={`${s.modelBox} ${source.model ? s.modelBoxOn : ""}`}>
+          <span className={s.modelLabel}>모델</span>
+          <span className={s.modelName}>{source.model ?? "파일을 올리면 여기에 들어옵니다"}</span>
+          {source.model && <span className={s.modelNote}>파서가 붙기 전까지는 임시 값입니다</span>}
+        </div>
+
         <div
-          className={`${s.drop} ${over ? s.dropOver : ""} ${source ? s.dropFilled : ""}`}
+          className={`${s.drop} ${over ? s.dropOver : ""} ${source.files.length ? s.dropFilled : ""}`}
           onDragOver={(e) => {
             e.preventDefault();
             setOver(true);
@@ -77,40 +111,61 @@ export function SourceCard({
           onDrop={(e) => {
             e.preventDefault();
             setOver(false);
-            take(e.dataTransfer.files?.[0]);
+            take(e.dataTransfer.files);
           }}
         >
           <input
             ref={fileRef}
             type="file"
             accept=".hkp,.HKP"
+            multiple
             className={s.hiddenInput}
-            onChange={(e) => take(e.target.files?.[0])}
+            onChange={(e) => {
+              take(e.target.files);
+              // 같은 파일을 다시 고를 수 있어야 한다 — 값이 남아 있으면 change 가 안 뜬다.
+              e.target.value = "";
+            }}
           />
-          {source ? (
-            <>
-              <span className={s.dropGlyph} aria-hidden="true">▦</span>
-              <span className={s.dropName}>{source.fileName}</span>
-              <span className={s.dropMeta}>{formatBytes(source.byteSize ?? 0)}</span>
-              <span className={s.dropActions}>
-                <button type="button" className={s.linkBtn} onClick={() => fileRef.current?.click()}>
-                  다른 파일
-                </button>
-                <button type="button" className={s.linkBtn} onClick={() => onSourceChange(null)}>
-                  지우기
-                </button>
-              </span>
-            </>
-          ) : (
-            <>
-              <span className={s.dropGlyph} aria-hidden="true">⬓</span>
-              <span className={s.dropName}>HKP 파일을 여기에 끌어다 놓기</span>
-              <button type="button" className={s.dropBtn} onClick={() => fileRef.current?.click()}>
-                파일 선택
-              </button>
-            </>
-          )}
+          <span className={s.dropGlyph} aria-hidden="true">⬓</span>
+          <span className={s.dropName}>
+            {source.files.length ? "파일을 더 끌어다 놓을 수 있습니다" : "HKP 파일을 여기에 끌어다 놓기"}
+          </span>
+          <button type="button" className={s.dropBtn} onClick={() => fileRef.current?.click()}>
+            파일 선택
+          </button>
         </div>
+
+        {source.files.length > 0 && (
+          <div className={s.fileList}>
+            {source.files.map((f) => (
+              <div className={s.fileRow} key={`${f.name}:${f.byteSize}`}>
+                <span className={s.fileName}>{f.name}</span>
+                <span className={s.fileSize}>{formatBytes(f.byteSize)}</span>
+                <button
+                  type="button"
+                  aria-label={`${f.name} 빼기`}
+                  title="목록에서 빼기"
+                  onClick={() => drop(f.name, f.byteSize)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className={s.fileFoot}>
+              <span>
+                {source.files.length}개 · {formatBytes(source.files.reduce((sum, f) => sum + f.byteSize, 0))}
+              </span>
+              <span className={s.spacer} />
+              <button
+                type="button"
+                className={s.linkBtn}
+                onClick={() => onSourceChange({ files: [], model: null })}
+              >
+                모두 지우기
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div>

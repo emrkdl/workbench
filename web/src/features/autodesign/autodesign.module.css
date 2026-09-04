@@ -1003,3 +1003,118 @@
   color: var(--ink-4);
   white-space: nowrap;
 }
+
+/* ── 설계 파일 ─────────────────────────────── */
+.fileCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 모델명 — 파일 이름보다 크게. 정말로 무엇을 맡기는지는 파일 속 모델명이 말한다. */
+.modelBox {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+.modelBoxOn {
+  border-style: solid;
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+.modelLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.modelName {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-4);
+  overflow-wrap: anywhere;
+}
+.modelBoxOn .modelName {
+  color: var(--accent-ink);
+}
+.modelNote {
+  font-size: 10px;
+  color: var(--ink-4);
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 4px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.fileRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 3px 6px;
+  border-radius: var(--r);
+  font-size: var(--fs-sm);
+}
+.fileRow:hover {
+  background: var(--surface-2);
+}
+.fileName {
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fileSize {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+.fileRow button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px;
+  border-radius: var(--r-sm);
+}
+.fileRow button:hover {
+  color: var(--crit);
+}
+.fileFoot {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px 2px;
+  border-top: 1px dashed var(--line-2);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+}
+
+/* 요청서 요약의 모델명 */
+.summaryModel {
+  font-family: var(--font-mono);
+  color: var(--accent-ink);
+}
+.summaryFiles {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+}

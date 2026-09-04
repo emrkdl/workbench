@@ -89,7 +89,7 @@ export function AutoDesignPage() {
 
   const problems = useMemo(() => {
     const out: string[] = [];
-    if (!spec.source) out.push("설계 파일을 올리지 않았습니다.");
+    if (!spec.source.files.length) out.push("설계 파일을 올리지 않았습니다.");
     if (spec.reference.enabled && spec.reference.revisionIds.length === 0)
       out.push("과거 설계를 참조하기로 했는데 참조할 보드를 고르지 않았습니다.");
     if (!spec.modes.place && !spec.modes.route) out.push("배치와 배선 중 적어도 하나는 맡겨야 합니다.");
@@ -170,7 +170,16 @@ export function AutoDesignPage() {
             <Panel title="요청서">
               <dl className={s.summary}>
                 <dt>대상</dt>
-                <dd>{spec.source?.fileName ?? "—"}</dd>
+                <dd>
+                  {spec.source.files.length ? (
+                    <>
+                      <b className={s.summaryModel}>{spec.source.model ?? "모델 미상"}</b>
+                      <span className={s.summaryFiles}>파일 {spec.source.files.length}개</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
                 <dt>참조</dt>
                 <dd>
                   {spec.reference.enabled
