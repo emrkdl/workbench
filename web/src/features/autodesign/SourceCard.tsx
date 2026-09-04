@@ -33,6 +33,8 @@ export function SourceCard({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
+  /** 확장자가 맞지 않아 돌려보낸 파일 이름. 다음에 제대로 올리면 사라진다. */
+  const [rejected, setRejected] = useState<string[]>([]);
   const [form, setForm] = useState("");
   const [model, setModel] = useState("");
 
@@ -41,10 +43,21 @@ export function SourceCard({
    * 나머지가 조용히 사라진 것을 알아채지 못한다.
    *
    * 이름과 크기가 같은 것은 같은 파일로 본다 — 두 번 끌어다 놓아도 목록이 불어나지 않는다.
+   *
+   * 받는 것은 .hkp 뿐이다. 탐색창에는 accept 를 걸어 두었지만 그건 걸러 보여 줄 뿐이고
+   * (사람이 "모든 파일"로 바꿀 수 있다), 끌어다 놓기는 아예 지나친다. 그래서 문지기는
+   * 여기에 둔다. 아닌 것은 조용히 버리지 않고 무엇을 왜 안 받았는지 말한다.
    */
   const take = (list: FileList | null) => {
-    const added = Array.from(list ?? []);
+    const incoming = Array.from(list ?? []);
+    if (!incoming.length) return;
+
+    const isHkp = (name: string) => name.toLowerCase().endsWith(".hkp");
+    setRejected(incoming.filter((f) => !isHkp(f.name)).map((f) => f.name));
+
+    const added = incoming.filter((f) => isHkp(f.name));
     if (!added.length) return;
+
     const seen = new Set(source.files.map((f) => `${f.name}:${f.byteSize}`));
     const next = [...source.files];
     for (const f of added) {
@@ -181,6 +194,19 @@ export function SourceCard({
             </div>
           )}
         </div>
+
+        {rejected.length > 0 && (
+          <p className={s.reject} role="alert">
+            <span className={s.rejectMark} aria-hidden="true">!</span>
+            <span>
+              <b>HKP 파일만 받습니다.</b> 확장자가 달라 {rejected.length}개를 빼놓았습니다 —{" "}
+              <span className={s.rejectNames}>{rejected.join(", ")}</span>
+            </span>
+            <button type="button" className={s.rejectClose} aria-label="경고 닫기" onClick={() => setRejected([])}>
+              ×
+            </button>
+          </p>
+        )}
       </div>
 
       <div className={s.refCol}>
