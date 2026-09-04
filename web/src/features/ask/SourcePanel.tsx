@@ -81,15 +81,15 @@ export function SourcePanel({
                   type="button"
                   className={`${s.scope} ${on ? s.scopeOn : ""}`}
                   aria-pressed={on}
+                  /* 설명은 화면에서 뺐다 — 다섯 줄이 두 줄씩 차지하면 오른쪽 판이 설명으로
+                     가득 찬다. 한 번 읽으면 그만인 말이라 손끝에만 남긴다. */
+                  title={desc}
                   onClick={() => toggle(id)}
                 >
                   <span className={s.scopeMark} aria-hidden="true">
                     {on ? "✓" : ""}
                   </span>
-                  <span className={s.scopeText}>
-                    <b>{label}</b>
-                    <span>{desc}</span>
-                  </span>
+                  <b>{label}</b>
                 </button>
               );
             })}

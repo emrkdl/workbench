@@ -562,14 +562,17 @@ a.cite:hover b {
   color: var(--accent-ink) !important;
 }
 
-/* 찾아볼 곳 — 여러 개 고른다 */
+/* 찾아볼 곳 — 여러 개 고른다.
+   이름만 남기고 두 열로 깐다. 설명을 한 줄씩 달면 다섯 항목이 오른쪽 판을 통째로 먹는데,
+   정작 사람이 여기서 하는 일은 켜고 끄는 것뿐이다. */
 .scopes {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 3px;
   margin-top: var(--sp-3);
 }
 .scopeHead {
+  grid-column: 1 / -1;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -582,15 +585,28 @@ a.cite:hover b {
 }
 .scope {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
-  align-items: start;
-  gap: var(--sp-2);
-  padding: 6px 8px;
+  grid-template-columns: 13px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 7px;
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--surface-2);
   text-align: left;
   cursor: pointer;
+}
+.scope b {
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scopeOn b {
+  color: var(--accent-ink);
 }
 .scope:hover {
   border-color: var(--line-3);
@@ -602,7 +618,6 @@ a.cite:hover b {
 .scopeMark {
   width: 13px;
   height: 13px;
-  margin-top: 1px;
   border: 1px solid var(--line-3);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -615,25 +630,6 @@ a.cite:hover b {
   border-color: var(--accent);
   background: var(--accent);
   color: #fff;
-}
-.scopeText {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.scopeText b {
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  color: var(--ink-2);
-}
-.scopeOn .scopeText b {
-  color: var(--accent-ink);
-}
-.scopeText > span {
-  font-size: 10px;
-  line-height: 1.45;
-  color: var(--ink-4);
 }
 
 /* 고른 판의 값 */
