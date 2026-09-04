@@ -320,6 +320,24 @@
 .hero:hover {
   border-color: var(--accent);
 }
+/* 바로 아래에 붙어 서는 짝. 같은 짜임이되 판을 깔지 않는다 — 판을 통째로 짜는 일과
+   한 줄 물어보는 일을 같은 무게로 놓을 수는 없다. */
+.heroSub {
+  margin-top: -4px;
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+.heroSub .heroText b {
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+.heroSub .heroGlyph {
+  font-size: 14px;
+  color: var(--ink-3);
+}
+.heroSub:hover .heroGlyph {
+  color: var(--accent);
+}
 .heroOn {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent-line);

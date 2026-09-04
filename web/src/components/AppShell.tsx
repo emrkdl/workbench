@@ -58,6 +58,20 @@ const HERO: NavEntry & { blurb: string } = {
   blurb: "배치·배선을 엔진에 맡기기",
 };
 
+/**
+ * 그 바로 아래 — 묻는 자리.
+ *
+ * 나머지 메뉴는 이미 아는 것을 찾아 가는 길이고, 이 둘만 없던 것을 만들어 낸다(하나는
+ * 배치를, 하나는 답을). 그래서 목록 위에 둘이 붙어 선다. 다만 무게는 같지 않다 — 판을
+ * 통째로 짜는 일과 한 줄 물어보는 일을 같은 크기로 놓을 수는 없다.
+ */
+const ASK: NavEntry & { blurb: string } = {
+  to: "/ask",
+  glyph: "?",
+  label: "설계 문답",
+  blurb: "쌓인 설계에 대해 물어보기",
+};
+
 const NAV: { label: string; items: NavEntry[] }[] = [
   {
     label: "설계 자산",
@@ -146,6 +160,19 @@ export function AppShell() {
 
       <nav className={s.rail} aria-label="주요 메뉴">
         <HeroLink />
+
+        <NavLink
+          to={ASK.to}
+          className={({ isActive }) => `${s.hero} ${s.heroSub} ${isActive ? s.heroOn : ""}`}
+        >
+          <span className={s.heroGlyph} aria-hidden="true">
+            {ASK.glyph}
+          </span>
+          <span className={s.heroText}>
+            <b>{ASK.label}</b>
+            <span>{ASK.blurb}</span>
+          </span>
+        </NavLink>
 
         {NAV.map((group) => (
           <div className={s.navGroup} key={group.label}>
