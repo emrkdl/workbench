@@ -71,6 +71,7 @@ const NAV: { label: string; items: NavEntry[]; lead?: boolean }[] = [
     items: [
       { to: "/boards", glyph: "▤", label: "카탈로그" },
       { to: "/compare", glyph: "⇄", label: "비교" },
+      { to: "/guide", glyph: "≡", label: "설계 지침" },
     ],
   },
   {

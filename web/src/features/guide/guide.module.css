@@ -1,0 +1,207 @@
+/*
+ * 설계 지침 — 탭 하나가 문서 하나를 받는다.
+ *
+ * 문서는 밖에서 만들어져 HTML 로 들어오므로, 이쪽에서 할 일은 **읽히게 두는 것**뿐이다.
+ * 글 너비를 65자쯤으로 묶고, 제목·표·목록에 이 앱의 글자와 선을 입힌다. 들어오는 HTML 에
+ * class 가 없어도 되도록 태그 이름으로만 건다.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.head {
+  padding: var(--sp-4) var(--sp-5) 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.title {
+  display: inline;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.lede {
+  margin-left: var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+
+/* 리비전 상세와 같은 탭이다. 같은 짜임의 화면이 앱 안에서 다르게 생길 이유가 없다. */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: var(--sp-3);
+  overflow-x: auto;
+}
+.tab {
+  padding: 7px var(--sp-3) 9px;
+  font-size: var(--fs-base);
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tabOn {
+  color: var(--accent-ink);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-5);
+}
+
+/* ── 문서 ──────────────────────────────────
+   들어올 HTML 에 입히는 옷. 지금은 걸린 문서가 없지만 미리 깔아 둔다 — 문서를 붙이는
+   날에 화면까지 손봐야 한다면 붙이는 일이 미뤄진다. */
+.doc {
+  max-width: 72ch;
+  margin: 0 auto;
+  font-size: var(--fs-base);
+  line-height: 1.75;
+  color: var(--ink-2);
+}
+.doc > :first-child {
+  margin-top: 0;
+}
+.doc h1,
+.doc h2,
+.doc h3,
+.doc h4 {
+  margin: var(--sp-6) 0 var(--sp-3);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.doc h1 {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+.doc h2 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.doc h3 {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.doc h4 {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.doc p,
+.doc ul,
+.doc ol,
+.doc blockquote {
+  margin: var(--sp-3) 0;
+}
+.doc ul,
+.doc ol {
+  padding-left: var(--sp-5);
+}
+.doc li {
+  margin: 4px 0;
+}
+.doc a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.doc strong,
+.doc b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.doc code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  padding: 1px 4px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+}
+.doc pre {
+  margin: var(--sp-3) 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  overflow-x: auto;
+}
+.doc pre code {
+  padding: 0;
+  background: none;
+}
+.doc blockquote {
+  padding: var(--sp-2) var(--sp-4);
+  border-left: 2px solid var(--accent-line);
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.doc hr {
+  margin: var(--sp-6) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.doc img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r);
+}
+/* 표는 문서가 넓어도 페이지가 옆으로 구르지 않도록 제 안에서 구른다. */
+.doc table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: var(--sp-4) 0;
+  font-size: var(--fs-sm);
+}
+.doc th,
+.doc td {
+  padding: 6px var(--sp-3);
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.doc th {
+  background: var(--surface-2);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ── 빈 탭 ─────────────────────────────────── */
+.blank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  height: 100%;
+  min-height: 280px;
+  padding: var(--sp-5);
+  text-align: center;
+}
+.blankTitle {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.blankBody {
+  max-width: 44ch;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--ink-4);
+}

@@ -34,3 +34,24 @@ export function revisionPath(boardId: string, revisionIdOrSegment: string, tab?:
 }
 
 export const comparePath = (a: string, b: string) => `/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`;
+
+/**
+ * 설계 지침의 탭.
+ *
+ * 설계 문답이 "찾아볼 곳"으로 늘어놓는 갈래와 일부러 같게 맞췄다. 챗봇이 뒤진다고
+ * 말하는 것과 사람이 열어 보는 것이 다른 이름이면, 둘이 같은 것을 가리키는지 알 수 없다.
+ */
+export const GUIDE_TABS = [
+  { key: "rules", label: "설계 룰" },
+  { key: "stackup", label: "적층" },
+  { key: "layout", label: "레이아웃" },
+  { key: "manual", label: "매뉴얼" },
+  { key: "glossary", label: "용어집" },
+] as const;
+
+export type GuideTabKey = (typeof GUIDE_TABS)[number]["key"];
+
+export const isGuideTab = (v: string | undefined): v is GuideTabKey =>
+  GUIDE_TABS.some((t) => t.key === v);
+
+export const guidePath = (tab?: GuideTabKey) => `/guide${tab ? `/${tab}` : ""}`;
