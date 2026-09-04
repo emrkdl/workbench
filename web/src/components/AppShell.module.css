@@ -107,10 +107,13 @@
   color: var(--ink-4);
   padding: 0 var(--sp-3) 6px;
 }
+/* 한 줄의 짜임: 글리프 · 이름 · 오른쪽 표시. 진행률처럼 잠깐 붙는 것은 그 아래로
+   한 줄 더 깔린다 — 자리를 미리 비워 두지 않으므로 쉬는 동안의 줄 높이는 다 같다. */
 .navItem {
-  display: flex;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--sp-2);
+  column-gap: var(--sp-2);
   padding: 6px var(--sp-3);
   border-radius: var(--r);
   font-size: var(--fs-base);
@@ -135,18 +138,92 @@
   font-family: var(--font-mono);
   font-size: 11px;
   opacity: 0.8;
-  width: 14px;
   text-align: center;
-  flex: none;
+}
+.navText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .navSoon {
-  margin-left: auto;
   font-size: 9px;
   letter-spacing: 0.06em;
   color: var(--ink-4);
   border: 1px solid var(--line-2);
   border-radius: 2px;
   padding: 0 4px;
+}
+
+/* 앞무리(에이전트) — 나머지와 같은 줄을 쓰되 두 가지만 다르다: 쉬고 있을 때도 아주 옅은
+   바탕이 깔리고, 글리프가 강조색이다. 다른 줄이 모두 조용하므로 이만큼으로 충분하다.
+   테두리를 두르거나 그러데이션을 깔면 레일 안에 언어가 하나 더 생긴다. */
+.navLead {
+  background: var(--surface-2);
+}
+.navLead .navGlyph {
+  color: var(--accent);
+  opacity: 1;
+}
+.navLead:hover {
+  background: var(--surface-3);
+}
+/* 켜졌을 때의 표시는 모든 줄이 똑같이 쓴다 — 앞무리라고 다르게 켜지지 않는다. */
+.navItemOn.navLead {
+  background: var(--accent-wash);
+}
+.navItemOn.navLead:hover {
+  background: var(--accent-wash);
+}
+
+/* ── 도는 작업 ─────────────────────────────
+   맡긴 일은 몇 분이 걸리고 그동안 사람은 다른 화면에 있다. 진행률을 보려고 매번
+   돌아오게 하는 대신 이 줄이 들고 있는다. 다만 여기는 메뉴지 계기판이 아니라
+   몇 %인지와 얼마나 남았는지만 적는다. */
+.navPct {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.navPctDone {
+  color: var(--ok);
+}
+.navRun {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.navBar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.navBar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 140ms linear;
+}
+.navBar > .navBarDone {
+  background: var(--ok);
+}
+.navEta {
+  flex: none;
+  font-size: 10px;
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .navBar > span {
+    transition: none;
+  }
 }
 
 /* 최근 본 보드 — 메뉴 항목보다 한 단 낮은 무게로 둔다. 이동 수단이지 메뉴가 아니다.
@@ -296,150 +373,4 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* 자동 설계 — 레일 맨 위에 홀로 서는 항목.
-   다른 항목은 쌓인 것을 들여다보는 화면이고 이것만 새 설계를 만들어 낸다. 같은 줄에 같은
-   무게로 놓으면 목록 중 하나로 읽히므로 판을 따로 깔았다. 다만 요란하게 하지는 않는다 —
-   하루에 몇 번씩 보는 화면에서 빛나는 상자는 금세 눈에 거슬린다. */
-.hero {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  align-items: center;
-  gap: var(--sp-2);
-  margin: 0 2px var(--sp-2);
-  padding: 9px 10px;
-  border-radius: var(--r);
-  border: 1px solid var(--accent-line);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 16%, var(--surface)),
-    var(--surface-2) 65%
-  );
-}
-.hero:hover {
-  border-color: var(--accent);
-}
-/* 바로 아래에 붙어 서는 짝. 같은 짜임이되 판을 깔지 않는다 — 판을 통째로 짜는 일과
-   한 줄 물어보는 일을 같은 무게로 놓을 수는 없다. */
-.heroSub {
-  margin-top: -4px;
-  border-color: var(--line);
-  background: var(--surface-2);
-}
-.heroSub .heroText b {
-  font-size: var(--fs-base);
-  font-weight: 600;
-}
-.heroSub .heroGlyph {
-  font-size: 14px;
-  color: var(--ink-3);
-}
-.heroSub:hover .heroGlyph {
-  color: var(--accent);
-}
-.heroOn {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent-line);
-}
-.heroGlyph {
-  font-family: var(--font-mono);
-  font-size: 16px;
-  line-height: 1;
-  text-align: center;
-  color: var(--accent);
-}
-.heroText {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.heroText b {
-  font-size: var(--fs-md);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-.heroText > span {
-  font-size: 10px;
-  color: var(--ink-4);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── 작업이 도는 동안 ─────────────────────────
-   맡긴 일은 몇 분이 걸리고 그동안 사람은 다른 화면에 있다. 진행률을 보려고 매번
-   돌아오게 하는 대신, 어느 화면에서나 보이는 이 단추가 대신 들고 있는다. */
-.heroBusy {
-  grid-template-rows: auto auto;
-  row-gap: 7px;
-  padding-bottom: 8px;
-  border-color: var(--accent);
-}
-/* 설명 한 줄이 진행률 한 줄로 바뀐다. 자리는 그대로라 단추가 들썩이지 않는다. */
-.heroRun {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 0;
-  font-size: 10px;
-}
-.heroRun b {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-/* 끝난 것은 도는 것과 다른 색으로 읽혀야 한다 — 돌아왔을 때 한눈에 갈린다. */
-.heroRunDone b {
-  color: var(--ok);
-}
-.heroRun > span {
-  color: var(--ink-4);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* 숫자를 읽기 전에 눈으로 먼저 재는 자리. 단추 아래를 가로질러 깐다. */
-.heroBar {
-  grid-column: 1 / -1;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--line-2);
-  overflow: hidden;
-}
-.heroBar > span {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-  transition: width 140ms linear;
-}
-/* 위의 `.heroBar > span` 과 자리싸움을 하므로 선택자 무게를 맞춰 둔다. */
-.heroBar > .heroBarDone {
-  background: var(--ok);
-}
-/* 도는 중이라는 것은 숫자보다 움직임이 먼저 알린다. */
-.heroGlyphRun {
-  animation: heroPulse 1.6s ease-in-out infinite;
-}
-@keyframes heroPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .heroGlyphRun {
-    animation: none;
-  }
-  .heroBar > span {
-    transition: none;
-  }
 }

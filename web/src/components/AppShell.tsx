@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { fetchManifest, LIVE, setToken, whoami } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -46,33 +46,25 @@ interface NavEntry {
 }
 
 /**
- * 맨 위에 홀로 서는 항목.
+ * 메뉴.
  *
- * 나머지는 쌓인 것을 들여다보는 화면이고 이것만 새 설계를 만들어 낸다. 같은 줄에 같은
- * 무게로 놓으면 목록 중 하나로 읽히므로, 자리와 생김새를 따로 준다.
- */
-const HERO: NavEntry & { blurb: string } = {
-  to: "/auto",
-  glyph: "✳",
-  label: "자동 레이아웃",
-  blurb: "배치·배선을 엔진에 맡기기",
-};
-
-/**
- * 그 바로 아래 — 묻는 자리.
+ * 앞의 두 개는 나머지와 하는 일이 다르다 — 쌓인 것을 들여다보는 대신 시켜서 새로
+ * 만들어 낸다(하나는 배치를, 하나는 답을). 한동안 그 둘만 카드로 따로 세워 두었는데,
+ * 셋이 되니 레일 하나에 생김새가 셋이 되어 급조한 것처럼 보였다.
  *
- * 나머지 메뉴는 이미 아는 것을 찾아 가는 길이고, 이 둘만 없던 것을 만들어 낸다(하나는
- * 배치를, 하나는 답을). 그래서 목록 위에 둘이 붙어 선다. 다만 무게는 같지 않다 — 판을
- * 통째로 짜는 일과 한 줄 물어보는 일을 같은 크기로 놓을 수는 없다.
+ * 그래서 다시 한 벌로 되돌린다. 다르다는 것은 **맨 위라는 자리와 무리 이름**이 말하고,
+ * 생김새는 나머지와 같은 줄을 쓴다. 눈에 띄어야 한다고 언어를 하나 더 만들 이유는 없다 —
+ * 다른 것들이 모두 조용하면 조금만 달라도 충분히 눈에 띈다.
  */
-const ASK: NavEntry & { blurb: string } = {
-  to: "/ask",
-  glyph: "?",
-  label: "설계 문답",
-  blurb: "쌓인 설계에 대해 물어보기",
-};
-
-const NAV: { label: string; items: NavEntry[] }[] = [
+const NAV: { label: string; items: NavEntry[]; lead?: boolean }[] = [
+  {
+    label: "에이전트",
+    lead: true,
+    items: [
+      { to: "/auto", glyph: "✳", label: "자동 레이아웃" },
+      { to: "/ask", glyph: "?", label: "설계 문답" },
+    ],
+  },
   {
     label: "설계 자산",
     items: [
@@ -159,37 +151,16 @@ export function AppShell() {
       </header>
 
       <nav className={s.rail} aria-label="주요 메뉴">
-        <HeroLink />
-
-        <NavLink
-          to={ASK.to}
-          className={({ isActive }) => `${s.hero} ${s.heroSub} ${isActive ? s.heroOn : ""}`}
-        >
-          <span className={s.heroGlyph} aria-hidden="true">
-            {ASK.glyph}
-          </span>
-          <span className={s.heroText}>
-            <b>{ASK.label}</b>
-            <span>{ASK.blurb}</span>
-          </span>
-        </NavLink>
-
         {NAV.map((group) => (
           <div className={s.navGroup} key={group.label}>
             <span className={s.navLabel}>{group.label}</span>
-            {group.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `${s.navItem} ${isActive ? s.navItemOn : ""}`}
-              >
-                <span className={s.navGlyph} aria-hidden="true">
-                  {item.glyph}
-                </span>
-                {item.label}
-                {item.soon && <span className={s.navSoon}>예정</span>}
-              </NavLink>
-            ))}
+            {group.items.map((item) =>
+              item.to === "/auto" ? (
+                <AutoRow key={item.to} item={item} lead={group.lead} />
+              ) : (
+                <NavRow key={item.to} item={item} lead={group.lead} />
+              ),
+            )}
           </div>
         ))}
 
@@ -254,62 +225,84 @@ export function AppShell() {
 }
 
 /**
- * 맨 위 항목 — 작업이 돌면 진행률을 이 안에 들고 있는다.
+ * 메뉴 한 줄.
+ *
+ * 앞무리(에이전트)라고 해서 다른 상자를 쓰지 않는다. 쉬고 있을 때 아주 옅은 바탕을
+ * 깔고 글리프에 강조색을 주는 것이 전부다 — 나머지가 모두 조용하므로 이만큼이면 눈에
+ * 걸린다. 켜졌을 때의 표시(왼쪽 막대 + 강조 바탕)는 모든 줄이 똑같이 쓴다.
+ */
+function NavRow({
+  item,
+  lead,
+  badge,
+  foot,
+}: {
+  item: NavEntry;
+  lead?: boolean;
+  badge?: ReactNode;
+  foot?: ReactNode;
+}) {
+  return (
+    <NavLink
+      to={item.to}
+      className={({ isActive }) =>
+        `${s.navItem} ${lead ? s.navLead : ""} ${isActive ? s.navItemOn : ""}`
+      }
+    >
+      <span className={s.navGlyph} aria-hidden="true">
+        {item.glyph}
+      </span>
+      <span className={s.navText}>{item.label}</span>
+      {badge ?? (item.soon ? <span className={s.navSoon}>예정</span> : null)}
+      {foot}
+    </NavLink>
+  );
+}
+
+/**
+ * 자동 레이아웃 — 작업이 돌면 진행률을 이 줄이 들고 있는다.
  *
  * 배치·배선은 몇 분이 걸리고 그동안 사람은 다른 화면으로 간다. 떠나 있는 동안 얼마나
  * 됐는지 보려고 매번 돌아오게 할 이유가 없다 — 어느 화면에 있든 보이는 자리가 여기다.
  *
- * 다만 여기는 메뉴지 계기판이 아니다. 몇 %인지와 얼마나 남았는지, 그 둘만 적는다.
- * 단계 이름이나 걸린 시간처럼 곱씹어 볼 것은 원래 자리인 작업 화면에 그대로 있다.
+ * 자리는 돌 때만 넓어진다. 쉬는 동안에도 진행률 자리를 비워 두면 레일이 늘 한 줄 뜬
+ * 채로 있고, 그 한 줄이 이 줄만 다른 물건처럼 보이게 만든다.
  */
-function HeroLink() {
+function AutoRow({ item, lead }: { item: NavEntry; lead?: boolean }) {
   const job = useJobRun();
   const running = job.status === "running";
   const busy = running || job.status === "done";
   const pct = Math.round(job.progress * 100);
+  if (!busy) return <NavRow item={item} lead={lead} />;
 
   return (
-    <NavLink
-      to={HERO.to}
-      className={({ isActive }) =>
-        `${s.hero} ${isActive ? s.heroOn : ""} ${busy ? s.heroBusy : ""}`
+    <NavRow
+      item={item}
+      lead={lead}
+      badge={
+        <span className={`${s.navPct} ${running ? "" : s.navPctDone}`}>{pct}%</span>
       }
-    >
-      <span className={`${s.heroGlyph} ${running ? s.heroGlyphRun : ""}`} aria-hidden="true">
-        {HERO.glyph}
-      </span>
-      <span className={s.heroText}>
-        <b>{HERO.label}</b>
-        {busy ? (
-          <span className={`${s.heroRun} ${running ? "" : s.heroRunDone}`}>
-            <b>{pct}%</b>
-            <span>
-              {job.status === "done"
-                ? "완료"
-                : job.remainingMs !== null
-                  ? `${formatDuration(job.remainingMs)} 남음`
-                  : "가늠 중"}
-            </span>
-          </span>
-        ) : (
-          <span>{HERO.blurb}</span>
-        )}
-      </span>
-      {busy && (
-        <span
-          className={s.heroBar}
-          role="progressbar"
-          aria-label="자동 레이아웃 진행률"
-          aria-valuenow={pct}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
+      foot={
+        <span className={s.navRun}>
           <span
-            className={job.status === "done" ? s.heroBarDone : ""}
-            style={{ width: `${pct}%` }}
-          />
+            className={s.navBar}
+            role="progressbar"
+            aria-label="자동 레이아웃 진행률"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span className={running ? "" : s.navBarDone} style={{ width: `${pct}%` }} />
+          </span>
+          <span className={s.navEta}>
+            {!running
+              ? "완료"
+              : job.remainingMs !== null
+                ? `${formatDuration(job.remainingMs)} 남음`
+                : "남은 시간 가늠 중"}
+          </span>
         </span>
-      )}
-    </NavLink>
+      }
+    />
   );
 }
