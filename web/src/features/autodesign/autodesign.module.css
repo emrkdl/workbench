@@ -1016,19 +1016,15 @@
   min-width: 0;
 }
 
-/* 모델명 — 파일 이름보다 크게. 정말로 무엇을 맡기는지는 파일 속 모델명이 말한다. */
+/* 모델명 — 파일 이름보다 크게. 정말로 무엇을 맡기는지는 파일 속 모델명이 말한다.
+   읽어 낸 것이 있을 때만 나타나므로 빈 상태를 위한 모양은 두지 않는다. */
 .modelBox {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 9px 12px;
-  border: 1px dashed var(--line-2);
+  border: 1px solid var(--accent-line);
   border-radius: var(--r);
-  background: var(--surface-2);
-}
-.modelBoxOn {
-  border-style: solid;
-  border-color: var(--accent-line);
   background: var(--accent-wash);
 }
 .modelLabel {
@@ -1043,11 +1039,8 @@
   font-size: var(--fs-lg);
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--ink-4);
-  overflow-wrap: anywhere;
-}
-.modelBoxOn .modelName {
   color: var(--accent-ink);
+  overflow-wrap: anywhere;
 }
 .modelNote {
   font-size: 10px;

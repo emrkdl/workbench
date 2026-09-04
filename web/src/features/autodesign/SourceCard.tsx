@@ -94,12 +94,17 @@ export function SourceCard({
     <div className={s.sourceGrid}>
       <div className={s.fileCol}>
         {/* 파일 이름보다 모델명이 먼저다. 이름은 사람이 바꿔 붙이지만 파일 속 모델명은
-            그렇지 않으므로, 정말로 무엇을 맡기는지는 그쪽이 말한다. */}
-        <div className={`${s.modelBox} ${source.model ? s.modelBoxOn : ""}`}>
-          <span className={s.modelLabel}>모델</span>
-          <span className={s.modelName}>{source.model ?? "파일을 올리면 여기에 들어옵니다"}</span>
-          {source.model && <span className={s.modelNote}>파서가 붙기 전까지는 임시 값입니다</span>}
-        </div>
+            그렇지 않으므로, 정말로 무엇을 맡기는지는 그쪽이 말한다.
+
+            읽어 낸 것이 있을 때만 나타난다. 빈 상자를 미리 띄워 두면 "여기에 무언가
+            들어올 것"이라는 약속만 남고, 그 약속이 화면에서 가장 큰 글자를 차지한다. */}
+        {source.model && (
+          <div className={s.modelBox}>
+            <span className={s.modelLabel}>모델</span>
+            <span className={s.modelName}>{source.model}</span>
+            <span className={s.modelNote}>파서가 붙기 전까지는 임시 값입니다</span>
+          </div>
+        )}
 
         <div
           className={`${s.drop} ${over ? s.dropOver : ""} ${source.files.length ? s.dropFilled : ""}`}
