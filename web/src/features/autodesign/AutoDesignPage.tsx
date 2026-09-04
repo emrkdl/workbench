@@ -6,7 +6,7 @@ import { SourceCard } from "./SourceCard";
 import { PlacementPanel } from "./PlacementPanel";
 import { RoutingPanel } from "./RoutingPanel";
 import { EMPTY_SPEC, toRequest, type AutoDesignSpec } from "./spec";
-import { formatDuration, useJobRun, type Stage } from "./useJobRun";
+import { formatDuration, startJob, stopJob, useJobRun, type Stage } from "./useJobRun";
 import s from "./autodesign.module.css";
 
 /**
@@ -85,7 +85,7 @@ export function AutoDesignPage() {
     return Math.round(3000 + (spec.modes.place ? comps * 6 : 0) + (spec.modes.route ? nets * 14 : 0));
   }, [detail.data, spec.modes.place, spec.modes.route]);
 
-  const job = useJobRun(stages, estimateMs);
+  const job = useJobRun();
 
   const problems = useMemo(() => {
     const out: string[] = [];
@@ -223,7 +223,7 @@ export function AutoDesignPage() {
                 ))}
 
               {job.status === "running" ? (
-                <button type="button" className={`${s.submit} ${s.stop}`} onClick={job.stop}>
+                <button type="button" className={`${s.submit} ${s.stop}`} onClick={stopJob}>
                   중지
                 </button>
               ) : (
@@ -231,7 +231,7 @@ export function AutoDesignPage() {
                   type="button"
                   className={s.submit}
                   disabled={job.status === "idle" && problems.length > 0}
-                  onClick={job.start}
+                  onClick={() => startJob(stages, estimateMs)}
                 >
                   {job.status === "idle" ? "작업 실행" : "다시 실행"}
                 </button>
@@ -258,8 +258,8 @@ export function AutoDesignPage() {
                     </span>
                   </div>
                   <ol className={s.stageList}>
-                    {stages.map((st, at) => {
-                      const now = job.stage ? stages.indexOf(job.stage) : -1;
+                    {job.stages.map((st, at) => {
+                      const now = job.stage ? job.stages.indexOf(job.stage) : -1;
                       const cls =
                         job.status === "done" || at < now ? s.stageDone : at === now ? s.stageNow : s.stageWait;
                       return (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 /**
  * 작업 진행 상태.
@@ -10,6 +10,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
  * 남은 시간은 총 시간에서 빼는 것이 아니라 **지금까지 걸린 시간과 진행률로 되짚어** 낸다.
  * 실제 엔진은 총 시간을 모른 채 진행률만 흘려보내기 때문이다. 예행에서도 같은 식을 쓰면
  * 엔진이 붙었을 때 이 계산을 다시 짤 일이 없다.
+ *
+ * 상태를 화면 안이 아니라 **모듈에** 둔다. 맡긴 일은 몇 분씩 걸리고 그동안 사람은 카탈로그를
+ * 뒤지러 간다 — 화면을 떠나면 시계가 멈추는 것이 아니라, 떠나 있는 동안에도 왼쪽 메뉴가
+ * 진행률을 들고 있어야 한다. 돌아가는 작업은 어차피 하나뿐이라 하나만 담는다.
  */
 
 export interface Stage {
@@ -29,62 +33,105 @@ export interface JobState {
   remainingMs: number | null;
   elapsedMs: number;
   stage: Stage | null;
+  /** 시작할 때 정해진 단계 목록. 도중에 화면에서 조건을 바꿔도 돌던 작업의 단계는 그대로다. */
+  stages: Stage[];
 }
 
 const TICK_MS = 120;
 
-export function useJobRun(stages: Stage[], estimateMs: number) {
-  const [status, setStatus] = useState<JobStatus>("idle");
-  const [elapsed, setElapsed] = useState(0);
-  const startedAt = useRef(0);
+interface Run {
+  status: JobStatus;
+  elapsed: number;
+  estimateMs: number;
+  stages: Stage[];
+}
 
-  useEffect(() => {
-    if (status !== "running") return;
-    const id = window.setInterval(() => {
-      const next = Date.now() - startedAt.current;
-      setElapsed(next);
-      if (next >= estimateMs) setStatus("done");
-    }, TICK_MS);
-    return () => window.clearInterval(id);
-  }, [status, estimateMs]);
+const IDLE: Run = { status: "idle", elapsed: 0, estimateMs: 1, stages: [] };
 
-  const state = useMemo<JobState>(() => {
-    const progress =
-      status === "done" ? 1 : status === "running" ? Math.min(elapsed / Math.max(estimateMs, 1), 0.999) : 0;
+let run: Run = IDLE;
+let startedAt = 0;
+let timer = 0;
+const listeners = new Set<() => void>();
 
-    // 진행률이 아직 얼마 안 됐을 때의 추정은 크게 튄다. 몇 초는 지나야 말이 된다.
-    const remainingMs =
-      status === "running" && progress > 0.02 ? Math.round((elapsed * (1 - progress)) / progress) : null;
+function set(next: Run) {
+  run = next;
+  for (const fn of listeners) fn();
+}
 
-    let stage: Stage | null = null;
-    if (status === "running" || status === "done") {
-      const total = stages.reduce((sum, x) => sum + x.weight, 0) || 1;
-      let acc = 0;
-      for (const st of stages) {
-        acc += st.weight / total;
-        if (progress <= acc) {
-          stage = st;
-          break;
-        }
-      }
-      stage = stage ?? stages[stages.length - 1] ?? null;
+function halt() {
+  if (!timer) return;
+  window.clearInterval(timer);
+  timer = 0;
+}
+
+export function startJob(stages: Stage[], estimateMs: number) {
+  halt();
+  startedAt = Date.now();
+  set({ status: "running", elapsed: 0, estimateMs: Math.max(estimateMs, 1), stages });
+  timer = window.setInterval(() => {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed >= run.estimateMs) {
+      halt();
+      set({ ...run, status: "done", elapsed: run.estimateMs });
+      return;
     }
+    set({ ...run, elapsed });
+  }, TICK_MS);
+}
 
-    return { status, progress, remainingMs, elapsedMs: elapsed, stage };
-  }, [status, elapsed, estimateMs, stages]);
+export function stopJob() {
+  halt();
+  set({ ...run, status: "stopped" });
+}
 
-  const start = () => {
-    startedAt.current = Date.now();
-    setElapsed(0);
-    setStatus("running");
+export function resetJob() {
+  halt();
+  set(IDLE);
+}
+
+function derive(r: Run): JobState {
+  const progress =
+    r.status === "done" ? 1 : r.status === "running" ? Math.min(r.elapsed / r.estimateMs, 0.999) : 0;
+
+  // 진행률이 아직 얼마 안 됐을 때의 추정은 크게 튄다. 몇 초는 지나야 말이 된다.
+  const remainingMs =
+    r.status === "running" && progress > 0.02 ? Math.round((r.elapsed * (1 - progress)) / progress) : null;
+
+  let stage: Stage | null = null;
+  if (r.status === "running" || r.status === "done") {
+    const total = r.stages.reduce((sum, x) => sum + x.weight, 0) || 1;
+    let acc = 0;
+    for (const st of r.stages) {
+      acc += st.weight / total;
+      if (progress <= acc) {
+        stage = st;
+        break;
+      }
+    }
+    stage = stage ?? r.stages[r.stages.length - 1] ?? null;
+  }
+
+  return { status: r.status, progress, remainingMs, elapsedMs: r.elapsed, stage, stages: r.stages };
+}
+
+const subscribe = (fn: () => void) => {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
   };
-  const stop = () => setStatus("stopped");
-  const reset = () => {
-    setElapsed(0);
-    setStatus("idle");
-  };
+};
 
-  return { ...state, start, stop, reset };
+/**
+ * 돌아가는 작업을 들여다본다. 어디서 불러도 같은 하나를 본다 — 작업을 맡긴 화면도,
+ * 그 화면을 떠난 사람에게 진행률을 알려 주는 왼쪽 메뉴도.
+ */
+export function useJobRun(): JobState {
+  const snapshot = useSyncExternalStore(
+    subscribe,
+    () => run,
+    () => IDLE,
+  );
+  return useMemo(() => derive(snapshot), [snapshot]);
 }
 
 /** 사람이 읽는 시간. 초 단위 아래는 의미가 없고, 분을 넘으면 초는 거들 뿐이다. */

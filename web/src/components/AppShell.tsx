@@ -6,6 +6,7 @@ import { useAsync } from "@/lib/useAsync";
 import { forget, useRecentBoards } from "@/lib/recent";
 import { avatarHue, avatarOf } from "@/lib/avatar";
 import { revisionPath } from "@/lib/routes";
+import { formatDuration, useJobRun } from "@/features/autodesign/useJobRun";
 import s from "./AppShell.module.css";
 
 type Theme = "system" | "light" | "dark";
@@ -144,16 +145,7 @@ export function AppShell() {
       </header>
 
       <nav className={s.rail} aria-label="주요 메뉴">
-        <NavLink
-          to={HERO.to}
-          className={({ isActive }) => `${s.hero} ${isActive ? s.heroOn : ""}`}
-        >
-          <span className={s.heroGlyph} aria-hidden="true">{HERO.glyph}</span>
-          <span className={s.heroText}>
-            <b>{HERO.label}</b>
-            <span>{HERO.blurb}</span>
-          </span>
-        </NavLink>
+        <HeroLink />
 
         {NAV.map((group) => (
           <div className={s.navGroup} key={group.label}>
@@ -231,5 +223,66 @@ export function AppShell() {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+/**
+ * 맨 위 항목 — 작업이 돌면 진행률을 이 안에 들고 있는다.
+ *
+ * 배치·배선은 몇 분이 걸리고 그동안 사람은 다른 화면으로 간다. 떠나 있는 동안 얼마나
+ * 됐는지 보려고 매번 돌아오게 할 이유가 없다 — 어느 화면에 있든 보이는 자리가 여기다.
+ *
+ * 다만 여기는 메뉴지 계기판이 아니다. 몇 %인지와 얼마나 남았는지, 그 둘만 적는다.
+ * 단계 이름이나 걸린 시간처럼 곱씹어 볼 것은 원래 자리인 작업 화면에 그대로 있다.
+ */
+function HeroLink() {
+  const job = useJobRun();
+  const running = job.status === "running";
+  const busy = running || job.status === "done";
+  const pct = Math.round(job.progress * 100);
+
+  return (
+    <NavLink
+      to={HERO.to}
+      className={({ isActive }) =>
+        `${s.hero} ${isActive ? s.heroOn : ""} ${busy ? s.heroBusy : ""}`
+      }
+    >
+      <span className={`${s.heroGlyph} ${running ? s.heroGlyphRun : ""}`} aria-hidden="true">
+        {HERO.glyph}
+      </span>
+      <span className={s.heroText}>
+        <b>{HERO.label}</b>
+        {busy ? (
+          <span className={`${s.heroRun} ${running ? "" : s.heroRunDone}`}>
+            <b>{pct}%</b>
+            <span>
+              {job.status === "done"
+                ? "완료"
+                : job.remainingMs !== null
+                  ? `${formatDuration(job.remainingMs)} 남음`
+                  : "가늠 중"}
+            </span>
+          </span>
+        ) : (
+          <span>{HERO.blurb}</span>
+        )}
+      </span>
+      {busy && (
+        <span
+          className={s.heroBar}
+          role="progressbar"
+          aria-label="자동 레이아웃 진행률"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <span
+            className={job.status === "done" ? s.heroBarDone : ""}
+            style={{ width: `${pct}%` }}
+          />
+        </span>
+      )}
+    </NavLink>
   );
 }

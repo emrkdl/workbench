@@ -350,3 +350,78 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── 작업이 도는 동안 ─────────────────────────
+   맡긴 일은 몇 분이 걸리고 그동안 사람은 다른 화면에 있다. 진행률을 보려고 매번
+   돌아오게 하는 대신, 어느 화면에서나 보이는 이 단추가 대신 들고 있는다. */
+.heroBusy {
+  grid-template-rows: auto auto;
+  row-gap: 7px;
+  padding-bottom: 8px;
+  border-color: var(--accent);
+}
+/* 설명 한 줄이 진행률 한 줄로 바뀐다. 자리는 그대로라 단추가 들썩이지 않는다. */
+.heroRun {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  font-size: 10px;
+}
+.heroRun b {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+/* 끝난 것은 도는 것과 다른 색으로 읽혀야 한다 — 돌아왔을 때 한눈에 갈린다. */
+.heroRunDone b {
+  color: var(--ok);
+}
+.heroRun > span {
+  color: var(--ink-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 숫자를 읽기 전에 눈으로 먼저 재는 자리. 단추 아래를 가로질러 깐다. */
+.heroBar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.heroBar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 140ms linear;
+}
+/* 위의 `.heroBar > span` 과 자리싸움을 하므로 선택자 무게를 맞춰 둔다. */
+.heroBar > .heroBarDone {
+  background: var(--ok);
+}
+/* 도는 중이라는 것은 숫자보다 움직임이 먼저 알린다. */
+.heroGlyphRun {
+  animation: heroPulse 1.6s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heroGlyphRun {
+    animation: none;
+  }
+  .heroBar > span {
+    transition: none;
+  }
+}
