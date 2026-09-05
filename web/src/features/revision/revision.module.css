@@ -439,3 +439,53 @@
 .mountFree {
   color: var(--ink-4);
 }
+
+/* ── 층 구성 ────────────────────────────────
+   도체층만 위에서 아래로 쌓는다. 적층에서 중요한 것은 개수가 아니라 순서다 —
+   신호층이 GND 를 사이에 두고 있는지가 판의 성질을 정한다. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stackRow {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 30px 32px;
+  align-items: center;
+  gap: 6px;
+}
+.stackNo {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+}
+/* 동박 면적률 — 플레인은 거의 꽉 차고 신호층은 성기다. 층에 무엇이 깔려 있는지에
+   가장 가까운 실제 값이라 숫자보다 먼저 눈에 들어오게 둔다. */
+.stackFill {
+  height: 10px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.stackFill i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+.stackRole {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stackImp {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-align: right;
+}
+.stackNote {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--ink-4);
+}

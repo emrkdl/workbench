@@ -1,4 +1,4 @@
-import type { RevisionDetail } from "@/lib/cdm";
+import type { LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
 import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid, Tag } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import {
@@ -9,7 +9,7 @@ import {
   formatFine,
   formatRouteLength,
 } from "@/lib/units";
-import { ROLE_COLOR } from "./layers";
+import { conductorNumbers, isConductor, ROLE_COLOR, ROLE_LABEL } from "./layers";
 import s from "./revision.module.css";
 
 /** 상위 n개만 막대로 보여주고 나머지는 "기타"로 접는다. 꼬리가 길어 전부 그리면 못 읽는다. */
@@ -40,14 +40,68 @@ function TopBreakdown({ counts, limit = 6 }: { counts: Record<string, number>; l
   );
 }
 
+/** 좁은 판에 들어갈 짧은 이름. 단면도 탭의 긴 이름("GND 플레인")은 여기서 줄이 넘친다. */
+const STACK_LABEL: Partial<Record<LayerRole, string>> = {
+  signal: "신호",
+  plane_power: "전원",
+  plane_gnd: "GND",
+  mixed: "혼합",
+};
+
+/**
+ * 층 구성 — 도체층만 쌓아 놓고 각 층이 무엇을 나르는지 적는다.
+ *
+ * 예전에는 "신호 6 · 플레인 4" 를 막대 하나로 보여 줬는데, 그 숫자로는 **어느 자리**가
+ * 플레인인지 알 수 없었다. 적층에서 중요한 것은 개수가 아니라 순서다 — 신호층이 GND 를
+ * 사이에 두고 있는지, 전원과 GND 가 붙어 있는지가 판의 성질을 정한다.
+ *
+ * 실크·마스크·유전체는 뺐다. 여기서 묻는 것은 "무엇이 어디를 지나가나"이고 그 답은
+ * 동박층에만 있다. 두께를 보러 왔다면 적층 탭에 단면도가 그대로 있다.
+ *
+ * 막대는 동박 면적률이다. 이것이 이 판에서 "층에 무엇이 깔려 있나"에 가장 가까운 실제
+ * 값이다 — 플레인은 거의 꽉 차고 신호층은 성기다. 넷 이름이나 넷 클래스를 층별로 세어
+ * 둔 값은 아직 없어서, 있는 척하지 않고 역할과 임피던스까지만 적는다.
+ */
+function LayerStack({ stackup }: { stackup: StackupLayer[] }) {
+  const numbers = conductorNumbers(stackup);
+  const rows = stackup.filter(isConductor);
+
+  return (
+    <div className={s.stack}>
+      {rows.map((l) => {
+        const ratio = l.copper_area_ratio;
+        const imp = l.impedance_single_ohm;
+        return (
+          <div
+            key={l.index}
+            className={s.stackRow}
+            title={`${l.name} · ${ROLE_LABEL[l.role]}${ratio != null ? ` · 동박 ${Math.round(ratio * 100)}%` : ""}${imp != null ? ` · ${imp}Ω` : ""}`}
+          >
+            <span className={s.stackNo}>L{numbers.get(l.index)}</span>
+            <span className={s.stackFill}>
+              <i
+                style={{
+                  width: `${Math.round((ratio ?? 0) * 100)}%`,
+                  background: ROLE_COLOR[l.role],
+                }}
+              />
+            </span>
+            <span className={s.stackRole} style={{ color: ROLE_COLOR[l.role] }}>
+              {STACK_LABEL[l.role] ?? ROLE_LABEL[l.role]}
+            </span>
+            {/* 임피던스를 관리하는 층에는 빠른 신호가 지난다. 어느 층이 "주요"인지를
+                이 판에서 짐작할 수 있는 유일한 실제 값이다. */}
+            <span className={s.stackImp}>{imp != null ? `${imp}Ω` : ""}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function OverviewTab({ detail }: { detail: RevisionDetail }) {
   const { revision, design_rules: rules } = detail;
   const sm = revision.summary;
-
-  const layerSlices = [
-    { label: "신호", value: sm.signal_layer_count, color: ROLE_COLOR.signal },
-    { label: "플레인", value: sm.plane_layer_count, color: ROLE_COLOR.plane_gnd },
-  ].filter((x) => x.value > 0);
 
   const sideSlices = [
     { label: "Top", value: sm.component_top_count, color: "var(--accent)" },
@@ -260,7 +314,11 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
         </Panel>
 
         <Panel title="층 구성">
-          <Bar slices={layerSlices} />
+          <LayerStack stackup={detail.stackup} />
+          <p className={s.stackNote}>
+            막대는 동박 면적률입니다. 넷 이름과 넷 클래스를 층별로 갈라 놓은 값은 아직
+            없어서, 역할과 임피던스까지만 적었습니다.
+          </p>
         </Panel>
       </div>
     </div>
