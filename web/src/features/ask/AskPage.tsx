@@ -126,7 +126,7 @@ export function AskPage() {
     if (!open.length) return;
     setLive({
       tool: "Xpedition · 예행",
-      designs: open.map((b, i) => ({ id: b.id, name: b.board_key, boardId: b.id, dirty: i === 0 })),
+      designs: open.map((b) => ({ id: b.id, name: b.board_key, boardId: b.id })),
       activeId: open[0].id,
     });
   };
@@ -153,7 +153,7 @@ export function AskPage() {
           .join(" · ")
       : source === "live"
         ? design
-          ? `${live.tool} · 열린 판 ${live.designs.length}${design.dirty ? " · 저장 안 한 변경 있음" : ""}`
+          ? `${live.tool} · 열린 판 ${live.designs.length}`
           : "설계 툴에 연결되지 않음"
         : savedBoard
           ? `${savedBoard.latest_revision_label} · ${savedBoard.summary.layer_count}층 · 부품 ${savedBoard.summary.component_count.toLocaleString()} · 넷 ${savedBoard.summary.net_count.toLocaleString()}`

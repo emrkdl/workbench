@@ -885,15 +885,3 @@ a.cite:hover b {
 .liveItemOn .liveMark {
   color: var(--accent);
 }
-/* 저장 안 된 변경이 있다는 것이 라이브로 물어볼 이유다. 저장된 판과 다른 점이 그것뿐이다. */
-.liveDirty {
-  margin-left: auto;
-  flex: none;
-  padding: 0 5px;
-  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
-  border-radius: 999px;
-  background: var(--warn-wash);
-  font-size: 9px;
-  color: var(--warn);
-  white-space: nowrap;
-}
