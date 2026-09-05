@@ -139,9 +139,9 @@ function YearGroup({
           );
         })}
       </div>
-      <span className={s.rangeHint}>
-        {min !== null && max !== null ? `${min}–${max}년` : "연도를 눌러 기간을 고른다"}
-      </span>
+      {/* 고른 기간만 적는다. 고르기 전의 안내("연도를 눌러 고르세요")는 뺐다 — 막대
+          위에 마우스를 올려 보면 알게 되는 것을 늘 한 줄로 붙들고 있을 이유가 없다. */}
+      {min !== null && max !== null && <span className={s.rangeHint}>{`${min}–${max}년`}</span>}
     </div>
   );
 }
@@ -239,7 +239,6 @@ export function FacetPanel({ filters, facets, onChange }: Props) {
             );
           })}
         </div>
-        <span className={s.rangeHint}>선폭이 좁을수록 제조 난이도가 올라간다</span>
       </div>
     </aside>
   );
