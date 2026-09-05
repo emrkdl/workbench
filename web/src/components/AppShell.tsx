@@ -10,24 +10,35 @@ import { formatDuration, useJobRun } from "@/features/autodesign/useJobRun";
 import { useChat } from "@/features/ask/model";
 import s from "./AppShell.module.css";
 
-type Theme = "system" | "light" | "dark";
+/**
+ * 화면 테마 — 밝게 아니면 어둡게, 둘뿐이다.
+ *
+ * "시스템 설정"을 뺐다. 셋을 도는 단추는 한 번 눌러 원하는 곳에 닿지 못하고, 무엇보다
+ * 지금 무엇이 켜져 있는지가 애매하다 — 시스템 설정이 켜져 있을 때 화면이 어두우면
+ * 그것이 내가 고른 것인지 운영체제가 정한 것인지 단추만 봐서는 알 수 없다.
+ *
+ * 대신 처음 열 때 운영체제를 한 번 따른다. 밤에 일하는 사람에게 흰 화면을 들이밀지
+ * 않으면서도, 한 번 고르고 나면 그 값이 그대로 남는다.
+ */
+type Theme = "light" | "dark";
 const THEME_KEY = "boardlens.theme";
-const THEME_GLYPH: Record<Theme, string> = { system: "◐", light: "☀", dark: "☾" };
-const THEME_LABEL: Record<Theme, string> = { system: "시스템 설정", light: "밝은 화면", dark: "어두운 화면" };
+const THEME_GLYPH: Record<Theme, string> = { light: "☀", dark: "☾" };
+const THEME_LABEL: Record<Theme, string> = { light: "밝은 화면", dark: "어두운 화면" };
 
 function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     try {
-      return (localStorage.getItem(THEME_KEY) as Theme) || "system";
+      const saved = localStorage.getItem(THEME_KEY);
+      // 예전에 저장된 "system" 은 여기서 걸러진다 — 그때의 운영체제 설정을 그대로 이어받는다.
+      if (saved === "light" || saved === "dark") return saved;
     } catch {
-      return "system";
+      /* 저장이 막혀 있어도 화면은 떠야 한다 */
     }
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "system") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch {
@@ -35,8 +46,8 @@ function useTheme() {
     }
   }, [theme]);
 
-  const cycle = () => setTheme((t) => (t === "system" ? "light" : t === "light" ? "dark" : "system"));
-  return { theme, cycle };
+  const toggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  return { theme, toggle };
 }
 
 interface NavEntry {
@@ -84,7 +95,7 @@ const NAV: { label: string; items: NavEntry[]; lead?: boolean }[] = [
 ];
 
 export function AppShell() {
-  const { theme, cycle } = useTheme();
+  const { theme, toggle } = useTheme();
   const recent = useRecentBoards();
   const { data: manifest } = useAsync(fetchManifest, []);
   const { data: session } = useAsync(whoami, []);
@@ -141,12 +152,15 @@ export function AppShell() {
             ⏻
           </button>
         )}
+        {/* 글리프는 지금 켜진 쪽을 보여 주고, 설명은 누르면 무엇이 되는지를 말한다.
+            둘 중 하나만 적으면 "해 모양이면 밝다는 뜻인가 밝게 하겠다는 뜻인가"에서
+            매번 한 번씩 멈칫한다. */}
         <button
           type="button"
           className={s.iconBtn}
-          onClick={cycle}
-          title={`화면 테마: ${THEME_LABEL[theme]}`}
-          aria-label={`화면 테마 전환 (현재: ${THEME_LABEL[theme]})`}
+          onClick={toggle}
+          title={`${THEME_LABEL[theme === "dark" ? "light" : "dark"]}으로 바꾸기`}
+          aria-label={`${THEME_LABEL[theme === "dark" ? "light" : "dark"]}으로 바꾸기 (지금은 ${THEME_LABEL[theme]})`}
         >
           {THEME_GLYPH[theme]}
         </button>
