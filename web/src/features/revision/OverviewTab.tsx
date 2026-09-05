@@ -26,44 +26,33 @@ const VIA_LABEL: Record<string, string> = {
 /**
  * 부품 구성 — 계열별로 몇 개인가.
  *
- * 예전에는 패키지(0402·0603·0805…)로 갈라 상위 여섯을 보여 줬다. 그런데 서른 장이
- * 전부 같은 넷으로 시작한다 — 0603 · 0402 · 0805 · 0201. 판을 가르는 것(BGA 가 셋이냐
- * 없느냐, 커넥터가 몇이냐)은 스물세 종의 꼬리에 묻혀 "기타 17종" 으로 접혀 있었다.
+ * 예전에는 패키지(0402·0603·0805…)로 갈라 상위 여섯을 가로막대로 보여 줬다. 두 가지가
+ * 잘못돼 있었다.
  *
- * 계열은 열둘이라 접히는 것이 없다. 그리고 **개수 순이 아니라 정해진 순서**로 늘어놓는다 —
- * 개수 순으로 두면 어느 판이든 C·R·L 로 시작해서 판끼리 견줄 수가 없다. 자리가 고정돼
- * 있으면 두 판을 나란히 놓고 같은 줄을 눈으로 좇을 수 있다.
+ * 하나. 서른 장이 전부 같은 넷으로 시작한다 — 0603 · 0402 · 0805 · 0201. 판을 가르는
+ * 것(BGA 가 셋이냐 없느냐, 커넥터가 몇이냐)은 스물세 종의 꼬리에 묻혀 접혀 있었다.
+ * 그래서 계열로 바꿨다. 열둘이라 접히는 것이 없다.
+ *
+ * 둘. 줄마다 막대를 하나씩 그리니 숫자 열한 개에 스물두 줄을 썼다. 누적 막대 하나로
+ * 비율을 보이고 개수는 범례가 든다 — 바로 아래 "부품 배치 면" 과 같은 표현이라 두
+ * 패널이 한 벌로 읽히고, 자리는 넉 줄이면 끝난다.
+ *
+ * 순서는 개수가 아니라 계열의 정해진 차례다. 개수 순으로 두면 어느 판이든 C·R·L 로
+ * 시작해서 판끼리 견줄 수가 없다.
  *
  * 색은 뷰어 범례·부품 탭과 같은 것을 쓴다. 화면을 오가며 색을 다시 배우지 않아도 된다.
  */
-function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
+function familySlices(components: ComponentRow[]) {
   const counts = new Map<FamilyKey, number>();
   for (const c of components) {
     const k = familyOf(c);
     counts.set(k, (counts.get(k) ?? 0) + 1);
   }
-  const rows = FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0);
-  const max = Math.max(...rows.map((f) => counts.get(f.key) ?? 0), 1);
-
-  return (
-    <div className={s.miniList}>
-      {rows.map((f) => {
-        const count = counts.get(f.key) ?? 0;
-        return (
-          <div key={f.key} className={s.miniRow}>
-            <span>{f.label}</span>
-            <b>{formatCount(count)}</b>
-            <div className={s.miniBar}>
-              <div
-                className={s.miniBarFill}
-                style={{ width: `${(count / max) * 100}%`, background: familyCss(f.rgb) }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+  return FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0).map((f) => ({
+    label: f.label,
+    value: counts.get(f.key) ?? 0,
+    color: familyCss(f.rgb),
+  }));
 }
 
 /** 좁은 판에 들어갈 짧은 이름. 단면도 탭의 긴 이름("GND 플레인")은 여기서 줄이 넘친다. */
@@ -276,7 +265,7 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
 
         <div className={s.twoUp}>
           <Panel title="부품 구성">
-            <FamilyBreakdown components={detail.components} />
+            <Bar slices={familySlices(detail.components)} />
           </Panel>
           <Panel title="배선">
             <Fields>
