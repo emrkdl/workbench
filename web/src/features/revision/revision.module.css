@@ -549,8 +549,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 얇게 둔다. 이 줄에서 눈이 먼저 잡아야 하는 것은 숫자이고 막대는 그 크기를 가늠하는
+   보조선이다. 두꺼우면 열한 줄이 색면으로 덮여 정작 이름과 숫자가 뒤로 밀린다. */
 .famTrack {
-  height: 9px;
+  height: 4px;
   border-radius: 2px;
   background: var(--surface-3);
   overflow: hidden;
@@ -559,6 +561,7 @@
   display: block;
   height: 100%;
   border-radius: 2px;
+  opacity: 0.85;
 }
 .famRow b {
   font-weight: 600;
