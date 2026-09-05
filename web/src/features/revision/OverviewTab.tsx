@@ -26,33 +26,59 @@ const VIA_LABEL: Record<string, string> = {
 /**
  * 부품 구성 — 계열별로 몇 개인가.
  *
- * 예전에는 패키지(0402·0603·0805…)로 갈라 상위 여섯을 가로막대로 보여 줬다. 두 가지가
- * 잘못돼 있었다.
+ * 두 번 헤맸다. 처음에는 줄마다 가로막대를 그려 숫자 열한 개에 스물두 줄을 썼고,
+ * 그다음에는 누적 막대 하나로 줄여 넉 줄로 만들었더니 읽을 것이 사라졌다 — BGA 셋은
+ * 막대에서 실오라기가 되고 범례는 한 줄로 흘러 눈이 짚을 자리가 없었다.
  *
- * 하나. 서른 장이 전부 같은 넷으로 시작한다 — 0603 · 0402 · 0805 · 0201. 판을 가르는
- * 것(BGA 가 셋이냐 없느냐, 커넥터가 몇이냐)은 스물세 종의 꼬리에 묻혀 접혀 있었다.
- * 그래서 계열로 바꿨다. 열둘이라 접히는 것이 없다.
+ * 두 가지를 묻고 있었기 때문이다. **이 판이 어떤 성격인가**(비율)와 **무엇이 몇 개인가**
+ * (개수). 하나의 그림으로 둘 다 하려니 한쪽이 늘 죽었다.
  *
- * 둘. 줄마다 막대를 하나씩 그리니 숫자 열한 개에 스물두 줄을 썼다. 누적 막대 하나로
- * 비율을 보이고 개수는 범례가 든다 — 바로 아래 "부품 배치 면" 과 같은 표현이라 두
- * 패널이 한 벌로 읽히고, 자리는 넉 줄이면 끝난다.
+ * 그래서 나눈다. 위의 누적 막대가 비율을 맡고, 아래 두 열 격자가 개수를 맡는다. 격자는
+ * 줄마다 색 점과 이름과 숫자가 같은 자리에 서 있어서 훑어 내려가며 짚을 수 있다.
  *
  * 순서는 개수가 아니라 계열의 정해진 차례다. 개수 순으로 두면 어느 판이든 C·R·L 로
- * 시작해서 판끼리 견줄 수가 없다.
+ * 시작해서 판끼리 견줄 수가 없다 — 자리가 고정돼 있어야 두 판의 같은 줄을 눈으로 좇는다.
  *
  * 색은 뷰어 범례·부품 탭과 같은 것을 쓴다. 화면을 오가며 색을 다시 배우지 않아도 된다.
  */
-function familySlices(components: ComponentRow[]) {
+function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
   const counts = new Map<FamilyKey, number>();
   for (const c of components) {
     const k = familyOf(c);
     counts.set(k, (counts.get(k) ?? 0) + 1);
   }
-  return FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0).map((f) => ({
+  const rows = FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0).map((f) => ({
+    key: f.key,
     label: f.label,
-    value: counts.get(f.key) ?? 0,
     color: familyCss(f.rgb),
+    count: counts.get(f.key) ?? 0,
   }));
+  const total = rows.reduce((sum, r) => sum + r.count, 0) || 1;
+
+  return (
+    <div className={s.famBox}>
+      <div className={s.bar}>
+        {rows.map((r) => (
+          <div
+            key={r.key}
+            style={{ width: `${(r.count / total) * 100}%`, background: r.color }}
+            title={`${r.label} ${r.count}`}
+          />
+        ))}
+      </div>
+
+      <div className={s.famGrid}>
+        {rows.map((r) => (
+          <div key={r.key} className={s.famRow} title={`${r.label} ${r.count}개`}>
+            <i className={s.famDot} style={{ background: r.color }} />
+            <span>{r.label}</span>
+            <b className="tnum">{formatCount(r.count)}</b>
+            <em>{((r.count / total) * 100).toFixed(1)}%</em>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** 좁은 판에 들어갈 짧은 이름. 단면도 탭의 긴 이름("GND 플레인")은 여기서 줄이 넘친다. */
@@ -265,7 +291,7 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
 
         <div className={s.twoUp}>
           <Panel title="부품 구성">
-            <Bar slices={familySlices(detail.components)} />
+            <FamilyBreakdown components={detail.components} />
           </Panel>
           <Panel title="배선">
             <Fields>
