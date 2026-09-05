@@ -60,7 +60,12 @@ function RangeGroup({
   const parse = (v: string) => (v.trim() === "" ? null : Number(v));
   return (
     <div className={s.group}>
-      <span className={s.groupLabel}>{label}</span>
+      {/* 단위는 제목 옆에 붙인다. 입력칸 아래에 홀로 두면 무엇의 단위인지 한 번 더
+          짚어야 하고, 줄도 하나 더 먹는다. */}
+      <span className={s.groupLabel}>
+        {label}
+        <span className={s.groupUnit}>{unit}</span>
+      </span>
       <div className={s.range}>
         <input
           className={s.rangeInput}
@@ -82,7 +87,6 @@ function RangeGroup({
           onChange={(e) => onChange(min, parse(e.target.value))}
         />
       </div>
-      <span className={s.rangeHint}>{unit}</span>
     </div>
   );
 }

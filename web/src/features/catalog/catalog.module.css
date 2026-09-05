@@ -93,11 +93,20 @@
   padding: var(--sp-3) var(--sp-4);
 }
 .groupLabel {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--ink-2);
   margin-bottom: var(--sp-2);
+}
+/* 단위는 제목의 일부지만 제목은 아니다 — 같은 줄에 두되 무게는 한 단 낮춘다. */
+.groupUnit {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ink-4);
 }
 
 .option {
