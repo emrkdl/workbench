@@ -26,20 +26,20 @@ const VIA_LABEL: Record<string, string> = {
 /**
  * 부품 구성 — 계열별로 몇 개인가.
  *
- * 두 번 헤맸다. 처음에는 줄마다 가로막대를 그려 숫자 열한 개에 스물두 줄을 썼고,
- * 그다음에는 누적 막대 하나로 줄여 넉 줄로 만들었더니 읽을 것이 사라졌다 — BGA 셋은
- * 막대에서 실오라기가 되고 범례는 한 줄로 흘러 눈이 짚을 자리가 없었다.
+ * 세 번 고쳤다. 그 과정이 이 자리의 조건을 다 드러냈으므로 적어 둔다.
  *
- * 두 가지를 묻고 있었기 때문이다. **이 판이 어떤 성격인가**(비율)와 **무엇이 몇 개인가**
- * (개수). 하나의 그림으로 둘 다 하려니 한쪽이 늘 죽었다.
+ * 처음에는 줄마다 가로막대를 그렸다. 읽기는 좋았는데 한 항목이 두 줄(이름 줄, 막대 줄)을
+ * 써서 숫자 열한 개에 스물두 줄이 들었다.
  *
- * 그래서 나눈다. 위의 누적 막대가 비율을 맡고, 아래 두 열 격자가 개수를 맡는다. 격자는
- * 줄마다 색 점과 이름과 숫자가 같은 자리에 서 있어서 훑어 내려가며 짚을 수 있다.
+ * 그다음 누적 막대 하나로 줄였다. 넉 줄이 됐지만 읽을 것이 사라졌다 — BGA 셋은 막대에서
+ * 실오라기가 되고, 무엇이 어느 색인지 알려면 범례와 막대를 눈으로 맞춰 봐야 했다.
+ * 한 번 더 거치는 그 걸음이 이런 자리에서는 치명적이다.
  *
- * 순서는 개수가 아니라 계열의 정해진 차례다. 개수 순으로 두면 어느 판이든 C·R·L 로
- * 시작해서 판끼리 견줄 수가 없다 — 자리가 고정돼 있어야 두 판의 같은 줄을 눈으로 좇는다.
+ * 결국 막대를 **이름과 같은 줄에** 넣는 것이 답이었다. 길이를 눈으로 재는 직관은 그대로
+ * 두고 자리는 절반이 된다. 색을 맞춰 볼 일도 없다 — 막대가 제 이름 옆에 있다.
  *
- * 색은 뷰어 범례·부품 탭과 같은 것을 쓴다. 화면을 오가며 색을 다시 배우지 않아도 된다.
+ * 순서는 개수가 많은 것부터다. 막대그래프는 내림차순일 때 가장 빨리 읽히고, 판끼리
+ * 견주는 일은 비교 화면이 따로 맡는다.
  */
 function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
   const counts = new Map<FamilyKey, number>();
@@ -47,36 +47,27 @@ function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
     const k = familyOf(c);
     counts.set(k, (counts.get(k) ?? 0) + 1);
   }
-  const rows = FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0).map((f) => ({
-    key: f.key,
-    label: f.label,
-    color: familyCss(f.rgb),
-    count: counts.get(f.key) ?? 0,
-  }));
+  const rows = FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0)
+    .map((f) => ({ key: f.key, label: f.label, color: familyCss(f.rgb), count: counts.get(f.key) ?? 0 }))
+    .sort((a, b) => b.count - a.count);
+
   const total = rows.reduce((sum, r) => sum + r.count, 0) || 1;
+  const max = rows[0]?.count ?? 1;
 
   return (
-    <div className={s.famBox}>
-      <div className={s.bar}>
-        {rows.map((r) => (
-          <div
-            key={r.key}
-            style={{ width: `${(r.count / total) * 100}%`, background: r.color }}
-            title={`${r.label} ${r.count}`}
-          />
-        ))}
-      </div>
-
-      <div className={s.famGrid}>
-        {rows.map((r) => (
-          <div key={r.key} className={s.famRow} title={`${r.label} ${r.count}개`}>
-            <i className={s.famDot} style={{ background: r.color }} />
-            <span>{r.label}</span>
-            <b className="tnum">{formatCount(r.count)}</b>
-            <em>{((r.count / total) * 100).toFixed(1)}%</em>
-          </div>
-        ))}
-      </div>
+    <div className={s.famList}>
+      {rows.map((r) => (
+        <div key={r.key} className={s.famRow}>
+          <span>{r.label}</span>
+          <span className={s.famTrack}>
+            {/* 가장 많은 계열을 꽉 찬 길이로 두고 나머지를 그에 견준다. 전체 대비로 재면
+                절반 가까이가 한 계열이라 나머지가 다 같아 보인다. */}
+            <i style={{ width: `${Math.max((r.count / max) * 100, 1.5)}%`, background: r.color }} />
+          </span>
+          <b className="tnum">{formatCount(r.count)}</b>
+          <em>{((r.count / total) * 100).toFixed(1)}%</em>
+        </div>
+      ))}
     </div>
   );
 }

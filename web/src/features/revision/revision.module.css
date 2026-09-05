@@ -529,48 +529,41 @@
 }
 
 /* ── 부품 구성 ─────────────────────────────
-   위의 막대가 비율을 맡고 아래 격자가 개수를 맡는다. 하나의 그림으로 둘 다 하려니
-   한쪽이 늘 죽었다 — 막대만 두면 BGA 셋이 실오라기가 되고, 줄마다 막대를 그리면
-   숫자 열한 개에 스물두 줄을 쓴다. */
-.famBox {
+   막대를 이름과 같은 줄에 둔다. 길이를 눈으로 재는 직관은 그대로 두고 자리는 절반이
+   되며, 색을 범례와 맞춰 볼 일도 없다 — 막대가 제 이름 옆에 있다. */
+.famList {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: 5px;
 }
-.bar {
-  display: flex;
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--surface-3);
-}
-.famGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 5px var(--sp-5);
-}
-/* 줄마다 색·이름·개수·비율이 같은 자리에 선다. 훑어 내려가며 짚을 수 있어야 한다. */
 .famRow {
   display: grid;
-  grid-template-columns: 8px minmax(0, 1fr) auto 40px;
+  grid-template-columns: 92px minmax(0, 1fr) 44px 40px;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
   font-size: var(--fs-sm);
 }
-.famDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-}
-.famRow span {
-  color: var(--ink-3);
+.famRow > span:first-child {
+  color: var(--ink-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.famTrack {
+  height: 9px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.famTrack i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
 .famRow b {
   font-weight: 600;
   color: var(--ink);
+  text-align: right;
 }
 .famRow em {
   font-family: var(--font-mono);
