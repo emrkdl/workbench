@@ -198,6 +198,10 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
                 <Field label="PCB 종류">—</Field>
                 <Field label="리비전">{revision.label}</Field>
                 <Field label="제품군">{detail.product_family}</Field>
+                {/* 어느 솔루션의 판인가. AP 부품이 정해지면 층수도 적층도 배치도 그것을
+                    따라가므로, 비슷한 판을 찾을 때 가장 먼저 맞춰 보는 값이다.
+                    설계 데이터에서 읽어 올 값이고 아직 연결되지 않았다. */}
+                <Field label="솔루션">—</Field>
                 {/* 의뢰자와 의뢰일은 아직 어디에도 없다. 의뢰라는 개념 자체가 설계 데이터에
                     들어 있지 않고, 사람이 시스템에 적어 넣어야 생기는 값이다. 자리만 잡아 둔다. */}
                 <Field label="의뢰자">—</Field>
@@ -208,12 +212,11 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
             </div>
           </Panel>
 
-          <Panel title="물리 · 제조">
+          {/* "물리 · 제조" 라고 부르니 담을 수 있는 것이 치수와 룰뿐이었다. 표면 처리도
+              비아 구성도 공정도 다 이 판의 사양인데 이름이 먼저 막았다. 식별과 짝이 되는
+              이름으로 넓힌다 — 저쪽이 무엇이고 누가 만들었나라면, 이쪽은 어떤 판인가다. */}
+          <Panel title="사양">
             <Fields tight>
-              {/* 어느 솔루션의 판인가. AP 부품이 정해지면 층수도 적층도 배치도 그것을
-                  따라가므로, 비슷한 판을 찾을 때 가장 먼저 맞춰 보는 값이다.
-                  설계 데이터에서 읽어 올 값이고 아직 연결되지 않았다. */}
-              <Field label="Sol">—</Field>
               <Field label="외형 치수">{formatDimensions(sm.width_nm, sm.height_nm)}</Field>
               <Field label="면적">{formatArea(sm.area_mm2)}</Field>
               <Field label="보드 두께">{formatCoarse(sm.board_thickness_nm)}</Field>
