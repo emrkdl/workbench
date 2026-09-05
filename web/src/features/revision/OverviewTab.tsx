@@ -108,26 +108,34 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
     color: ["var(--ink-3)", "var(--accent)", "var(--info)", "var(--warn)"][i] ?? "var(--line-2)",
   }));
 
-  const drcTotal = sm.drc_error_count + sm.drc_warning_count;
-
   return (
     <div className={s.overview}>
       <div className={s.col}>
         <Panel title="요약">
           <StatGrid cols={4}>
-            <Stat label="층수" value={sm.layer_count} hint={`신호 ${sm.signal_layer_count} · 플레인 ${sm.plane_layer_count}`} />
+            {/* 신호/플레인 개수는 바로 아래 층 구성이 순서까지 보여 주므로 중복이다.
+                두께가 층수와 한 쌍이다 — 제조사가 함께 묻는 값이고, 층수가 같아도
+                두께가 다르면 층 사이 간격이 달라 다른 판이 된다. */}
+            <Stat label="층수" value={sm.layer_count} hint={formatCoarse(sm.board_thickness_nm)} />
             <Stat label="부품" value={formatCount(sm.component_count)} hint={`Top ${sm.component_top_count} · Bot ${sm.component_bottom_count}`} />
             <Stat label="핀" value={formatCount(sm.pin_count)} hint={`BGA ${sm.bga_count}개`} />
-            <Stat label="넷" value={formatCount(sm.net_count)} hint={`차동 ${sm.diff_pair_count}쌍`} />
+            {/* 차동쌍은 배선 패널에 있다. 전원 넷 수는 전원계가 몇 갈래인지를 말해 주어
+                판의 성격을 한 번에 짚는다. */}
+            <Stat label="넷" value={formatCount(sm.net_count)} hint={`전원 ${sm.power_net_count}개`} />
             <Stat label="면적" value={sm.area_mm2.toFixed(0)} unit="mm²" hint={formatDimensions(sm.width_nm, sm.height_nm)} />
-            <Stat label="배치 밀도" value={sm.density_per_cm2.toFixed(1)} unit="/cm²" hint="부품 수 ÷ 면적" />
-            <Stat label="복잡도" value={sm.complexity_score} tone="accent" hint="0–100 상대 지표" />
+            {/* 배치 밀도(부품 수 ÷ 면적)는 큰 부품 하나와 작은 부품 하나를 같게 센다.
+                판이 얼마나 찼는지는 몸통이 덮은 넓이가 말한다. */}
             <Stat
-              label="DRC"
-              value={drcTotal}
-              tone={sm.drc_error_count > 0 ? "crit" : undefined}
-              hint={drcTotal === 0 ? "지적 없음" : `오류 ${sm.drc_error_count} · 경고 ${sm.drc_warning_count}`}
+              label="실장률"
+              value={sm.mount_ratio_pct.toFixed(1)}
+              unit="%"
+              hint={`TOP ${sm.mount_ratio_top_pct.toFixed(1)} · BOT ${sm.mount_ratio_bottom_pct.toFixed(1)}`}
             />
+            <Stat label="복잡도" value={sm.complexity_score} tone="accent" hint="0–100 상대 지표" />
+            {/* DRC 를 뺀 자리. 올라오는 것이 모두 완성된 설계라 지적은 거의 늘 0 이었고,
+                늘 0 인 칸은 자리만 차지한다. 비아 수는 판마다 열 배씩 갈리고 제조 비용과
+                난이도에 곧바로 걸린다. */}
+            <Stat label="비아" value={formatCount(sm.via_total)} hint={`홀 ${formatCount(sm.hole_count)}개`} />
           </StatGrid>
         </Panel>
 
