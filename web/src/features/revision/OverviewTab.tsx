@@ -1,5 +1,5 @@
 import type { LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
-import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid, Tag } from "@/components/ui";
+import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import {
   formatArea,
@@ -194,31 +194,12 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           </Panel>
 
           <Panel title="물리 · 제조">
-            <Fields>
+            <Fields tight>
               <Field label="외형 치수">{formatDimensions(sm.width_nm, sm.height_nm)}</Field>
               <Field label="면적">{formatArea(sm.area_mm2)}</Field>
-              <Field label="형상">
-                {sm.outline_kind === "rectangular" ? "직사각" : "이형"}
-                {sm.cutout_count > 0 && ` · 컷아웃 ${sm.cutout_count}`}
-              </Field>
               <Field label="보드 두께">{formatCoarse(sm.board_thickness_nm)}</Field>
-              <Field label="표면 처리">{detail.surface_finish}</Field>
               <Field label="최소 선폭">{formatFine(rules.min_trace_width_nm)}</Field>
               <Field label="최소 간격">{formatFine(rules.min_clearance_nm)}</Field>
-              <Field label="최소 드릴">{formatFine(rules.min_drill_nm)}</Field>
-              <Field label="최대 종횡비">{rules.max_aspect_ratio ? `${rules.max_aspect_ratio} : 1` : null}</Field>
-              <Field label="BGA 최소 피치">{sm.min_bga_pitch_nm ? formatFine(sm.min_bga_pitch_nm) : null}</Field>
-              <Field label="특수 공정">
-                {detail.special_processes.length ? (
-                  <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-                    {detail.special_processes.map((p) => (
-                      <Tag key={p} accent>
-                        {p}
-                      </Tag>
-                    ))}
-                  </span>
-                ) : null}
-              </Field>
             </Fields>
           </Panel>
         </div>
