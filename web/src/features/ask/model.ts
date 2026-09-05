@@ -41,6 +41,39 @@ export const SCOPES = [
 
 export type ScopeId = (typeof SCOPES)[number][0];
 
+/* ── 라이브 디자인 ─────────────────────────────
+   설계 툴에는 판이 한 장만 떠 있지 않다. 개정 중인 판과 참고로 띄워 둔 지난 판을 함께
+   놓고 오가는 것이 보통이라, "지금 열린 판" 은 목록이지 값 하나가 아니다.
+
+   그래서 붙는 순간 열린 판을 다 받아 두고 그중 하나를 향해 묻는다. 옮겨 가는 것은
+   고르개 한 번이면 된다 — 다시 붙을 이유가 없다. */
+
+export interface LiveDesign {
+  id: string;
+  name: string;
+  /**
+   * 이 판을 대신하는 카탈로그 보드.
+   *
+   * MCP 가 붙기 전까지는 설계 툴에서 값을 읽어 올 길이 없어, 이미 들어와 있는 판으로
+   * 화면을 대신 채운다. 붙고 나면 이 자리는 사라지고 값이 툴에서 바로 온다.
+   */
+  boardId: string;
+  /** 저장하지 않은 변경이 있는가. 라이브가 존재하는 이유가 바로 이것이다. */
+  dirty: boolean;
+}
+
+export interface LiveState {
+  /** 붙은 설계 툴의 이름. null 이면 안 붙었다. */
+  tool: string | null;
+  designs: LiveDesign[];
+  activeId: string | null;
+}
+
+export const LIVE_OFF: LiveState = { tool: null, designs: [], activeId: null };
+
+export const activeDesign = (live: LiveState): LiveDesign | null =>
+  live.designs.find((d) => d.id === live.activeId) ?? null;
+
 /** 답이 짚은 근거 한 줄. 갈 곳이 있으면 눌러서 간다. */
 export interface Cite {
   label: string;

@@ -3,7 +3,7 @@ import type { Board } from "@/lib/cdm";
 import { Panel } from "@/components/ui";
 import { formatCount } from "@/lib/units";
 import { FORM_FACTORS } from "@/features/autodesign/spec";
-import { SCOPES, type ScopeId, type Source, type Talk } from "./model";
+import { LIVE_OFF, SCOPES, type LiveState, type ScopeId, type Source, type Talk } from "./model";
 import s from "./ask.module.css";
 
 const SOURCES: [Source, string][] = [
@@ -39,6 +39,9 @@ export function SourcePanel({
   boardId,
   onBoardId,
   grouped,
+  live,
+  onLive,
+  onConnect,
   manifest,
 }: {
   source: Source;
@@ -50,6 +53,10 @@ export function SourcePanel({
   onBoardId: (id: string) => void;
   /** 폼팩터로 묶은 보드 목록. 서른 장을 한 줄로 늘어놓으면 고르다가 엉뚱한 것을 짚는다. */
   grouped: [string, Board[]][];
+  live: LiveState;
+  onLive: (next: LiveState) => void;
+  /** 예행 연결을 붙인다. MCP 가 붙으면 이 자리는 진짜 연결로 바뀐다. */
+  onConnect: () => void;
   manifest: MockManifest | null;
 }) {
   const toggle = (id: ScopeId) => {
@@ -148,28 +155,91 @@ export function SourcePanel({
 
       {source === "live" && (
         <div className={s.pickBox}>
-          {/* 아직 붙지 않았다. 자리만 잡아 두되 붙은 척하지 않는다 — 연결됐다고 적힌
-              화면에서 답을 받으면, 그 답이 지금 내 판을 읽고 나온 것이라고 믿는다. */}
-          <div className={s.liveRow}>
-            <span className={s.liveDot} aria-hidden="true" />
-            <b>연결되지 않음</b>
-            <button type="button" className={s.liveBtn} disabled title="아직 붙지 않았습니다">
-              연결
-            </button>
-          </div>
-          <dl className={s.facts}>
-            <dt>연결 방식</dt>
-            <dd>MCP</dd>
-            <dt>설계 툴</dt>
-            <dd>—</dd>
-            <dt>열린 판</dt>
-            <dd>—</dd>
-          </dl>
-          <p className={s.hint}>
-            설계 툴이 MCP 서버로 지금 열려 있는 판을 내주면, 저장을 기다리지 않고 그 판을
-            읽습니다. 방금 옮긴 부품과 방금 그은 선까지 물어볼 수 있게 됩니다.
-            <b> 아직 붙지 않았습니다.</b>
-          </p>
+          {live.tool ? (
+            <>
+              <div className={`${s.liveRow} ${s.liveOn}`}>
+                <span className={s.liveDot} aria-hidden="true" />
+                <b>{live.tool}</b>
+                <button type="button" className={s.liveBtn} onClick={() => onLive(LIVE_OFF)}>
+                  끊기
+                </button>
+              </div>
+
+              {/* 설계 툴에는 판이 한 장만 떠 있지 않다. 개정 중인 판과 참고로 띄워 둔
+                  지난 판을 함께 놓고 오가는 것이 보통이라, 열린 판은 목록으로 받고
+                  그중 하나를 향해 묻는다. 옮겨 가는 데 다시 붙을 이유가 없다. */}
+              <div className={s.liveList}>
+                <div className={s.scopeHead}>
+                  <span className={s.fieldLabel}>열린 판</span>
+                  <span className={s.scopeCount}>{live.designs.length}</span>
+                </div>
+                {live.designs.map((d) => {
+                  const on = d.id === live.activeId;
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className={`${s.liveItem} ${on ? s.liveItemOn : ""}`}
+                      aria-pressed={on}
+                      onClick={() => onLive({ ...live, activeId: d.id })}
+                    >
+                      <span className={s.liveMark} aria-hidden="true">
+                        {on ? "●" : "○"}
+                      </span>
+                      <b>{d.name}</b>
+                      {/* 저장 안 된 변경이 있다는 것이 라이브로 물어볼 이유다.
+                          저장된 판과 다른 점이 바로 그것이므로 눈에 띄게 적는다. */}
+                      {d.dirty && <span className={s.liveDirty}>저장 안 됨</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {board && (
+                <dl className={s.facts}>
+                  <dt>층</dt>
+                  <dd>
+                    {board.summary.layer_count}층 (신호 {board.summary.signal_layer_count})
+                  </dd>
+                  <dt>부품</dt>
+                  <dd>{formatCount(board.summary.component_count)}개</dd>
+                  <dt>넷</dt>
+                  <dd>{formatCount(board.summary.net_count)}개</dd>
+                </dl>
+              )}
+
+              <p className={s.hint}>
+                <b>예행 연결입니다.</b> MCP 가 붙기 전이라 값은 설계 툴이 아니라 이미 저장돼
+                들어와 있는 판에서 읽습니다 — 열린 판 목록과 오가는 흐름을 확인하기 위한
+                자리입니다.
+              </p>
+            </>
+          ) : (
+            <>
+              {/* 아직 붙지 않았다. 자리만 잡아 두되 붙은 척하지 않는다 — 연결됐다고 적힌
+                  화면에서 답을 받으면, 그 답이 지금 내 판을 읽고 나온 것이라고 믿는다. */}
+              <div className={s.liveRow}>
+                <span className={s.liveDot} aria-hidden="true" />
+                <b>연결되지 않음</b>
+                <button type="button" className={s.liveBtn} onClick={onConnect}>
+                  연결
+                </button>
+              </div>
+              <dl className={s.facts}>
+                <dt>연결 방식</dt>
+                <dd>MCP</dd>
+                <dt>설계 툴</dt>
+                <dd>—</dd>
+                <dt>열린 판</dt>
+                <dd>—</dd>
+              </dl>
+              <p className={s.hint}>
+                설계 툴이 MCP 서버로 지금 열려 있는 판들을 내주면, 저장을 기다리지 않고 그중
+                하나를 골라 읽습니다. 방금 옮긴 부품과 방금 그은 선까지 물어볼 수 있게 됩니다.
+                <b> 아직 붙지 않았습니다</b> — 지금 누르면 화면 확인용 예행 연결이 붙습니다.
+              </p>
+            </>
+          )}
         </div>
       )}
 
@@ -188,7 +258,11 @@ export function SourcePanel({
           }
         />
         <Have on={false} label="문서·룰" note="아직 한 장도 들어오지 않음" />
-        <Have on={false} label="라이브 디자인" note="MCP 아직 붙지 않음" />
+        <Have
+          on={live.tool !== null}
+          label="라이브 디자인"
+          note={live.tool ? `${live.tool} · 열린 판 ${live.designs.length}` : "MCP 아직 붙지 않음"}
+        />
         <Have on={false} label="답변 엔진" note="아직 붙지 않음" />
       </div>
     </Panel>

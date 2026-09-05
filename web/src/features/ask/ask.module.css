@@ -827,3 +827,73 @@ a.cite:hover b {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* 열린 판 목록 — 설계 툴에는 판이 한 장만 떠 있지 않다. */
+.liveOn {
+  border-style: solid;
+  border-color: var(--accent-line);
+  background: var(--accent-wash);
+}
+.liveOn b {
+  color: var(--accent-ink);
+}
+.liveOn .liveDot {
+  background: var(--ok);
+}
+.liveList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.liveItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+}
+.liveItem:hover {
+  border-color: var(--line-3);
+}
+.liveItem b {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.liveItemOn {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+.liveItemOn b {
+  color: var(--accent-ink);
+}
+.liveMark {
+  flex: none;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--line-3);
+}
+.liveItemOn .liveMark {
+  color: var(--accent);
+}
+/* 저장 안 된 변경이 있다는 것이 라이브로 물어볼 이유다. 저장된 판과 다른 점이 그것뿐이다. */
+.liveDirty {
+  margin-left: auto;
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 999px;
+  background: var(--warn-wash);
+  font-size: 9px;
+  color: var(--warn);
+  white-space: nowrap;
+}

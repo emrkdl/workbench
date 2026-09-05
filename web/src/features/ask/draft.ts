@@ -27,9 +27,8 @@ const TOPICS: [RegExp, string][] = [
 const topicOf = (q: string) => TOPICS.find(([re]) => re.test(q))?.[1] ?? null;
 
 /** 고른 판의 요약에서 물음에 맞는 대목을 뽑아 문장으로 만든다. 값은 전부 실제 값이다. */
-function fromDesign(question: string, board: Board): { text: string; cites: Cite[] } {
+function fromDesign(question: string, board: Board, head: string): { text: string; cites: Cite[] } {
   const sm = board.summary;
-  const head = `${board.board_key} · ${board.latest_revision_label}`;
   const topic = topicOf(question);
 
   const lines: string[] = [];
@@ -100,16 +99,34 @@ function fromDocs(scopes: ScopeId[]): { text: string; cites: Cite[] } {
   };
 }
 
-/** 라이브는 아직 붙지 않았다. 붙은 척하는 답을 지어내면 그 답을 지금 내 판의 것으로 믿는다. */
-function fromLive(): { text: string; cites: Cite[] } {
+/**
+ * 라이브.
+ *
+ * 붙지 않았으면 붙지 않았다고만 말한다 — 붙은 척하는 답을 지어내면 그 답을 지금 내 판을
+ * 읽고 나온 것으로 믿는다.
+ *
+ * 예행으로 붙었으면 값은 읽어 준다. 다만 그 값이 설계 툴이 아니라 저장된 판에서 온
+ * 것이라는 사실을 답 안에 적는다. 라이브의 존재 이유가 "저장 전 상태"인데 정작 저장된
+ * 값을 읽어 놓고 아무 말도 없으면 그 답은 있는 그대로 거짓이 된다.
+ */
+function fromLive(question: string, board: Board | null): { text: string; cites: Cite[] } {
+  if (!board) {
+    return {
+      text:
+        "라이브 디자인은 아직 설계 툴에 붙지 않았습니다.\n\n" +
+        "붙고 나면 저장을 기다리지 않고 지금 열려 있는 판을 그대로 읽습니다 — 방금 옮긴 " +
+        "부품과 방금 그은 선까지요. 오른쪽에서 연결하고 열린 판을 고르세요.",
+      cites: [],
+    };
+  }
+
+  const base = fromDesign(question, board, `설계 툴에 떠 있는 ${board.board_key}`);
   return {
     text:
-      "라이브 디자인은 아직 설계 툴에 붙지 않았습니다.\n\n" +
-      "붙고 나면 저장을 기다리지 않고 지금 열려 있는 판을 그대로 읽습니다 — 방금 옮긴 " +
-      "부품과 방금 그은 선까지요. 그때까지는 이 갈래로 답할 수 있는 것이 없습니다.\n\n" +
-      "지금 답할 수 있는 것은 이미 저장돼 들어와 있는 판입니다. 오른쪽에서 " +
-      "‘설계 데이터’ 로 바꾸고 판을 고르면 그 판의 실제 값을 읽어 드립니다.",
-    cites: [],
+      `${base.text}\n\n` +
+      "이 값은 설계 툴이 아니라 이미 저장된 판에서 읽은 것입니다 — MCP 가 붙기 전까지의 " +
+      "예행이고, 저장 전 상태는 아직 읽지 못합니다.",
+    cites: base.cites,
   };
 }
 
@@ -124,9 +141,12 @@ export function draft({
   scopes: ScopeId[];
   board: Board | null;
 }): Message {
-  const useDesign = source === "design" && board !== null;
   const { text, cites } =
-    source === "live" ? fromLive() : useDesign ? fromDesign(question, board) : fromDocs(scopes);
+    source === "live"
+      ? fromLive(question, board)
+      : source === "design" && board !== null
+        ? fromDesign(question, board, `${board.board_key} · ${board.latest_revision_label}`)
+        : fromDocs(scopes);
 
   const next: { label: string; to: string }[] = [];
   if (board) {
