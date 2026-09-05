@@ -45,26 +45,6 @@
   flex: 1;
 }
 
-.env {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-4);
-  padding: 3px 8px;
-  border: 1px dashed var(--line-2);
-  border-radius: var(--r);
-  white-space: nowrap;
-}
-.envDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--warn);
-  flex: none;
-}
-
 .iconBtn {
   display: inline-flex;
   align-items: center;
