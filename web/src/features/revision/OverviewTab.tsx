@@ -117,12 +117,35 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
     <div className={s.overview}>
       <div className={s.col}>
         <Panel title="요약">
+          {/* 윗줄은 판 자체 — 어떻게 생겼고 어떻게 만들고 몇 번을 고쳤나.
+              아랫줄은 그 위에 실린 것 — 부품·핀·넷·비아. 여덟 개를 한 줄로 늘어놓으면
+              성격이 다른 숫자들이 섞여 눈이 어디서 끊어야 할지 모른다. */}
           <StatGrid cols={4}>
             {/* 신호/플레인 개수는 바로 아래 층 구성이 순서까지 보여 주므로 중복이다.
                 두께가 층수와 한 쌍이다 — 제조사가 함께 묻는 값이고, 층수가 같아도
                 두께가 다르면 층 사이 간격이 달라 다른 판이 된다. */}
             <Stat label="층수" value={sm.layer_count} hint={formatCoarse(sm.board_thickness_nm)} />
-            <Stat label="부품" value={formatCount(sm.component_count)} hint={`Top ${sm.component_top_count} · Bot ${sm.component_bottom_count}`} />
+            <Stat
+              label="면적"
+              value={sm.area_mm2.toFixed(0)}
+              unit="mm²"
+              hint={formatDimensions(sm.width_nm, sm.height_nm)}
+            />
+            {/* 비아 스택 구성. 설계 데이터에서 읽어 올 값이고 아직 연결되지 않았다. */}
+            <Stat label="비아 타입" value="—" hint="All stack · B Type 등" />
+            {/* 몇 번을 고쳐 온 판인가. 리비전이 하나뿐인 판과 여섯 번 돈 판은 같은
+                크기라도 다른 물건이다 — 뒤엣것은 그만큼 손이 많이 간 자리가 있다. */}
+            <Stat
+              label="리비전"
+              value={detail.lineage.length}
+              hint={latest ? `최종 ${latest.label}` : undefined}
+            />
+
+            <Stat
+              label="부품"
+              value={formatCount(sm.component_count)}
+              hint={`Top ${sm.component_top_count} · Bot ${sm.component_bottom_count}`}
+            />
             <Stat label="핀" value={formatCount(sm.pin_count)} hint={`BGA ${sm.bga_count}개`} />
             {/* 넷 수는 판이 얼마나 얽혀 있는지를 말하고, 배선 길이는 그 얽힘이 실제로
                 얼마나 그어졌는지를 말한다. 둘은 따로 논다 — 넷이 적어도 길게 돌아가는
@@ -132,15 +155,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
               value={formatCount(sm.net_count)}
               hint={formatRouteLength(sm.total_route_length_nm)}
             />
-            <Stat label="면적" value={sm.area_mm2.toFixed(0)} unit="mm²" hint={formatDimensions(sm.width_nm, sm.height_nm)} />
-            {/* 몇 번을 고쳐 온 판인가. 리비전이 하나뿐인 판과 여섯 번 돈 판은 같은
-                크기라도 다른 물건이다 — 뒤엣것은 그만큼 손이 많이 간 자리가 있다. */}
-            <Stat label="리비전" value={detail.lineage.length} hint={latest ? `최종 ${latest.label}` : undefined} />
-            {/* 비아 스택 구성. 설계 데이터에서 읽어 올 값이고 아직 연결되지 않았다. */}
-            <Stat label="비아 타입" value="—" hint="All stack · B Type 등" />
-            {/* DRC 를 뺀 자리. 올라오는 것이 모두 완성된 설계라 지적은 거의 늘 0 이었고,
-                늘 0 인 칸은 자리만 차지한다. 비아 수는 판마다 열 배씩 갈리고 제조 비용과
-                난이도에 곧바로 걸린다. */}
             {/* GND 비아 수는 형상 버퍼에만 있고 요약에는 아직 없다. 자리만 잡아 둔다. */}
             <Stat label="비아" value={formatCount(sm.via_total)} hint="GND nn개" />
           </StatGrid>
