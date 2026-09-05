@@ -275,7 +275,9 @@ function NavRow({
 function AutoRow({ item, lead }: { item: NavEntry; lead?: boolean }) {
   const job = useJobRun();
   const running = job.status === "running";
-  const busy = running || job.status === "done";
+  // 다 됐다는 표시는 보러 갈 때까지만 띄운다. 보고 온 뒤에도 "100% 완료"가 남아 있으면
+  // 그 줄은 며칠 만에 배경이 되고, 다음 작업이 끝난 것도 알아채지 못한다.
+  const busy = running || job.unseen;
   const pct = Math.round(job.progress * 100);
   if (!busy) return <NavRow item={item} lead={lead} />;
 

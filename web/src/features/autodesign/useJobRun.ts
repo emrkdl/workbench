@@ -35,6 +35,8 @@ export interface JobState {
   stage: Stage | null;
   /** 시작할 때 정해진 단계 목록. 도중에 화면에서 조건을 바꿔도 돌던 작업의 단계는 그대로다. */
   stages: Stage[];
+  /** 다 됐는데 아직 결과를 보러 가지 않았다. 메뉴와 탭의 점은 이것만 본다. */
+  unseen: boolean;
 }
 
 const TICK_MS = 120;
@@ -44,9 +46,10 @@ interface Run {
   elapsed: number;
   estimateMs: number;
   stages: Stage[];
+  seen: boolean;
 }
 
-const IDLE: Run = { status: "idle", elapsed: 0, estimateMs: 1, stages: [] };
+const IDLE: Run = { status: "idle", elapsed: 0, estimateMs: 1, stages: [], seen: true };
 
 let run: Run = IDLE;
 let startedAt = 0;
@@ -67,7 +70,7 @@ function halt() {
 export function startJob(stages: Stage[], estimateMs: number) {
   halt();
   startedAt = Date.now();
-  set({ status: "running", elapsed: 0, estimateMs: Math.max(estimateMs, 1), stages });
+  set({ status: "running", elapsed: 0, estimateMs: Math.max(estimateMs, 1), stages, seen: false });
   timer = window.setInterval(() => {
     const elapsed = Date.now() - startedAt;
     if (elapsed >= run.estimateMs) {
@@ -84,9 +87,20 @@ export function stopJob() {
   set({ ...run, status: "stopped" });
 }
 
+/** 없던 일로 되돌린다. 조건을 모두 지우면 지난 결과도 함께 지운다. */
 export function resetJob() {
   halt();
   set(IDLE);
+}
+
+/**
+ * 결과를 봤다고 표시한다.
+ *
+ * 점의 뜻은 "다 됐으니 가서 봐라"다. 보고 나서도 켜져 있으면 그 점은 아무것도 말하지
+ * 않게 되고, 며칠이면 사람은 그 자리를 보지 않는다.
+ */
+export function seeResult() {
+  if (!run.seen) set({ ...run, seen: true });
 }
 
 function derive(r: Run): JobState {
@@ -111,7 +125,15 @@ function derive(r: Run): JobState {
     stage = stage ?? r.stages[r.stages.length - 1] ?? null;
   }
 
-  return { status: r.status, progress, remainingMs, elapsedMs: r.elapsed, stage, stages: r.stages };
+  return {
+    status: r.status,
+    progress,
+    remainingMs,
+    elapsedMs: r.elapsed,
+    stage,
+    stages: r.stages,
+    unseen: r.status === "done" && !r.seen,
+  };
 }
 
 const subscribe = (fn: () => void) => {

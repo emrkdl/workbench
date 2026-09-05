@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchCatalog, fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
@@ -9,7 +9,7 @@ import { ResultTab } from "./ResultTab";
 import { PlacementPanel } from "./PlacementPanel";
 import { RoutingPanel } from "./RoutingPanel";
 import { EMPTY_SPEC, toRequest, type AutoDesignSpec } from "./spec";
-import { formatDuration, startJob, stopJob, useJobRun, type Stage } from "./useJobRun";
+import { formatDuration, resetJob, seeResult, startJob, stopJob, useJobRun, type Stage } from "./useJobRun";
 import s from "./autodesign.module.css";
 
 /**
@@ -104,6 +104,12 @@ export function AutoDesignPage() {
 
   const job = useJobRun();
 
+  // 결과 탭에서 다 된 결과를 보고 있으면 그것이 곧 "봤다"이다. 보고 나서도 점이 켜져
+  // 있으면 그 점은 아무것도 말하지 않게 된다.
+  useEffect(() => {
+    if (active === "result" && job.status === "done") seeResult();
+  }, [active, job.status]);
+
   /** 실행을 누른 사람은 결과를 보러 온 것이다. 조건 화면에 남겨 두면 스스로 탭을 옮겨야 한다. */
   const run = () => {
     startJob(stages, estimateMs);
@@ -156,7 +162,16 @@ export function AutoDesignPage() {
         {/* 미리보기 고르개는 배치 패널 안에 있었는데, 결과 탭에도 같은 판이 필요해서
             화면 머리로 올렸다. 어느 판을 두고 이야기하는지는 페이지 전체의 조건이다. */}
         {previewPicker}
-        <button type="button" className={s.linkBtn} onClick={() => setSpec(EMPTY_SPEC)}>
+        {/* 조건만 비우고 지난 결과를 남겨 두면, 텅 빈 조건 옆에 "100% 완료"가 붙어 있는
+            화면이 된다. 지우기는 지우기다. */}
+        <button
+          type="button"
+          className={s.linkBtn}
+          onClick={() => {
+            setSpec(EMPTY_SPEC);
+            resetJob();
+          }}
+        >
           모두 지우기
         </button>
 
@@ -170,7 +185,7 @@ export function AutoDesignPage() {
               className={`${s.tab} ${t.key === active ? s.tabOn : ""}`}
             >
               {t.label}
-              {t.key === "result" && job.status === "done" && <i className={s.tabDot} aria-hidden="true" />}
+              {t.key === "result" && job.unseen && <i className={s.tabDot} aria-hidden="true" />}
             </Link>
           ))}
         </nav>
