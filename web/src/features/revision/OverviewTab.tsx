@@ -10,6 +10,7 @@ import {
   formatRouteLength,
 } from "@/lib/units";
 import { conductorNumbers, isConductor, ROLE_COLOR, ROLE_LABEL } from "./layers";
+import s from "./revision.module.css";
 
 /** 비아 종류. 뚫는 순서대로 — 관통이 가장 흔하고 마이크로가 가장 손이 많이 간다. */
 const VIA_ORDER = ["through", "blind", "buried", "micro"] as const;
@@ -19,7 +20,7 @@ const VIA_LABEL: Record<string, string> = {
   buried: "베리드",
   micro: "마이크로",
 };
-import s from "./revision.module.css";
+
 
 /** 상위 n개만 막대로 보여주고 나머지는 "기타"로 접는다. 꼬리가 길어 전부 그리면 못 읽는다. */
 function TopBreakdown({ counts, limit = 6 }: { counts: Record<string, number>; limit?: number }) {
