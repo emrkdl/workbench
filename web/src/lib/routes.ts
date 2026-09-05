@@ -36,6 +36,25 @@ export function revisionPath(boardId: string, revisionIdOrSegment: string, tab?:
 export const comparePath = (a: string, b: string) => `/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`;
 
 /**
+ * 자동 레이아웃의 탭.
+ *
+ * 조건을 짜는 일과 결과를 보는 일은 **시간이 다르다** — 하나가 끝나야 다음이 있다. 둘을
+ * 한 화면에 나란히 놓으면 조건은 세로로 길고 판은 넓어야 해서 둘 다 좁아지고, 정작
+ * 동시에 볼 일은 거의 없다. 그래서 탭으로 가른다.
+ */
+export const AUTO_TABS = [
+  { key: "spec", label: "조건" },
+  { key: "result", label: "결과" },
+] as const;
+
+export type AutoTabKey = (typeof AUTO_TABS)[number]["key"];
+
+export const isAutoTab = (v: string | undefined): v is AutoTabKey =>
+  AUTO_TABS.some((t) => t.key === v);
+
+export const autoPath = (tab?: AutoTabKey) => `/auto${tab && tab !== "spec" ? `/${tab}` : ""}`;
+
+/**
  * 설계 지침의 탭.
  *
  * 설계 문답이 "찾아볼 곳"으로 늘어놓는 갈래와 일부러 같게 맞췄다. 챗봇이 뒤진다고

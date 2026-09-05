@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchCatalog, fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { ErrorState, Loading, Panel } from "@/components/ui";
+import { AUTO_TABS, autoPath, isAutoTab, type AutoTabKey } from "@/lib/routes";
 import { SourceCard } from "./SourceCard";
+import { ResultTab } from "./ResultTab";
 import { PlacementPanel } from "./PlacementPanel";
 import { RoutingPanel } from "./RoutingPanel";
 import { EMPTY_SPEC, toRequest, type AutoDesignSpec } from "./spec";
@@ -28,6 +31,10 @@ import s from "./autodesign.module.css";
  */
 
 export function AutoDesignPage() {
+  const { tab } = useParams();
+  const navigate = useNavigate();
+  const active: AutoTabKey = isAutoTab(tab) ? tab : "spec";
+
   const [spec, setSpec] = useState<AutoDesignSpec>(EMPTY_SPEC);
   const catalog = useAsync(fetchCatalog, []);
 
@@ -87,6 +94,12 @@ export function AutoDesignPage() {
 
   const job = useJobRun();
 
+  /** 실행을 누른 사람은 결과를 보러 온 것이다. 조건 화면에 남겨 두면 스스로 탭을 옮겨야 한다. */
+  const run = () => {
+    startJob(stages, estimateMs);
+    navigate(autoPath("result"));
+  };
+
   const problems = useMemo(() => {
     const out: string[] = [];
     if (!spec.source.files.length) out.push("설계 파일을 올리지 않았습니다.");
@@ -127,12 +140,43 @@ export function AutoDesignPage() {
           <span className={s.warn}>둘 다 끄면 엔진에 맡길 일이 없습니다.</span>
         )}
         <span className={s.spacer} />
+        {/* 미리보기 고르개는 배치 패널 안에 있었는데, 결과 탭에도 같은 판이 필요해서
+            화면 머리로 올렸다. 어느 판을 두고 이야기하는지는 페이지 전체의 조건이다. */}
+        {previewPicker}
         <button type="button" className={s.linkBtn} onClick={() => setSpec(EMPTY_SPEC)}>
           모두 지우기
         </button>
+
+        {/* 조건을 짜는 일과 결과를 보는 일은 시간이 다르다. 실행을 누르면 결과 쪽으로
+            넘어가고, 조건은 그대로 남아 있어 고쳐서 다시 돌릴 수 있다. */}
+        <nav className={s.tabs} aria-label="자동 레이아웃 탭">
+          {AUTO_TABS.map((t) => (
+            <Link
+              key={t.key}
+              to={autoPath(t.key)}
+              className={`${s.tab} ${t.key === active ? s.tabOn : ""}`}
+            >
+              {t.label}
+              {t.key === "result" && job.status === "done" && <i className={s.tabDot} aria-hidden="true" />}
+            </Link>
+          ))}
+        </nav>
       </header>
 
       <div className={s.body}>
+        {active === "result" ? (
+          <div className={s.col}>
+            <ResultTab
+              job={job}
+              detail={detail.data}
+              loading={detail.loading}
+              hasPreview={spec.previewRevisionId !== null}
+              unit="mm"
+              canRun={problems.length === 0}
+              onRun={run}
+            />
+          </div>
+        ) : (
         <div className={s.col}>
           <Panel title="대상">
             <SourceCard
@@ -151,7 +195,6 @@ export function AutoDesignPage() {
               detail={detail.data}
               spec={spec.placement}
               onChange={(placement) => setSpec({ ...spec, placement })}
-              preview={previewPicker}
             />
           )}
 
@@ -163,11 +206,33 @@ export function AutoDesignPage() {
             />
           )}
         </div>
+        )}
 
         {/* 요청서는 계속 붙어 있다. 조건을 만질 때마다 무엇이 달라지는지 그 자리에서 보인다. */}
         <aside className={s.side}>
           <div className={s.sideStick}>
-            <Panel title="요청서">
+            <Panel title={active === "result" ? "결과" : "요청서"}>
+              {/* 조건 탭에서는 무엇을 맡길지, 결과 탭에서는 무엇이 나왔는지. 실행 단추와
+                  진행률은 두 탭에 똑같이 남는다 — 어느 쪽을 보고 있든 멈추거나 다시
+                  돌릴 수 있어야 한다. */}
+              {active === "result" ? (
+                <dl className={s.summary}>
+                  <dt>판</dt>
+                  <dd>{detail.data ? detail.data.revision.board_key : "—"}</dd>
+                  <dt>맡긴 일</dt>
+                  <dd>
+                    {[spec.modes.place && "배치", spec.modes.route && "배선"]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </dd>
+                  <dt>걸린 시간</dt>
+                  <dd>{job.status === "done" ? formatDuration(job.elapsedMs) : "—"}</dd>
+                  <dt>바뀐 것</dt>
+                  {/* 엔진이 없으니 배치한 부품 수도 DRC 건수도 없다. 그럴듯한 숫자를 적어
+                      두면 그것을 결과로 알고 보고에 옮겨 적는 사람이 생긴다. */}
+                  <dd>없음 · 예행</dd>
+                </dl>
+              ) : (
               <dl className={s.summary}>
                 <dt>대상</dt>
                 <dd>
@@ -210,6 +275,7 @@ export function AutoDesignPage() {
                   </>
                 )}
               </dl>
+              )}
 
               {job.status === "idle" &&
                 (problems.length > 0 ? (
@@ -231,7 +297,7 @@ export function AutoDesignPage() {
                   type="button"
                   className={s.submit}
                   disabled={job.status === "idle" && problems.length > 0}
-                  onClick={() => startJob(stages, estimateMs)}
+                  onClick={run}
                 >
                   {job.status === "idle" ? "작업 실행" : "다시 실행"}
                 </button>
@@ -283,9 +349,13 @@ export function AutoDesignPage() {
               </p>
             </Panel>
 
-            <Panel title="엔진에 넘길 값" flush>
-              <pre className={s.json}>{JSON.stringify(request, null, 2)}</pre>
-            </Panel>
+            {/* 넘길 값은 조건 탭의 것이다. 결과를 보는 자리에 요청서 원문까지 두면
+                오른쪽이 두 이야기를 한꺼번에 한다. */}
+            {active === "spec" && (
+              <Panel title="엔진에 넘길 값" flush>
+                <pre className={s.json}>{JSON.stringify(request, null, 2)}</pre>
+              </Panel>
+            )}
           </div>
         </aside>
       </div>

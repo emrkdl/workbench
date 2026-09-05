@@ -33,6 +33,7 @@ export function App() {
         <Route path="guide" element={<GuidePage />} />
         <Route path="guide/:tab" element={<GuidePage />} />
         <Route path="auto" element={<AutoDesignPage />} />
+        <Route path="auto/:tab" element={<AutoDesignPage />} />
         <Route path="ask" element={<AskPage />} />
         <Route path="insights" element={<InsightsPage />} />
         <Route path="parts" element={<PartsPage />} />

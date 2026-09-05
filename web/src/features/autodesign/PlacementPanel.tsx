@@ -35,13 +35,11 @@ export function PlacementPanel({
   detail,
   spec,
   onChange,
-  preview,
 }: {
   detail: RevisionDetail | null;
   spec: PlacementSpec;
   onChange: (next: PlacementSpec) => void;
   /** 파서가 붙기 전까지 부품 목록을 대신 읽어 올 자리. 임시 발판이다. */
-  preview: React.ReactNode;
 }) {
   const [family, setFamily] = useState<FamilyKey | null>(null);
   /** 판을 눌렀을 때 그 자리를 받을 부품. 비어 있으면 고른 것 전부가 받는다. */
@@ -189,7 +187,7 @@ export function PlacementPanel({
 
   if (!detail) {
     return (
-      <Panel title="자동 배치" action={preview}>
+      <Panel title="자동 배치">
         <p className={s.hint}>
           올린 HKP 는 <b>문법이 붙기 전까지 열어 볼 수 없어</b> 부품 목록이 나오지 않습니다.
           화면을 확인하려면 오른쪽에서 이미 들어와 있는 리비전을 골라 부품 목록을 대신
@@ -200,7 +198,7 @@ export function PlacementPanel({
   }
 
   return (
-    <Panel title="자동 배치" action={preview}>
+    <Panel title="자동 배치">
       <div className={s.row}>
         <div className={s.seg} role="group" aria-label="배치 범위">
           {([["all", "판 전체 다시 배치"], ["selected", "고른 부품만"]] as const).map(([k, label]) => (
