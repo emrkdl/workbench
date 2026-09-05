@@ -49,7 +49,7 @@ const STACK_LABEL: Partial<Record<LayerRole, string>> = {
 };
 
 /**
- * 층 구성 — 도체층만 쌓아 놓고 각 층이 무엇을 나르는지 적는다.
+ * 층 구성 — 도체층을 쌓인 순서대로.
  *
  * 예전에는 "신호 6 · 플레인 4" 를 막대 하나로 보여 줬는데, 그 숫자로는 **어느 자리**가
  * 플레인인지 알 수 없었다. 적층에서 중요한 것은 개수가 아니라 순서다 — 신호층이 GND 를
@@ -58,9 +58,14 @@ const STACK_LABEL: Partial<Record<LayerRole, string>> = {
  * 실크·마스크·유전체는 뺐다. 여기서 묻는 것은 "무엇이 어디를 지나가나"이고 그 답은
  * 동박층에만 있다. 두께를 보러 왔다면 적층 탭에 단면도가 그대로 있다.
  *
- * 막대는 동박 면적률이다. 이것이 이 판에서 "층에 무엇이 깔려 있나"에 가장 가까운 실제
- * 값이다 — 플레인은 거의 꽉 차고 신호층은 성기다. 넷 이름이나 넷 클래스를 층별로 세어
- * 둔 값은 아직 없어서, 있는 척하지 않고 역할과 임피던스까지만 적는다.
+ * 여기 적는 것은 층 이름과 역할뿐이다. 한때 동박 면적률 막대와 임피던스 값을 함께
+ * 두었는데 둘 다 실제 값이 아니었다 — 면적률은 그럴듯한 범위의 난수였고 임피던스는
+ * 모든 신호층에 박아 넣은 상수라 아무것도 구분하지 못했다.
+ *
+ * 둘 다 언젠가 진짜로 채울 수 있다. 면적률은 층 형상(.blg)의 플레인·트레이스·패드
+ * 넓이를 판 넓이로 나누면 나오고, 그 계산은 실장률처럼 넣을 때 한 번 해 두는 것이
+ * 맞다. 임피던스는 계산이 아니라 설계자가 적층에 정해 둔 값이므로 파서가 읽어 와야
+ * 한다. 그때까지는 자리를 비워 둔다.
  */
 function LayerStack({ stackup }: { stackup: StackupLayer[] }) {
   const numbers = conductorNumbers(stackup);
@@ -68,33 +73,22 @@ function LayerStack({ stackup }: { stackup: StackupLayer[] }) {
 
   return (
     <div className={s.stack}>
-      {rows.map((l) => {
-        const ratio = l.copper_area_ratio;
-        const imp = l.impedance_single_ohm;
-        return (
-          <div
-            key={l.index}
-            className={s.stackRow}
-            title={`${l.name} · ${ROLE_LABEL[l.role]}${ratio != null ? ` · 동박 ${Math.round(ratio * 100)}%` : ""}${imp != null ? ` · ${imp}Ω` : ""}`}
+      {rows.map((l) => (
+        <div key={l.index} className={s.stackRow} title={`${l.name} · ${ROLE_LABEL[l.role]}`}>
+          <span className={s.stackNo}>L{numbers.get(l.index)}</span>
+          {/* 띠의 색이 곧 정보다. 열 줄을 훑으면 신호-GND-신호-신호-GND-전원 하는
+              결이 한눈에 잡히고, 그것이 이 판에서 적층에 대해 말할 수 있는 전부다. */}
+          <span
+            className={s.stackBand}
+            style={{
+              background: `color-mix(in srgb, ${ROLE_COLOR[l.role]} 30%, transparent)`,
+              borderColor: ROLE_COLOR[l.role],
+            }}
           >
-            <span className={s.stackNo}>L{numbers.get(l.index)}</span>
-            <span className={s.stackFill}>
-              <i
-                style={{
-                  width: `${Math.round((ratio ?? 0) * 100)}%`,
-                  background: ROLE_COLOR[l.role],
-                }}
-              />
-            </span>
-            <span className={s.stackRole} style={{ color: ROLE_COLOR[l.role] }}>
-              {STACK_LABEL[l.role] ?? ROLE_LABEL[l.role]}
-            </span>
-            {/* 임피던스를 관리하는 층에는 빠른 신호가 지난다. 어느 층이 "주요"인지를
-                이 판에서 짐작할 수 있는 유일한 실제 값이다. */}
-            <span className={s.stackImp}>{imp != null ? `${imp}Ω` : ""}</span>
-          </div>
-        );
-      })}
+            <b style={{ color: ROLE_COLOR[l.role] }}>{STACK_LABEL[l.role] ?? ROLE_LABEL[l.role]}</b>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -316,8 +310,8 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
         <Panel title="층 구성">
           <LayerStack stackup={detail.stackup} />
           <p className={s.stackNote}>
-            막대는 동박 면적률입니다. 넷 이름과 넷 클래스를 층별로 갈라 놓은 값은 아직
-            없어서, 역할과 임피던스까지만 적었습니다.
+            층별로 어떤 넷이 얼마나 지나가는지는 아직 세어 두지 않았습니다. 지금 말할 수
+            있는 것은 쌓인 순서와 층의 역할까지입니다.
           </p>
         </Panel>
       </div>
