@@ -134,7 +134,9 @@ export function AppShell() {
           </span>
           <span className={s.userText}>
             <b>{session ? session.display_name : "로그인 안 됨"}</b>
-            <span>{session ? session.role : LIVE ? "세션 확인 중" : "목데이터 모드"}</span>
+            {/* 목데이터로 도는 중이라는 말은 오른쪽 환경 배지가 이미 하고 있다.
+                같은 말을 두 번 적으면 둘 다 눈에 안 들어온다. */}
+            {(session || LIVE) && <span>{session ? session.role : "세션 확인 중"}</span>}
           </span>
         </div>
 
@@ -214,14 +216,12 @@ export function AppShell() {
         <div className={s.railFoot}>
           {manifest ? (
             <>
+              {/* 여기는 "무엇이 얼마나 들어와 있나"를 한눈에 두는 자리다. 부품 6만 개와
+                  넷 5만 개는 세어 본 적 없는 숫자라 읽어도 판단이 서지 않는다 — 정작
+                  궁금해지는 순간에는 인사이트로 간다. 판이 몇 장이고 언제 것인지만 남긴다. */}
               보드 <b>{manifest.board_count}</b> · 리비전 <b>{manifest.revision_count}</b>
               <br />
-              부품 <b>{manifest.component_total.toLocaleString()}</b> · 넷{" "}
-              <b>{manifest.net_total.toLocaleString()}</b>
-              <br />
-              고유 부품 <b>{manifest.part_count}</b>종
-              <br />
-              생성 {manifest.generated_at.slice(0, 10)}
+              기준일 {manifest.generated_at.slice(0, 10)}
             </>
           ) : LIVE ? (
             <>
