@@ -96,6 +96,18 @@ function LayerStack({ stackup }: { stackup: StackupLayer[] }) {
 export function OverviewTab({ detail }: { detail: RevisionDetail }) {
   const { revision, design_rules: rules } = detail;
   const sm = revision.summary;
+  /** 적층에 쓰인 동박 두께. 대개 한 가지지만 바깥 층만 두껍게 가는 판이 있다. */
+  const copperWeights = [
+    ...new Set(
+      detail.stackup
+        .map((l) => l.copper_weight_um)
+        .filter((v): v is number => typeof v === "number"),
+    ),
+  ]
+    .sort((a, b) => a - b)
+    .map((v) => `${v} µm`)
+    .join(" · ");
+
   /** 가장 나중 리비전. 지금 보고 있는 것이 옛 리비전일 수 있으므로 따로 찾는다. */
   const latest = detail.lineage.reduce<(typeof detail.lineage)[number] | null>(
     (a, b) => (a && a.created_at >= b.created_at ? a : b),
@@ -181,6 +193,9 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
                 <Field label="모델명">
                   <span className="mono">{revision.board_key}</span>
                 </Field>
+                {/* 경성·연성·경연성. 판을 다루는 방식이 통째로 갈리는 값이라 모델명 바로
+                    다음에 온다. 설계 데이터에 이 구분이 따로 들어 있지 않아 자리만 잡아 둔다. */}
+                <Field label="PCB 종류">—</Field>
                 <Field label="리비전">{revision.label}</Field>
                 <Field label="제품군">{detail.product_family}</Field>
                 {/* 의뢰자와 의뢰일은 아직 어디에도 없다. 의뢰라는 개념 자체가 설계 데이터에
@@ -195,9 +210,16 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
 
           <Panel title="물리 · 제조">
             <Fields tight>
+              {/* 어느 솔루션의 판인가. AP 부품이 정해지면 층수도 적층도 배치도 그것을
+                  따라가므로, 비슷한 판을 찾을 때 가장 먼저 맞춰 보는 값이다.
+                  설계 데이터에서 읽어 올 값이고 아직 연결되지 않았다. */}
+              <Field label="Sol">—</Field>
               <Field label="외형 치수">{formatDimensions(sm.width_nm, sm.height_nm)}</Field>
               <Field label="면적">{formatArea(sm.area_mm2)}</Field>
               <Field label="보드 두께">{formatCoarse(sm.board_thickness_nm)}</Field>
+              {/* 동박 두께는 층마다 다를 수 있다. 바깥 층만 두껍게 가는 판이 흔해서
+                  하나로 뭉개지 않고 쓰인 값을 다 적는다 — 견적에 그대로 들어간다. */}
+              <Field label="동박 두께">{copperWeights}</Field>
               <Field label="최소 선폭">{formatFine(rules.min_trace_width_nm)}</Field>
               <Field label="최소 간격">{formatFine(rules.min_clearance_nm)}</Field>
             </Fields>
