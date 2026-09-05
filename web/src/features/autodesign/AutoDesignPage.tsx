@@ -184,6 +184,8 @@ export function AutoDesignPage() {
               detail={detail.data}
               loading={detail.loading}
               hasPreview={spec.previewRevisionId !== null}
+              boards={boards}
+              referenceIds={spec.reference.enabled ? spec.reference.revisionIds : []}
               canRun={problems.length === 0}
               onRun={run}
             />

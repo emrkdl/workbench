@@ -1,5 +1,7 @@
-import { useState } from "react";
-import type { RevisionDetail } from "@/lib/cdm";
+import { useMemo, useState } from "react";
+import { fetchRevision } from "@/lib/api";
+import { useAsync } from "@/lib/useAsync";
+import type { Board, RevisionDetail } from "@/lib/cdm";
 import type { DisplayUnit } from "@/lib/units";
 import { Panel } from "@/components/ui";
 import { ViewerTab } from "../viewer/ViewerTab";
@@ -23,6 +25,8 @@ export function ResultTab({
   detail,
   loading,
   hasPreview,
+  boards,
+  referenceIds,
   onRun,
   canRun,
 }: {
@@ -30,6 +34,10 @@ export function ResultTab({
   detail: RevisionDetail | null;
   loading: boolean;
   hasPreview: boolean;
+  /** 견줄 판을 고를 때 쓰는 카탈로그 전체. */
+  boards: Board[];
+  /** 조건에서 과거 참조로 고른 판들. 견주고 싶은 판은 대개 이 안에 있다. */
+  referenceIds: string[];
   onRun: () => void;
   canRun: boolean;
 }) {
@@ -37,6 +45,24 @@ export function ResultTab({
   const [labels, setLabels] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [unit, setUnit] = useState<DisplayUnit>("mm");
+  /**
+   * 무엇과 견줄 것인가. null 이면 **실행 전**, 곧 맡긴 판 자신이다.
+   *
+   * 기본은 자기 자신이다 — 결과를 보는 첫 물음은 늘 "내 판이 어떻게 달라졌나"이지
+   * "남의 판과 어떻게 다른가"가 아니다. 다만 두 번째 물음도 흔해서(전 세대는 어떻게
+   * 짰더라, 옆 모델은 이 블록을 어디에 뒀더라) 다른 판으로 갈아 끼울 수 있게 둔다.
+   */
+  const [withId, setWithId] = useState<string | null>(null);
+
+  const refBoards = useMemo(
+    () => boards.filter((b) => referenceIds.includes(b.latest_revision_id)),
+    [boards, referenceIds],
+  );
+
+  const other = useAsync(
+    () => (withId ? fetchRevision(withId) : Promise.resolve(null)),
+    [withId],
+  );
 
   // 판을 고르지 않았으면 그릴 것이 없다. HKP 를 열 수 없어 미리보기 리비전이 판을 대신한다.
   if (!hasPreview) {
@@ -90,18 +116,35 @@ export function ResultTab({
     );
   }
 
+  // 왼쪽에 세울 판. 고른 것이 없으면 맡긴 판 자신(실행 전)이다.
+  const left = withId ? other.data : detail;
+  const leftLabel = withId
+    ? other.data
+      ? `${other.data.revision.board_key} · ${other.data.revision.label}`
+      : "불러오는 중"
+    : "실행 전";
+  /** 참조 목록에 없는 판을 골랐을 때만 고르개가 그 값을 들고 있는다. */
+  const otherPick = withId && !referenceIds.includes(withId) ? withId : "";
+
   return (
     <div className={s.resultPane}>
-      {/* 전/후가 같은 판이라는 사실을 화면 위에 적어 둔다. 나란히 놓인 두 그림이 같아
-          보이는데 왜 같은지 말해 주지 않으면, 보는 사람은 자기가 뭘 잘못했다고 여긴다. */}
       <p className={s.resultNote}>
-        엔진이 아직 붙지 않아 <b>오른쪽은 왼쪽과 같은 판</b>입니다. 예행이 흐른 시간만큼
-        진행률이 찼을 뿐 판은 달라지지 않았습니다 — 엔진이 붙으면 이 자리에 결과 리비전이
-        들어오고 화면은 그대로입니다.
+        {withId ? (
+          <span>
+            왼쪽은 견주려고 고른 판이고 오른쪽이 이번 작업의 결과입니다. 엔진이 붙기 전이라
+            오른쪽은 아직 <b>실행 전 그대로</b>입니다.
+          </span>
+        ) : (
+          <span>
+            엔진이 아직 붙지 않아 <b>오른쪽은 왼쪽과 같은 판</b>입니다. 예행이 흐른 시간만큼
+            진행률이 찼을 뿐 판은 달라지지 않았습니다 — 엔진이 붙으면 이 자리에 결과
+            리비전이 들어오고 화면은 그대로입니다.
+          </span>
+        )}
       </p>
 
       <Panel
-        title="전후 맞대어 보기"
+        title="맞대어 보기"
         action={
           /* 확장은 패널 전체를 화면 가득 펼치는 일이라 패널 머리에 둔다 — 비교 화면과 같다. */
           <button
@@ -115,21 +158,67 @@ export function ResultTab({
         }
         flush
       >
-      <CompareBoards
-        view={view}
-        onViewChange={setView}
-        labels={labels}
-        onLabelsChange={setLabels}
-        expanded={expanded}
-        onExpandedChange={setExpanded}
-        changes={[]}
-        detailA={detail}
-        detailB={detail}
-        labelA="실행 전"
-        labelB="자동 레이아웃 결과"
-        unit={unit}
-        height={460}
-      />
+        {/* 무엇과 견줄 것인가.
+            기본은 실행 전(맡긴 판 자신)이다 — 결과를 보는 첫 물음은 늘 "내 판이 어떻게
+            달라졌나"다. 그 옆에 조건에서 이미 고른 과거 참조 판들을 바로 꺼내 둔다.
+            거기에도 없으면 카탈로그에서 아무 판이나 고른다. */}
+        <div className={s.cmpBar}>
+          <span className={s.cmpLabel}>비교 대상</span>
+          <div className={s.seg} role="group" aria-label="비교 대상">
+            <button
+              type="button"
+              className={withId === null ? s.segOn : ""}
+              aria-pressed={withId === null}
+              onClick={() => setWithId(null)}
+            >
+              실행 전
+            </button>
+            {refBoards.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className={withId === b.latest_revision_id ? s.segOn : ""}
+                aria-pressed={withId === b.latest_revision_id}
+                title={`${b.board_key} · ${b.name} (과거 참조)`}
+                onClick={() => setWithId(b.latest_revision_id)}
+              >
+                {b.board_key}
+              </button>
+            ))}
+          </div>
+          <select
+            className={s.cmpPick}
+            aria-label="다른 보드와 견주기"
+            value={otherPick}
+            onChange={(e) => setWithId(e.target.value || null)}
+          >
+            <option value="">다른 보드…</option>
+            {boards.map((b) => (
+              <option key={b.id} value={b.latest_revision_id}>
+                {b.board_key} · {b.name}
+              </option>
+            ))}
+          </select>
+          {refBoards.length === 0 && (
+            <span className={s.cmpHint}>조건에서 과거 참조를 고르면 여기에 바로 뜹니다</span>
+          )}
+        </div>
+
+        <CompareBoards
+          view={view}
+          onViewChange={setView}
+          labels={labels}
+          onLabelsChange={setLabels}
+          expanded={expanded}
+          onExpandedChange={setExpanded}
+          changes={[]}
+          detailA={left}
+          detailB={detail}
+          labelA={leftLabel}
+          labelB="자동 레이아웃 결과"
+          unit={unit}
+          height={460}
+        />
       </Panel>
     </div>
   );
