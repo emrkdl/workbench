@@ -137,6 +137,12 @@
   border-radius: var(--r);
   padding: 4px 6px;
 }
+.targetName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
 .targetNote {
   font-size: var(--fs-xs);
   color: var(--ink-4);
@@ -541,41 +547,34 @@ a.cite:hover b {
   color: var(--ink-3);
 }
 
-/* 두 갈래 — 고른 쪽이 무엇을 뜻하는지 한 줄씩 달아 둔다. 이름만으로는 갈리지 않는다. */
+/* 세 갈래. 이름만 담는다 — 설명을 한 줄씩 달면 320px 안에서 세 칸이 다 좁아지고,
+   어차피 고른 것의 뜻은 바로 아래 문장이 말한다. */
 .srcSeg {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   margin-bottom: var(--sp-3);
 }
 .srcSeg button {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 7px 8px;
+  padding: 7px 4px;
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--surface-2);
-  text-align: left;
-  cursor: pointer;
-}
-.srcSeg button b {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: var(--ink-2);
-}
-.srcSeg button > span {
-  font-size: 10px;
-  color: var(--ink-4);
+  color: var(--ink-3);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .srcSeg button:hover {
   border-color: var(--line-3);
+  color: var(--ink);
 }
 .srcOn {
   border-color: var(--accent) !important;
   background: var(--accent-wash) !important;
-}
-.srcOn b {
   color: var(--accent-ink) !important;
 }
 
@@ -768,4 +767,63 @@ a.cite:hover b {
 }
 .talkDrop:hover {
   color: var(--crit);
+}
+
+/* ── 고른 갈래의 하위 선택 ─────────────────── */
+.pickBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+.pickField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pickField select {
+  width: 100%;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  padding: 5px 6px;
+}
+
+/* 라이브 디자인 — 아직 붙지 않았다. 자리만 잡아 두되 붙은 척하지 않는다. */
+.liveRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 7px 9px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+}
+.liveRow b {
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.liveDot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--line-3);
+}
+.liveBtn {
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+.liveBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

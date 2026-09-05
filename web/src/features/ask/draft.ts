@@ -100,6 +100,19 @@ function fromDocs(scopes: ScopeId[]): { text: string; cites: Cite[] } {
   };
 }
 
+/** 라이브는 아직 붙지 않았다. 붙은 척하는 답을 지어내면 그 답을 지금 내 판의 것으로 믿는다. */
+function fromLive(): { text: string; cites: Cite[] } {
+  return {
+    text:
+      "라이브 디자인은 아직 설계 툴에 붙지 않았습니다.\n\n" +
+      "붙고 나면 저장을 기다리지 않고 지금 열려 있는 판을 그대로 읽습니다 — 방금 옮긴 " +
+      "부품과 방금 그은 선까지요. 그때까지는 이 갈래로 답할 수 있는 것이 없습니다.\n\n" +
+      "지금 답할 수 있는 것은 이미 저장돼 들어와 있는 판입니다. 오른쪽에서 " +
+      "‘설계 데이터’ 로 바꾸고 판을 고르면 그 판의 실제 값을 읽어 드립니다.",
+    cites: [],
+  };
+}
+
 export function draft({
   question,
   source,
@@ -112,7 +125,8 @@ export function draft({
   board: Board | null;
 }): Message {
   const useDesign = source === "design" && board !== null;
-  const { text, cites } = useDesign ? fromDesign(question, board) : fromDocs(scopes);
+  const { text, cites } =
+    source === "live" ? fromLive() : useDesign ? fromDesign(question, board) : fromDocs(scopes);
 
   const next: { label: string; to: string }[] = [];
   if (board) {

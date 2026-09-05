@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchCatalog, fetchManifest } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { ErrorState, Loading } from "@/components/ui";
-import { FORM_FACTORS, formFactorOf } from "@/features/autodesign/spec";
+import { formFactorOf } from "@/features/autodesign/spec";
 import { ChatStream } from "./ChatStream";
 import { InputDock, type Attached } from "./InputDock";
 import { SourcePanel, TalksPanel } from "./SourcePanel";
@@ -94,15 +94,31 @@ export function AskPage() {
 
   const board = useMemo(() => boards.find((b) => b.id === boardId) ?? null, [boards, boardId]);
 
-  // 판을 고르면 그 판의 값을 읽는 쪽이 자연스럽다. 고르고 나서 왜 문서만 뒤지는지
-  // 다시 설명하게 하는 대신 한 번 옮겨 준다 — 사람이 되돌릴 수 있으니 무례하지 않다.
-  const touched = useRef(false);
-  useEffect(() => {
-    if (boardId && !touched.current) setSource("design");
-  }, [boardId]);
-
   const blocked =
-    source === "design" && !board ? "설계 데이터를 보려면 위에서 판을 먼저 고르세요." : null;
+    source === "design" && !board
+      ? "오른쪽에서 저장된 설계를 먼저 고르세요."
+      : source === "live"
+        ? "라이브 디자인은 아직 설계 툴에 붙지 않았습니다."
+        : null;
+
+  /** 머리줄 한 줄 — 지금 무엇을 보고 답하는 중인가. */
+  const ready = source === "docs" || (source === "design" && board !== null);
+  const targetName =
+    source === "docs"
+      ? "문서·룰"
+      : source === "live"
+        ? "라이브 디자인"
+        : (board?.board_key ?? "저장된 설계");
+  const targetNote =
+    source === "docs"
+      ? SCOPES.filter(([id]) => scopes.includes(id))
+          .map(([, label]) => label)
+          .join(" · ")
+      : source === "live"
+        ? "설계 툴에 연결되지 않음"
+        : board
+          ? `${board.latest_revision_label} · ${board.summary.layer_count}층 · 부품 ${board.summary.component_count.toLocaleString()} · 넷 ${board.summary.net_count.toLocaleString()}`
+          : "고른 판이 없습니다";
 
   const send = (raw?: string) => {
     const q = (raw ?? text).trim();
@@ -112,10 +128,7 @@ export function AskPage() {
       id: newId(),
       role: "user",
       text: q,
-      scope: [
-        source === "docs" ? "문서·룰" : "설계 데이터",
-        ...(board ? [board.board_key] : []),
-      ],
+      scope: [targetName, ...(source === "docs" ? [] : [])],
       files: files.map((f) => f.name),
     };
     // 답은 물은 그 자리에서 짓고, 도착만 늦춘다. 기다리는 동안 사람이 조건을 바꿔도
@@ -185,36 +198,14 @@ export function AskPage() {
 
       <div className={s.body}>
         <div className={s.chat}>
-          {/* 원본의 "PCB Data Connected" 자리. 점 하나로 연결 여부만 말하던 것을,
-              고른 판이 무엇이고 어떤 판인지까지 한 줄에 적는 것으로 바꿨다. */}
+          {/* 원본의 "PCB Data Connected" 자리. 거기서는 연결 여부만 말했지만 여기서는
+              **지금 무엇을 보고 답하는지**를 적는다 — 고르는 일은 오른쪽 판이 맡고,
+              이 줄은 그 결과를 말한다. 물음을 던지기 직전 눈이 머무는 자리라
+              "무엇에 대고 묻는 중인지"가 여기 있어야 한다. */}
           <div className={s.target}>
-            <span className={`${s.dot} ${board ? s.dotOn : ""}`} aria-hidden="true" />
-            <label className={s.pick}>
-              <span className={s.srOnly}>질문할 보드</span>
-              <select
-                value={boardId}
-                onChange={(e) => {
-                  touched.current = false;
-                  setBoardId(e.target.value);
-                }}
-              >
-                <option value="">판을 고르지 않음</option>
-                {grouped.map(([key, list]) => (
-                  <optgroup key={key} label={`${FORM_FACTORS[key] ?? key} (${list.length})`}>
-                    {list.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.board_key} · {b.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-            <span className={s.targetNote}>
-              {board
-                ? `${board.latest_revision_label} · ${board.summary.layer_count}층 · 부품 ${board.summary.component_count.toLocaleString()} · 넷 ${board.summary.net_count.toLocaleString()}`
-                : "고른 판이 없습니다 — 문서·룰만 보고 답합니다"}
-            </span>
+            <span className={`${s.dot} ${ready ? s.dotOn : ""}`} aria-hidden="true" />
+            <b className={s.targetName}>{targetName}</b>
+            <span className={s.targetNote}>{targetNote}</span>
           </div>
 
           <ChatStream
@@ -241,13 +232,13 @@ export function AskPage() {
           <div className={s.sideStick}>
             <SourcePanel
               source={source}
-              onSource={(v) => {
-                touched.current = true;
-                setSource(v);
-              }}
+              onSource={setSource}
               scopes={scopes}
               onScopes={setScopes}
               board={board}
+              boardId={boardId}
+              onBoardId={setBoardId}
+              grouped={grouped}
               manifest={manifest.data}
             />
             <div className={s.talksSlot}>
@@ -255,8 +246,8 @@ export function AskPage() {
             </div>
             <p className={s.note}>
               답변 엔진은 아직 붙지 않았습니다. <b>설계 데이터</b> 쪽 답은 이미 들어와 있는
-              요약값을 실제로 읽어 온 것이고, <b>문서·룰</b> 쪽은 읽을 문서가 없어 답하지
-              못한다고만 말합니다. 없는 근거를 지어내지 않습니다.
+              요약값을 실제로 읽어 온 것이고, <b>문서·룰</b> 과 <b>라이브 디자인</b> 쪽은 읽을
+              것이 없어 답하지 못한다고만 말합니다. 없는 근거를 지어내지 않습니다.
             </p>
           </div>
         </aside>
