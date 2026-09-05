@@ -161,19 +161,24 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
         </Panel>
 
         <div className={s.twoUp}>
+          {/* 이 판이 무엇이고, 누가 언제 시켜서, 누가 언제 만들었나.
+              시간이 흐르는 순서로 둔다 — 의뢰 · 설계 · 등록. */}
           <Panel title="식별">
             <Fields>
-              <Field label="보드 코드">
+              <Field label="모델명">
                 <span className="mono">{revision.board_key}</span>
               </Field>
-              <Field label="파트넘버">{detail.part_number}</Field>
               <Field label="리비전">{revision.label}</Field>
-              <Field label="프로젝트">{detail.project_key}</Field>
               <Field label="제품군">{detail.product_family}</Field>
+              {/* 의뢰자와 의뢰일은 아직 어디에도 없다. 의뢰라는 개념 자체가 설계 데이터에
+                  들어 있지 않고, 사람이 시스템에 적어 넣어야 생기는 값이다. 자리만 잡아 둔다. */}
+              <Field label="의뢰자">—</Field>
+              <Field label="의뢰일">—</Field>
+              <Field label="설계자">{revision.author}</Field>
               <Field label="설계일">{revision.designed_at?.slice(0, 10)}</Field>
-              <Field label="파서 버전">
-                <span className="mono">{revision.parser_version}</span>
-              </Field>
+              {/* 설계가 끝난 날과 이 시스템에 들어온 날은 다르다. 몇 달 묵혀 두었다가
+                  한꺼번에 올리는 일이 흔해서, 둘이 벌어져 있으면 그것 자체가 정보다. */}
+              <Field label="등록일">{revision.created_at.slice(0, 10)}</Field>
             </Fields>
           </Panel>
 
