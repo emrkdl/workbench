@@ -1,4 +1,5 @@
-import type { LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
+import type { ComponentRow, LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
+import { css as familyCss, FAMILIES, familyOf, type FamilyKey } from "@/lib/families";
 import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import {
@@ -22,30 +23,45 @@ const VIA_LABEL: Record<string, string> = {
 };
 
 
-/** 상위 n개만 막대로 보여주고 나머지는 "기타"로 접는다. 꼬리가 길어 전부 그리면 못 읽는다. */
-function TopBreakdown({ counts, limit = 6 }: { counts: Record<string, number>; limit?: number }) {
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const top = sorted.slice(0, limit);
-  const rest = sorted.slice(limit).reduce((sum, [, v]) => sum + v, 0);
-  const max = top[0]?.[1] ?? 1;
+/**
+ * 부품 구성 — 계열별로 몇 개인가.
+ *
+ * 예전에는 패키지(0402·0603·0805…)로 갈라 상위 여섯을 보여 줬다. 그런데 서른 장이
+ * 전부 같은 넷으로 시작한다 — 0603 · 0402 · 0805 · 0201. 판을 가르는 것(BGA 가 셋이냐
+ * 없느냐, 커넥터가 몇이냐)은 스물세 종의 꼬리에 묻혀 "기타 17종" 으로 접혀 있었다.
+ *
+ * 계열은 열둘이라 접히는 것이 없다. 그리고 **개수 순이 아니라 정해진 순서**로 늘어놓는다 —
+ * 개수 순으로 두면 어느 판이든 C·R·L 로 시작해서 판끼리 견줄 수가 없다. 자리가 고정돼
+ * 있으면 두 판을 나란히 놓고 같은 줄을 눈으로 좇을 수 있다.
+ *
+ * 색은 뷰어 범례·부품 탭과 같은 것을 쓴다. 화면을 오가며 색을 다시 배우지 않아도 된다.
+ */
+function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
+  const counts = new Map<FamilyKey, number>();
+  for (const c of components) {
+    const k = familyOf(c);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const rows = FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0);
+  const max = Math.max(...rows.map((f) => counts.get(f.key) ?? 0), 1);
 
   return (
     <div className={s.miniList}>
-      {top.map(([name, count]) => (
-        <div key={name} className={s.miniRow}>
-          <span>{name}</span>
-          <b>{formatCount(count)}</b>
-          <div className={s.miniBar}>
-            <div className={s.miniBarFill} style={{ width: `${(count / max) * 100}%` }} />
+      {rows.map((f) => {
+        const count = counts.get(f.key) ?? 0;
+        return (
+          <div key={f.key} className={s.miniRow}>
+            <span>{f.label}</span>
+            <b>{formatCount(count)}</b>
+            <div className={s.miniBar}>
+              <div
+                className={s.miniBarFill}
+                style={{ width: `${(count / max) * 100}%`, background: familyCss(f.rgb) }}
+              />
+            </div>
           </div>
-        </div>
-      ))}
-      {rest > 0 && (
-        <div className={s.miniRow}>
-          <span style={{ color: "var(--ink-4)" }}>기타 {sorted.length - limit}종</span>
-          <b>{formatCount(rest)}</b>
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 }
@@ -259,8 +275,8 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
         </div>
 
         <div className={s.twoUp}>
-          <Panel title="패키지 분포">
-            <TopBreakdown counts={sm.package_counts} />
+          <Panel title="부품 구성">
+            <FamilyBreakdown components={detail.components} />
           </Panel>
           <Panel title="배선">
             <Fields>
