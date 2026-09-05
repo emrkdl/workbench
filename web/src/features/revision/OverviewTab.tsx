@@ -8,7 +8,6 @@ import {
   formatDimensions,
   formatFine,
   formatRouteLength,
-  toUm,
 } from "@/lib/units";
 import { conductorNumbers, isConductor, ROLE_COLOR, ROLE_LABEL } from "./layers";
 import s from "./revision.module.css";
@@ -97,6 +96,11 @@ function LayerStack({ stackup }: { stackup: StackupLayer[] }) {
 export function OverviewTab({ detail }: { detail: RevisionDetail }) {
   const { revision, design_rules: rules } = detail;
   const sm = revision.summary;
+  /** 가장 나중 리비전. 지금 보고 있는 것이 옛 리비전일 수 있으므로 따로 찾는다. */
+  const latest = detail.lineage.reduce<(typeof detail.lineage)[number] | null>(
+    (a, b) => (a && a.created_at >= b.created_at ? a : b),
+    null,
+  );
 
   const sideSlices = [
     { label: "Top", value: sm.component_top_count, color: "var(--accent)" },
@@ -129,28 +133,16 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
               hint={formatRouteLength(sm.total_route_length_nm)}
             />
             <Stat label="면적" value={sm.area_mm2.toFixed(0)} unit="mm²" hint={formatDimensions(sm.width_nm, sm.height_nm)} />
-            {/* 복잡도가 있던 자리. 그 지표는 층수·밀도·핀수·선폭을 가중치로 버무린
-                합성값이었는데, 가중치는 고른 사람의 감각일 뿐이라 판이 왜 어려운지를
-                말해 주지 못했다. 버무리기 전의 두 숫자를 그대로 둔다 — 만들기 어려움은
-                결국 선을 얼마나 가늘게 긋고 구멍을 얼마나 작게 뚫느냐다.
-
-                실장률은 오른쪽에 제 패널이 있다. 같은 값을 한 화면에 두 번 둘 이유가 없다. */}
-            <Stat
-              label="최소 선폭"
-              value={toUm(rules.min_trace_width_nm).toFixed(0)}
-              unit="µm"
-              hint={`간격 ${toUm(rules.min_clearance_nm).toFixed(0)} µm`}
-            />
-            <Stat
-              label="최소 드릴"
-              value={toUm(rules.min_drill_nm).toFixed(0)}
-              unit="µm"
-              hint={rules.max_aspect_ratio ? `종횡비 ${rules.max_aspect_ratio} : 1` : undefined}
-            />
+            {/* 몇 번을 고쳐 온 판인가. 리비전이 하나뿐인 판과 여섯 번 돈 판은 같은
+                크기라도 다른 물건이다 — 뒤엣것은 그만큼 손이 많이 간 자리가 있다. */}
+            <Stat label="리비전" value={detail.lineage.length} hint={latest ? `최종 ${latest.label}` : undefined} />
+            {/* 비아 스택 구성. 설계 데이터에서 읽어 올 값이고 아직 연결되지 않았다. */}
+            <Stat label="비아 타입" value="—" hint="All stack · B Type 등" />
             {/* DRC 를 뺀 자리. 올라오는 것이 모두 완성된 설계라 지적은 거의 늘 0 이었고,
                 늘 0 인 칸은 자리만 차지한다. 비아 수는 판마다 열 배씩 갈리고 제조 비용과
                 난이도에 곧바로 걸린다. */}
-            <Stat label="비아" value={formatCount(sm.via_total)} hint={`홀 ${formatCount(sm.hole_count)}개`} />
+            {/* GND 비아 수는 형상 버퍼에만 있고 요약에는 아직 없다. 자리만 잡아 둔다. */}
+            <Stat label="비아" value={formatCount(sm.via_total)} hint="GND nn개" />
           </StatGrid>
         </Panel>
 
