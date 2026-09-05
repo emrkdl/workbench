@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { RevisionDetail } from "@/lib/cdm";
 import type { DisplayUnit } from "@/lib/units";
 import { Panel } from "@/components/ui";
+import { ViewerTab } from "../viewer/ViewerTab";
 import { CompareBoards, type CompareView } from "../compare/CompareBoards";
 import { formatDuration, type JobState } from "./useJobRun";
 import s from "./autodesign.module.css";
@@ -22,7 +23,6 @@ export function ResultTab({
   detail,
   loading,
   hasPreview,
-  unit,
   onRun,
   canRun,
 }: {
@@ -30,13 +30,13 @@ export function ResultTab({
   detail: RevisionDetail | null;
   loading: boolean;
   hasPreview: boolean;
-  unit: DisplayUnit;
   onRun: () => void;
   canRun: boolean;
 }) {
   const [view, setView] = useState<CompareView>("side");
   const [labels, setLabels] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [unit, setUnit] = useState<DisplayUnit>("mm");
 
   // 판을 고르지 않았으면 그릴 것이 없다. HKP 를 열 수 없어 미리보기 리비전이 판을 대신한다.
   if (!hasPreview) {
@@ -50,20 +50,6 @@ export function ResultTab({
 
   if (loading) return <Blank title="판을 읽는 중" />;
   if (!detail) return <Blank title="판을 읽지 못했습니다" />;
-
-  if (job.status === "idle") {
-    return (
-      <Blank
-        title="아직 돌린 적 없습니다"
-        body="조건을 정하고 작업을 실행하면 그 결과가 여기에 그려집니다."
-        action={
-          <button type="button" className={s.submit} disabled={!canRun} onClick={onRun}>
-            작업 실행
-          </button>
-        }
-      />
-    );
-  }
 
   if (job.status === "running") {
     return (
@@ -80,17 +66,27 @@ export function ResultTab({
     );
   }
 
-  if (job.status === "stopped") {
+  // 아직 돌리지 않았거나 멈췄으면 **지금 판**을 그대로 보여준다. 빈 상자를 띄우면
+  // "결과를 보러 왔는데 볼 것이 없다"로 끝나지만, 실행 전 상태를 보여 주면 돌리기 전에
+  // 무엇을 손댈지 눈으로 정할 수 있고 돌린 뒤에 무엇이 달라졌는지 견줄 기준도 생긴다.
+  if (job.status !== "done") {
+    const stopped = job.status === "stopped";
     return (
-      <Blank
-        title="중간에 멈췄습니다"
-        body="멈춘 작업의 결과는 남지 않습니다. 조건을 손보고 다시 실행하세요."
-        action={
-          <button type="button" className={s.submit} disabled={!canRun} onClick={onRun}>
-            다시 실행
+      <div className={s.resultPane}>
+        <p className={s.resultNote}>
+          <span>
+            {stopped
+              ? "중간에 멈췄습니다. 멈춘 작업의 결과는 남지 않습니다 — 아래는 실행 전 상태의 판입니다."
+              : "아직 돌리지 않았습니다. 아래는 실행 전 상태의 판이고, 실행하면 이 자리에 전후를 맞대어 놓습니다."}
+          </span>
+          <button type="button" className={s.runBtn} disabled={!canRun} onClick={onRun}>
+            {stopped ? "다시 실행" : "작업 실행"}
           </button>
-        }
-      />
+        </p>
+        <div className={s.viewerBox}>
+          <ViewerTab detail={detail} unit={unit} onUnitChange={setUnit} />
+        </div>
+      </div>
     );
   }
 

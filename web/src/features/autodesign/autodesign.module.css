@@ -1215,13 +1215,48 @@
   gap: var(--sp-3);
   min-width: 0;
 }
+/* 알림 한 줄. 오른쪽 끝에 그 자리에서 할 수 있는 일을 붙인다 — 실행 단추를 찾아
+   오른쪽 판까지 눈을 옮길 이유가 없다. */
 .resultNote {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
   padding: var(--sp-3);
   border: 1px dashed var(--line-2);
   border-radius: var(--r);
   font-size: var(--fs-xs);
   line-height: 1.65;
   color: var(--ink-3);
+}
+.resultNote > span {
+  min-width: 0;
+}
+/* 문장 옆에 붙는 단추다. 오른쪽 판의 큰 실행 단추와 같은 일을 하지만 여기서는
+   본문이 주인이라 자기 글자만큼만 차지한다. */
+.runBtn {
+  flex: none;
+  margin-left: auto;
+  padding: 5px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.runBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 뷰어는 제 부모 높이를 다 쓰려 하는데 이 칸은 내용만큼 자란다. 높이를 못박아 준다. */
+.viewerBox {
+  height: 560px;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
 }
 
 .resultBlank {

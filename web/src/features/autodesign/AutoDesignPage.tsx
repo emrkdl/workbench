@@ -184,7 +184,6 @@ export function AutoDesignPage() {
               detail={detail.data}
               loading={detail.loading}
               hasPreview={spec.previewRevisionId !== null}
-              unit="mm"
               canRun={problems.length === 0}
               onRun={run}
             />
