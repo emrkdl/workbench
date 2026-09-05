@@ -8,6 +8,7 @@ import {
   formatDimensions,
   formatFine,
   formatRouteLength,
+  toUm,
 } from "@/lib/units";
 import { conductorNumbers, isConductor, ROLE_COLOR, ROLE_LABEL } from "./layers";
 import s from "./revision.module.css";
@@ -119,19 +120,33 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
             <Stat label="층수" value={sm.layer_count} hint={formatCoarse(sm.board_thickness_nm)} />
             <Stat label="부품" value={formatCount(sm.component_count)} hint={`Top ${sm.component_top_count} · Bot ${sm.component_bottom_count}`} />
             <Stat label="핀" value={formatCount(sm.pin_count)} hint={`BGA ${sm.bga_count}개`} />
-            {/* 차동쌍은 배선 패널에 있다. 전원 넷 수는 전원계가 몇 갈래인지를 말해 주어
-                판의 성격을 한 번에 짚는다. */}
-            <Stat label="넷" value={formatCount(sm.net_count)} hint={`전원 ${sm.power_net_count}개`} />
-            <Stat label="면적" value={sm.area_mm2.toFixed(0)} unit="mm²" hint={formatDimensions(sm.width_nm, sm.height_nm)} />
-            {/* 배치 밀도(부품 수 ÷ 면적)는 큰 부품 하나와 작은 부품 하나를 같게 센다.
-                판이 얼마나 찼는지는 몸통이 덮은 넓이가 말한다. */}
+            {/* 넷 수는 판이 얼마나 얽혀 있는지를 말하고, 배선 길이는 그 얽힘이 실제로
+                얼마나 그어졌는지를 말한다. 둘은 따로 논다 — 넷이 적어도 길게 돌아가는
+                판이 있고 그 반대도 있다. */}
             <Stat
-              label="실장률"
-              value={sm.mount_ratio_pct.toFixed(1)}
-              unit="%"
-              hint={`TOP ${sm.mount_ratio_top_pct.toFixed(1)} · BOT ${sm.mount_ratio_bottom_pct.toFixed(1)}`}
+              label="넷"
+              value={formatCount(sm.net_count)}
+              hint={formatRouteLength(sm.total_route_length_nm)}
             />
-            <Stat label="복잡도" value={sm.complexity_score} tone="accent" hint="0–100 상대 지표" />
+            <Stat label="면적" value={sm.area_mm2.toFixed(0)} unit="mm²" hint={formatDimensions(sm.width_nm, sm.height_nm)} />
+            {/* 복잡도가 있던 자리. 그 지표는 층수·밀도·핀수·선폭을 가중치로 버무린
+                합성값이었는데, 가중치는 고른 사람의 감각일 뿐이라 판이 왜 어려운지를
+                말해 주지 못했다. 버무리기 전의 두 숫자를 그대로 둔다 — 만들기 어려움은
+                결국 선을 얼마나 가늘게 긋고 구멍을 얼마나 작게 뚫느냐다.
+
+                실장률은 오른쪽에 제 패널이 있다. 같은 값을 한 화면에 두 번 둘 이유가 없다. */}
+            <Stat
+              label="최소 선폭"
+              value={toUm(rules.min_trace_width_nm).toFixed(0)}
+              unit="µm"
+              hint={`간격 ${toUm(rules.min_clearance_nm).toFixed(0)} µm`}
+            />
+            <Stat
+              label="최소 드릴"
+              value={toUm(rules.min_drill_nm).toFixed(0)}
+              unit="µm"
+              hint={rules.max_aspect_ratio ? `종횡비 ${rules.max_aspect_ratio} : 1` : undefined}
+            />
             {/* DRC 를 뺀 자리. 올라오는 것이 모두 완성된 설계라 지적은 거의 늘 0 이었고,
                 늘 0 인 칸은 자리만 차지한다. 비아 수는 판마다 열 배씩 갈리고 제조 비용과
                 난이도에 곧바로 걸린다. */}
