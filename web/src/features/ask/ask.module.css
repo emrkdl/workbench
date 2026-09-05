@@ -167,22 +167,26 @@
   overflow-y: auto;
   padding: var(--sp-5) var(--sp-4);
 }
+/* 오간 말은 칸이 주는 만큼 쓴다.
+   760px 로 묶어 두었더니 넓은 화면에서 오른쪽이 통째로 비고, 답 하나가 여덟 줄로
+   접혔다. 표나 목록이 섞인 답은 좁은 단에서 특히 읽기 어렵다. 아주 넓은 화면에서
+   한 줄이 끝없이 길어지는 것만 막고, 나머지는 칸에 맡긴다. */
 .turns {
   display: flex;
   flex-direction: column;
   gap: var(--sp-5);
-  max-width: 760px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 .turn {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: var(--sp-2);
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 6px;
   align-items: start;
 }
 /* 내 말은 오른쪽에서 시작한다. 아바타를 두지 않아도 좌우만으로 누구 말인지 갈린다. */
 .turnMine {
-  grid-template-columns: minmax(0, 1fr) 26px;
+  grid-template-columns: minmax(0, 1fr) 22px;
   justify-items: end;
 }
 .turnMine .who {
@@ -198,12 +202,17 @@
 .bubble {
   min-width: 0;
   max-width: 100%;
+  width: 100%;
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--surface-2);
 }
+/* 물음은 대개 한두 줄이라 글자만큼만 차지한다. 짧은 물음이 답과 같은 폭으로 늘어나면
+   누가 한 말인지가 폭으로도 갈리지 않는다. */
 .bubbleMine {
+  width: auto;
+  max-width: 85%;
   border-color: var(--accent-line);
   background: var(--accent-wash);
 }
@@ -394,7 +403,7 @@ a.cite:hover b {
   display: flex;
   align-items: flex-end;
   gap: var(--sp-2);
-  max-width: 760px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 4px;
   border: 1px solid var(--line-2);
@@ -466,7 +475,7 @@ a.cite:hover b {
   display: flex;
   align-items: baseline;
   gap: var(--sp-3);
-  max-width: 760px;
+  max-width: 1180px;
   margin: 5px auto 0;
   font-size: 10px;
 }
@@ -484,7 +493,7 @@ a.cite:hover b {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  max-width: 760px;
+  max-width: 1180px;
   margin: 0 auto var(--sp-2);
 }
 .attach {
