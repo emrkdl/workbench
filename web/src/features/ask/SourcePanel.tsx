@@ -166,7 +166,7 @@ export function TalksPanel({
   onDrop: (id: string) => void;
 }) {
   return (
-    <Panel title="지난 대화">
+    <Panel title="지난 대화" fill>
       {talks.length === 0 ? (
         <p className={s.hint}>아직 없습니다. 대화를 시작하면 여기에 쌓입니다.</p>
       ) : (

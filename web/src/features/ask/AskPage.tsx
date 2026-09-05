@@ -250,7 +250,9 @@ export function AskPage() {
               board={board}
               manifest={manifest.data}
             />
-            <TalksPanel talks={talks} currentId={chat.talkId} onOpen={open} onDrop={dropTalk} />
+            <div className={s.talksSlot}>
+              <TalksPanel talks={talks} currentId={chat.talkId} onOpen={open} onDrop={dropTalk} />
+            </div>
             <p className={s.note}>
               답변 엔진은 아직 붙지 않았습니다. <b>설계 데이터</b> 쪽 답은 이미 들어와 있는
               요약값을 실제로 읽어 온 것이고, <b>문서·룰</b> 쪽은 읽을 문서가 없어 답하지
