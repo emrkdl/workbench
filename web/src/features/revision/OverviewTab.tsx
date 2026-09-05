@@ -1,5 +1,5 @@
 import type { ComponentRow, LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
-import { css as familyCss, FAMILIES, familyOf, type FamilyKey } from "@/lib/families";
+import { bodySize, css as familyCss, FAMILIES, familyOf, type FamilyKey } from "@/lib/families";
 import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import {
@@ -24,48 +24,62 @@ const VIA_LABEL: Record<string, string> = {
 
 
 /**
- * 부품 구성 — 계열별로 몇 개인가.
+ * 부품 구성 — 어느 계열이 판을 차지하고 있나.
  *
- * 세 번 고쳤다. 그 과정이 이 자리의 조건을 다 드러냈으므로 적어 둔다.
+ * 오래 개수로 재다가 면적으로 옮겼다. 개수로 재면 서른 장이 전부 같은 그림이 나온다 —
+ * 어느 판이든 커패시터 40~46%, 저항 20~24%, 인덕터 19~21%. 모든 판에서 같은 값이 나오는
+ * 칸은 자리만 차지한다.
  *
- * 처음에는 줄마다 가로막대를 그렸다. 읽기는 좋았는데 한 항목이 두 줄(이름 줄, 막대 줄)을
- * 써서 숫자 열한 개에 스물두 줄이 들었다.
+ * 면적으로 재면 판마다 갈린다. 플렉스는 AP 하나가 판의 41% 를 먹고, RF 모듈은 커넥터가
+ * 12% 를 차지하며, 전원 보드는 QFP·QFN 이 절반이다. 판의 성격이 그대로 드러난다.
  *
- * 그다음 누적 막대 하나로 줄였다. 넉 줄이 됐지만 읽을 것이 사라졌다 — BGA 셋은 막대에서
- * 실오라기가 되고, 무엇이 어느 색인지 알려면 범례와 막대를 눈으로 맞춰 봐야 했다.
- * 한 번 더 거치는 그 걸음이 이런 자리에서는 치명적이다.
+ * 실장률과도 이어진다 — 그쪽이 몸통이 판을 덮은 비율이고, 이쪽은 그 덮은 넓이를 계열이
+ * 어떻게 나눠 가졌나이다. 두 패널이 같은 것을 다른 각도에서 말한다.
  *
- * 결국 막대를 **이름과 같은 줄에** 넣는 것이 답이었다. 길이를 눈으로 재는 직관은 그대로
- * 두고 자리는 절반이 된다. 색을 맞춰 볼 일도 없다 — 막대가 제 이름 옆에 있다.
+ * 개수는 버리지 않고 같은 줄 끝에 둔다. 막대와 % 는 "무엇이 판을 차지하나"를, 개수는
+ * "몇 개나 되나"를 답한다 — 커패시터가 넓이로는 12% 인데 개수로는 907 개라는 사실은
+ * 둘을 나란히 놓아야 보인다.
  *
- * 순서는 개수가 많은 것부터다. 막대그래프는 내림차순일 때 가장 빨리 읽히고, 판끼리
- * 견주는 일은 비교 화면이 따로 맡는다.
+ * 몸통 치수는 모든 부품에 실측치가 들어 있어 추정으로 메운 값이 없다.
  */
 function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
-  const counts = new Map<FamilyKey, number>();
+  const stat = new Map<FamilyKey, { count: number; area: number }>();
   for (const c of components) {
     const k = familyOf(c);
-    counts.set(k, (counts.get(k) ?? 0) + 1);
+    const [w, h] = bodySize(c);
+    const cur = stat.get(k) ?? { count: 0, area: 0 };
+    cur.count += 1;
+    cur.area += w * h;
+    stat.set(k, cur);
   }
-  const rows = FAMILIES.filter((f) => (counts.get(f.key) ?? 0) > 0)
-    .map((f) => ({ key: f.key, label: f.label, color: familyCss(f.rgb), count: counts.get(f.key) ?? 0 }))
-    .sort((a, b) => b.count - a.count);
 
-  const total = rows.reduce((sum, r) => sum + r.count, 0) || 1;
-  const max = rows[0]?.count ?? 1;
+  const rows = FAMILIES.filter((f) => (stat.get(f.key)?.count ?? 0) > 0)
+    .map((f) => ({ key: f.key, label: f.label, color: familyCss(f.rgb), ...stat.get(f.key)! }))
+    .sort((a, b) => b.area - a.area);
+
+  const total = rows.reduce((sum, r) => sum + r.area, 0) || 1;
+  const max = rows[0]?.area ?? 1;
 
   return (
     <div className={s.famList}>
+      {/* 두 숫자가 다른 것을 재고 있으므로 무엇을 재는지 한 줄로 못박는다. 커패시터가
+          넓이로 12% 인데 개수로 907 인 것을 설명 없이 두면 둘 중 하나를 오해한다. */}
+      <div className={`${s.famRow} ${s.famHead}`}>
+        <span />
+        <span />
+        <em>면적</em>
+        <em>개수</em>
+      </div>
       {rows.map((r) => (
         <div key={r.key} className={s.famRow}>
           <span>{r.label}</span>
           <span className={s.famTrack}>
-            {/* 가장 많은 계열을 꽉 찬 길이로 두고 나머지를 그에 견준다. 전체 대비로 재면
-                절반 가까이가 한 계열이라 나머지가 다 같아 보인다. */}
-            <i style={{ width: `${Math.max((r.count / max) * 100, 1.5)}%`, background: r.color }} />
+            {/* 가장 넓은 계열을 꽉 찬 길이로 두고 나머지를 그에 견준다. 전체 대비로 재면
+                가장 큰 것이 4 분의 1 뿐이라 막대가 다 짧아 차이가 안 보인다. */}
+            <i style={{ width: `${Math.max((r.area / max) * 100, 1.5)}%`, background: r.color }} />
           </span>
-          <b className="tnum">{formatCount(r.count)}</b>
-          <em>{((r.count / total) * 100).toFixed(1)}%</em>
+          <b className="tnum">{((r.area / total) * 100).toFixed(1)}%</b>
+          <em>{formatCount(r.count)}</em>
         </div>
       ))}
     </div>

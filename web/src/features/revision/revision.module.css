@@ -538,7 +538,7 @@
 }
 .famRow {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr) 44px 40px;
+  grid-template-columns: 92px minmax(0, 1fr) 46px 42px;
   align-items: center;
   gap: var(--sp-2);
   font-size: var(--fs-sm);
@@ -564,9 +564,20 @@
   opacity: 0.85;
 }
 .famRow b {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--ink);
   text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* 두 숫자가 다른 것을 잰다. 무엇을 재는지 한 줄로 못박아 둔다. */
+.famHead {
+  margin-bottom: 1px;
+}
+.famHead em {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .famRow em {
   font-family: var(--font-mono);
