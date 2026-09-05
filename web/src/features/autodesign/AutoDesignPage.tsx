@@ -50,17 +50,27 @@ export function AutoDesignPage() {
     [spec.previewRevisionId],
   );
 
+  /**
+   * 대신 볼 판.
+   *
+   * 파서가 붙기 전까지 올린 HKP 는 열어 볼 수 없다. 그러면 부품 목록도 판 그림도 없어
+   * 이 화면에서 할 수 있는 일이 없다 — 조건을 짜 볼 수도, 결과를 확인할 수도 없다.
+   *
+   * 그래서 이미 들어와 있는 리비전 하나를 판 대신 세운다. 이것을 고르면 파일이 없어도
+   * 배치 조건을 짜고 실행해 결과 화면까지 볼 수 있다. 임시 발판이고, 파서가 붙으면
+   * 이 고르개는 사라진다.
+   */
   const previewPicker = (
-    <label className={s.previewPick}>
-      <span>미리보기</span>
+    <label className={s.previewPick} title="HKP 를 열 수 없는 동안, 이미 들어와 있는 판으로 화면을 확인합니다">
+      <span>대신 볼 판</span>
       <select
         value={spec.previewRevisionId ?? ""}
         onChange={(e) => setSpec({ ...spec, previewRevisionId: e.target.value || null })}
       >
-        <option value="">리비전 없음</option>
+        <option value="">고르지 않음</option>
         {boards.map((b) => (
           <option key={b.id} value={b.latest_revision_id}>
-            {b.board_key}
+            {b.board_key} · {b.name}
           </option>
         ))}
       </select>
@@ -102,7 +112,10 @@ export function AutoDesignPage() {
 
   const problems = useMemo(() => {
     const out: string[] = [];
-    if (!spec.source.files.length) out.push("설계 파일을 올리지 않았습니다.");
+    // 파서가 붙기 전까지는 둘 중 하나면 된다 — 올린 파일이거나, 대신 볼 판이거나.
+    // 파일만 요구하면 열지도 못할 파일을 올려야 화면을 볼 수 있는 꼴이 된다.
+    if (!spec.source.files.length && !spec.previewRevisionId)
+      out.push("설계 파일을 올리거나, 맨 위에서 ‘대신 볼 판’ 을 고르세요.");
     if (spec.reference.enabled && spec.reference.revisionIds.length === 0)
       out.push("과거 설계를 참조하기로 했는데 참조할 보드를 고르지 않았습니다.");
     if (!spec.modes.place && !spec.modes.route) out.push("배치와 배선 중 적어도 하나는 맡겨야 합니다.");
@@ -240,6 +253,11 @@ export function AutoDesignPage() {
                     <>
                       <b className={s.summaryModel}>{spec.source.model ?? "모델 미상"}</b>
                       <span className={s.summaryFiles}>파일 {spec.source.files.length}개</span>
+                    </>
+                  ) : detail.data ? (
+                    <>
+                      <b className={s.summaryModel}>{detail.data.revision.board_key}</b>
+                      <span className={s.summaryFiles}>대신 볼 판</span>
                     </>
                   ) : (
                     "—"
