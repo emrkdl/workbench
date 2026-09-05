@@ -61,7 +61,7 @@ export function SourcePanel({
 
         <p className={s.hint}>
           {isDocs
-            ? "설계 룰·적층 지침·매뉴얼처럼 쌓인 글에서 근거를 찾아 답합니다."
+            ? "SI Rule·Stackup·Layout Manual 처럼 쌓인 글에서 근거를 찾아 답합니다."
             : "고른 판에 실제로 들어 있는 값(층·부품·넷·비아)을 읽어 답합니다."}
         </p>
 
@@ -81,7 +81,7 @@ export function SourcePanel({
                   type="button"
                   className={`${s.scope} ${on ? s.scopeOn : ""}`}
                   aria-pressed={on}
-                  /* 설명은 화면에서 뺐다 — 다섯 줄이 두 줄씩 차지하면 오른쪽 판이 설명으로
+                  /* 설명은 화면에서 뺐다 — 네 줄이 두 줄씩 차지하면 오른쪽 판이 설명으로
                      가득 찬다. 한 번 읽으면 그만인 말이라 손끝에만 남긴다. */
                   title={desc}
                   onClick={() => toggle(id)}
