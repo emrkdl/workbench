@@ -161,25 +161,36 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
         </Panel>
 
         <div className={s.twoUp}>
-          {/* 이 판이 무엇이고, 누가 언제 시켜서, 누가 언제 만들었나.
-              시간이 흐르는 순서로 둔다 — 의뢰 · 설계 · 등록. */}
           <Panel title="식별">
-            <Fields>
-              <Field label="모델명">
-                <span className="mono">{revision.board_key}</span>
-              </Field>
-              <Field label="리비전">{revision.label}</Field>
-              <Field label="제품군">{detail.product_family}</Field>
-              {/* 의뢰자와 의뢰일은 아직 어디에도 없다. 의뢰라는 개념 자체가 설계 데이터에
-                  들어 있지 않고, 사람이 시스템에 적어 넣어야 생기는 값이다. 자리만 잡아 둔다. */}
-              <Field label="의뢰자">—</Field>
-              <Field label="의뢰일">—</Field>
-              <Field label="설계자">{revision.author}</Field>
-              <Field label="설계일">{revision.designed_at?.slice(0, 10)}</Field>
-              {/* 설계가 끝난 날과 이 시스템에 들어온 날은 다르다. 몇 달 묵혀 두었다가
-                  한꺼번에 올리는 일이 흔해서, 둘이 벌어져 있으면 그것 자체가 정보다. */}
-              <Field label="등록일">{revision.created_at.slice(0, 10)}</Field>
-            </Fields>
+            {/* 왼쪽은 이번 리비전에서 무엇을 고쳤나, 오른쪽은 이 판이 무엇인가.
+                고친 내용을 먼저 읽는 자리에 둔다 — 같은 판의 리비전을 여럿 열어 놓고
+                오갈 때 알고 싶은 것은 모델명이 아니라 무엇이 달라졌나이다. */}
+            <div className={s.identGrid}>
+              <div className={s.identNotes}>
+                <span className={s.identLabel}>수정사항</span>
+                {revision.note ? (
+                  <p className={s.identNote}>{revision.note}</p>
+                ) : (
+                  /* 아직 여러 줄로 적어 두는 자리가 없다. 리비전마다 무엇을 고쳐야 하고
+                     무엇을 고쳤는지가 여기 쌓이면, 리비전 목록이 곧 변경 이력이 된다. */
+                  <p className={s.identEmpty}>적힌 수정사항이 없습니다</p>
+                )}
+              </div>
+
+              <Fields tight>
+                <Field label="모델명">
+                  <span className="mono">{revision.board_key}</span>
+                </Field>
+                <Field label="리비전">{revision.label}</Field>
+                <Field label="제품군">{detail.product_family}</Field>
+                {/* 의뢰자와 의뢰일은 아직 어디에도 없다. 의뢰라는 개념 자체가 설계 데이터에
+                    들어 있지 않고, 사람이 시스템에 적어 넣어야 생기는 값이다. 자리만 잡아 둔다. */}
+                <Field label="의뢰자">—</Field>
+                <Field label="의뢰일">—</Field>
+                <Field label="설계자">{revision.author}</Field>
+                <Field label="등록일">{revision.created_at.slice(0, 10)}</Field>
+              </Fields>
+            </div>
           </Panel>
 
           <Panel title="물리 · 제조">

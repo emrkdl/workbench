@@ -73,14 +73,10 @@ export function RevisionPage() {
 
         {/* 상태(초안~양산)·설계자·CAD 툴은 사람이 손으로 유지해야 하는 값이라 카탈로그에서
             뺐다. 여기서만 남겨두면 같은 값을 한쪽은 못 믿어 안 쓰고 한쪽은 보여주는 꼴이 된다. */}
+        {/* 리비전 메모는 요약의 "수정사항" 이 제 자리로 받았다. 같은 한 줄을 머리에도
+            두면 아래에서 다시 읽을 때 이미 본 것이 되어 눈이 건너뛴다. */}
         <div className={s.subline}>
           <span>등록 {revision.created_at.slice(0, 10)}</span>
-          {revision.note && (
-            <>
-              <span className={s.sep}>·</span>
-              <span className={s.note}>{revision.note}</span>
-            </>
-          )}
         </div>
 
         <nav className={s.tabs} aria-label="리비전 상세 탭">

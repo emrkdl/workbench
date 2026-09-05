@@ -479,3 +479,51 @@
   line-height: 1.6;
   color: var(--ink-4);
 }
+
+/* ── 식별 ──────────────────────────────────
+   왼쪽은 이번 리비전에서 무엇을 고쳤나, 오른쪽은 이 판이 무엇인가. 고친 내용을 먼저
+   읽는 자리에 둔다 — 같은 판의 리비전을 여럿 열어 놓고 오갈 때 알고 싶은 것은
+   모델명이 아니라 무엇이 달라졌나이다. */
+/* 값 쪽에 조금 더 준다. 수정사항은 글이라 좁아도 접히면 그만이지만, 모델명은
+   접히면 한 낱말이 두 줄로 갈라져 읽기가 나빠진다. */
+.identGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: var(--sp-4);
+}
+.identNotes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding-right: var(--sp-4);
+  border-right: 1px solid var(--line);
+}
+.identLabel {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.identNote {
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.identEmpty {
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: var(--ink-4);
+}
+@media (max-width: 1180px) {
+  .identGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .identNotes {
+    padding-right: 0;
+    padding-bottom: var(--sp-3);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

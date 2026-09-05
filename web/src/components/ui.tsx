@@ -61,7 +61,15 @@ export const StatGrid = ({ children, cols = 4 }: { children: ReactNode; cols?: n
 
 /* ── 라벨/값 ───────────────────────────────── */
 
-export const Fields = ({ children }: { children: ReactNode }) => <dl className={s.fields}>{children}</dl>;
+/**
+ * 이름·값 목록.
+ *
+ * `tight` 는 좁은 칸에 들어갈 때 쓴다 — 이름 칸의 최소 폭을 줄여 값이 접히지 않게 한다.
+ * 넓은 자리에서는 이름 칸이 넉넉해야 여러 줄의 이름이 같은 자리에서 끝나 읽기 좋다.
+ */
+export const Fields = ({ children, tight }: { children: ReactNode; tight?: boolean }) => (
+  <dl className={`${s.fields} ${tight ? s.fieldsTight : ""}`}>{children}</dl>
+);
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   const empty = children === null || children === undefined || children === "";

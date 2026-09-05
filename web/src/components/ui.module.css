@@ -99,6 +99,12 @@
   gap: 7px var(--sp-4);
   align-items: baseline;
 }
+/* 좁은 칸에서는 이름 칸이 글자만큼만 차지한다. 최소 폭을 두면 세 글자짜리 이름
+   뒤에 빈 자리가 남아 값이 저 멀리 떨어져 보인다 — 짝지어 읽어야 할 둘이 멀어진다. */
+.fieldsTight {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--sp-2);
+}
 .fieldLabel {
   font-size: var(--fs-sm);
   color: var(--ink-3);
