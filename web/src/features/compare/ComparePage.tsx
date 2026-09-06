@@ -168,16 +168,17 @@ function netColumns(): Column<NetChange>[] {
     {
       key: "kind",
       header: "변경",
-      /* 남는 폭은 여기서 받는다. 배지는 칸 왼쪽에 붙으므로 넷 이름 옆에 그대로 서고,
-         빈 자리가 이 뒤에 쌓이면서 핀 셋(변화·증감·길이)이 오른쪽에 모여 선다. */
-      width: "minmax(104px, 1fr)",
+      width: "104px",
       render: (n) => <KindBadge kind={n.kind} />,
       sort: (a, b) => a.kind.localeCompare(b.kind),
     },
     {
       key: "pins",
       header: "핀 변화",
-      width: "minmax(200px, 300px)",
+      /* 남는 폭은 여기서 받되 내용을 오른쪽에 붙인다. 빈 자리가 왼쪽에 한 번만 생기고,
+         핀 셋(변화·증감·길이)은 서로 닿은 채로 선다. */
+      width: "minmax(200px, 1fr)",
+      align: "right",
       render: (n) => <PinList added={n.pins_added} removed={n.pins_removed} />,
       sort: (a, b) =>
         (a.pins_added?.length ?? 0) + (a.pins_removed?.length ?? 0) -
@@ -186,7 +187,7 @@ function netColumns(): Column<NetChange>[] {
     {
       key: "delta",
       header: "핀 증감",
-      width: "92px",
+      width: "80px",
       align: "right",
       render: (n) => {
         const d = (n.pins_added?.length ?? 0) - (n.pins_removed?.length ?? 0);
@@ -200,7 +201,8 @@ function netColumns(): Column<NetChange>[] {
     {
       key: "length",
       header: "배선 길이 변화",
-      width: "128px",
+      /* 마지막 칸을 넓히면 오른쪽 무리 전체가 그만큼 왼쪽으로 당겨진다. */
+      width: "168px",
       align: "right",
       render: (n) => {
         const d = n.length_delta_nm;
