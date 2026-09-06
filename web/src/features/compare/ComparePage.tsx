@@ -165,8 +165,8 @@ function netColumns(): Column<NetChange>[] {
     },
     {
       key: "kind",
-      header: "무엇이 바뀌었나",
-      width: "128px",
+      header: "변경",
+      width: "104px",
       render: (n) => <KindBadge kind={n.kind} />,
       sort: (a, b) => a.kind.localeCompare(b.kind),
     },
