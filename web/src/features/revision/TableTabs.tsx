@@ -10,7 +10,8 @@ import { revisionPath } from "@/lib/routes";
  * 부품 표와 넷 표.
  *
  * 둘 다 수천 행이라 DataTable 의 가상 스크롤에 얹는다. 좌표는 나노미터 원값을 그대로
- * 정렬에 쓰고 표시할 때만 mm/mil 로 바꾼다 — 문자열로 정렬하면 10 mm 가 9 mm 앞에 선다.
+ * 정렬에 쓰고 표시할 때만 사람이 읽는 단위로 바꾼다 — 문자열로 정렬하면 10 mm 가
+ * 9 mm 앞에 선다.
  */
 
 const SIDE_LABEL: Record<string, string> = { top: "Top", bottom: "Bottom" };
