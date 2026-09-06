@@ -147,7 +147,9 @@ function netColumns(): Column<NetChange>[] {
          있으면 같은 줄에서 무엇이 무엇으로 바뀐 것인지 눈으로 이어야 한다. */
       key: "name",
       header: "넷",
-      width: "minmax(200px, 1fr)",
+      /* 남는 폭을 이 칸에 주면 이름과 변경 배지가 화면 양끝으로 벌어진다. 짝지어 읽는
+         둘이라 붙어 있어야 하고, 남는 폭은 아래의 핀 목록이 받는 편이 낫다. */
+      width: "minmax(180px, 280px)",
       mono: true,
       strong: true,
       render: (n) =>
@@ -173,7 +175,7 @@ function netColumns(): Column<NetChange>[] {
     {
       key: "pins",
       header: "핀 변화",
-      width: "minmax(200px, 300px)",
+      width: "minmax(200px, 1fr)",
       render: (n) => <PinList added={n.pins_added} removed={n.pins_removed} />,
       sort: (a, b) =>
         (a.pins_added?.length ?? 0) + (a.pins_removed?.length ?? 0) -
