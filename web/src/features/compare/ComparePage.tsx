@@ -413,11 +413,13 @@ export function ComparePage() {
                       hint={`핀 +${st.pins_added} / −${st.pins_removed}`}
                     />
                   </StatGrid>
-                  <p className={s.hint} style={{ marginTop: "var(--sp-4)" }}>
-                    <b>이름만 변경</b>과 <b>회로 변경</b>이 나뉘는 이유는 넷을 이름이 아니라 연결된 핀 집합의 해시로
-                    매칭하기 때문입니다. 리뷰에서 실제로 봐야 하는 것은 회로 변경 쪽이고, 이름만 바뀐 넷은 접어둘 수 있습니다.
-                    {st.layers_changed > 0 && ` 적층도 ${st.layers_changed}건 달라졌습니다.`}
-                  </p>
+                  {/* 두 칸이 왜 나뉘는지는 칸 이름이 이미 말한다. 적층이 달라진 것은
+                      다른 데서 알 길이 없으므로 그것만 남긴다. */}
+                  {st.layers_changed > 0 && (
+                    <p className={s.hint} style={{ marginTop: "var(--sp-4)" }}>
+                      적층도 {st.layers_changed}건 달라졌습니다.
+                    </p>
+                  )}
                   {!sameBoard && (
                     <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>
                       서로 다른 보드를 놓고 봅니다. 부품은 RefDes 로, 넷은 연결된 핀 집합으로 맞추므로 여기서 “변경”은
@@ -459,22 +461,14 @@ export function ComparePage() {
                     labelB={labelB}
                     height={460}
                   />
-                  <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>
-                    {boardView === "side" ? (
-                      <>
-                        두 판이 <b>같은 배율</b>을 씁니다 — 배율이 다르면 크기 비교가 성립하지 않습니다. 팬·줌도 함께
-                        움직입니다.
-                      </>
-                    ) : (
-                      <>
-                        이전 위치는 파선, 이후 위치는 채움입니다. 미세한 이동을 확인할 때는 겹쳐 놓는 편이 정확하지만,
-                        판이 둘 다 보이지 않아 넓은 범위의 변화는 놓치기 쉽습니다.
-                      </>
-                    )}{" "}
-                    그림은 <b>뷰어와 같은 렌더러</b>가 그립니다 — 배선·비아·플레인·계열색이 모두 같고, 층을 끄거나
-                    배선을 눌러 넷을 강조하는 것도 뷰어와 똑같이 됩니다. 넷은 이름으로 맞추므로 한쪽에서 고른 넷이
-                    다른 판에서도 같이 켜집니다.
-                  </p>
+                  {/* 나란히 보기는 눌러 보면 아는 것들이라 적지 않는다. 겹쳐보기는
+                      파선과 채움이 무엇을 뜻하는지 그림만 봐서는 알 수 없어 남긴다. */}
+                  {boardView === "overlay" && (
+                    <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>
+                      이전 위치는 파선, 이후 위치는 채움입니다. 미세한 이동을 확인할 때는 겹쳐 놓는 편이 정확하지만,
+                      판이 둘 다 보이지 않아 넓은 범위의 변화는 놓치기 쉽습니다.
+                    </p>
+                  )}
                 </Panel>
 
                 <div className={s.twoUp}>
