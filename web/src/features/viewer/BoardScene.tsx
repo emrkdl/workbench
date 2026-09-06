@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import { geometryUrl } from "@/lib/api";
 import type { ComponentRow, Polygon, RevisionDetail, StackupLayer } from "@/lib/cdm";
 import { bodySize, familyOf, FAMILY_BY_KEY, type FamilyKey } from "@/lib/families";
-import { formatCoarse, toMil, toMm, type DisplayUnit } from "@/lib/units";
+import { formatCoarse, toMm } from "@/lib/units";
 import { conductorNumbers } from "../revision/layers";
 import { fetchLayer, type LayerBuffers } from "./blg";
 import { pick, pickComponent, pickComponentBody, type ComponentPoint, type Hit } from "./picking";
@@ -207,7 +207,6 @@ export interface BoardSceneProps {
   hiddenFamilies: Set<FamilyKey>;
   highlightNet: number | null;
   selection: Selection | null;
-  unit: DisplayUnit;
   /** 밖에서 들고 있는 카메라. 비교 화면은 두 판이 이걸 공유한다. */
   camera: React.MutableRefObject<Camera>;
   /** 카메라가 움직였다. 다른 판도 같이 다시 그려야 할 때 쓴다. */
@@ -237,7 +236,7 @@ export interface BoardSceneProps {
 export const BoardScene = forwardRef<SceneHandle, BoardSceneProps>(function BoardScene(props, ref) {
   const {
     detail, layers, visible, mode, sideView, labels, alpha, hiddenFamilies,
-    highlightNet, selection, unit, camera,
+    highlightNet, selection, camera,
     onCameraChange, onSelect, onCursor, onLoadedChange, onError,
     measuring = false, measure = { a: null, b: null }, onMeasure,
     extraOverlay, overlayKey, autoFit = true, className,
@@ -410,20 +409,19 @@ export const BoardScene = forwardRef<SceneHandle, BoardSceneProps>(function Boar
         outline: detail.outline,
         selection,
         measure,
-        unit,
-        components: mode === "copper" || !labels ? [] : shown,
+          components: mode === "copper" || !labels ? [] : shown,
         sideView,
         extra: extraRef.current,
       });
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [layers, visible, highlightNet, selection, unit, detail.outline, mode, labels, shown, sideView, measure, camera]);
+  }, [layers, visible, highlightNet, selection, detail.outline, mode, labels, shown, sideView, measure, camera]);
 
   // 그림에 영향을 주는 값이 바뀌면 다음 프레임에 다시 그린다
   useEffect(() => {
     dirtyRef.current = true;
-  }, [visible, highlightNet, selection, unit, mode, sideView, labels, alpha, overlayKey]);
+  }, [visible, highlightNet, selection, mode, sideView, labels, alpha, overlayKey]);
 
   useEffect(() => {
     const onResize = () => {
@@ -484,13 +482,7 @@ export const BoardScene = forwardRef<SceneHandle, BoardSceneProps>(function Boar
 
   const onPointerMove = (e: React.PointerEvent) => {
     const [bx, by] = toBoard(e.clientX, e.clientY);
-    onCursor?.(
-      unit === "mil"
-        ? `${toMil(bx).toFixed(0)}, ${toMil(by).toFixed(0)} mil`
-        : `${toMm(bx).toFixed(2)}, ${toMm(by).toFixed(2)} mm`,
-      bx,
-      by,
-    );
+    onCursor?.(`${toMm(bx).toFixed(2)}, ${toMm(by).toFixed(2)} mm`, bx, by);
 
     const drag = dragRef.current;
     if (!drag) return;
@@ -573,15 +565,14 @@ function drawOverlay(
     outline: Polygon[];
     selection: Selection | null;
     measure: { a: [number, number] | null; b: [number, number] | null };
-    unit: DisplayUnit;
-    components: ComponentRow[];
+      components: ComponentRow[];
     sideView: SideView;
     extra?: (ctx: CanvasRenderingContext2D, project: Project, camera: Camera) => void;
   },
 ) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  const { outline, selection, measure, unit, components, sideView, extra } = opts;
+  const { outline, selection, measure, components, sideView, extra } = opts;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
 
@@ -684,7 +675,7 @@ function drawOverlay(
       ctx.textBaseline = "alphabetic";
       ctx.font = "600 11px ui-monospace, Consolas, monospace";
       ctx.fillStyle = "#7fd6e8";
-      ctx.fillText(formatCoarse(Math.round(dist), unit), (ax + bx) / 2 + 8, (ay + by) / 2 - 6);
+      ctx.fillText(formatCoarse(Math.round(dist)), (ax + bx) / 2 + 8, (ay + by) / 2 - 6);
     }
   }
 }

@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import type { Board, RevisionDetail } from "@/lib/cdm";
-import type { DisplayUnit } from "@/lib/units";
 import { Panel } from "@/components/ui";
 import { ViewerTab } from "../viewer/ViewerTab";
 import { CompareBoards, type CompareView } from "../compare/CompareBoards";
@@ -44,7 +43,6 @@ export function ResultTab({
   const [view, setView] = useState<CompareView>("side");
   const [labels, setLabels] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  const [unit, setUnit] = useState<DisplayUnit>("mm");
   /**
    * 무엇과 견줄 것인가. null 이면 **실행 전**, 곧 맡긴 판 자신이다.
    *
@@ -110,7 +108,7 @@ export function ResultTab({
           </button>
         </p>
         <div className={s.viewerBox}>
-          <ViewerTab detail={detail} unit={unit} onUnitChange={setUnit} />
+          <ViewerTab detail={detail} />
         </div>
       </div>
     );
@@ -216,7 +214,6 @@ export function ResultTab({
           detailB={detail}
           labelA={leftLabel}
           labelB="자동 레이아웃 결과"
-          unit={unit}
           height={460}
         />
       </Panel>

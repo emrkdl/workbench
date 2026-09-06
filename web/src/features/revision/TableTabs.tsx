@@ -2,10 +2,9 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import type { ComponentRow, NetRow, RevisionDetail } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
-import { Segmented, Tag } from "@/components/ui";
+import { Tag } from "@/components/ui";
 import { formatCoarse, formatCount, formatRouteLength, toDeg } from "@/lib/units";
 import { revisionPath } from "@/lib/routes";
-import type { DisplayUnit } from "@/lib/units";
 
 /**
  * 부품 표와 넷 표.
@@ -18,12 +17,8 @@ const SIDE_LABEL: Record<string, string> = { top: "Top", bottom: "Bottom" };
 
 export function ComponentsTab({
   detail,
-  unit,
-  onUnitChange,
 }: {
   detail: RevisionDetail;
-  unit: DisplayUnit;
-  onUnitChange: (u: DisplayUnit) => void;
 }) {
   const columns = useMemo<Column<ComponentRow>[]>(
     () => [
@@ -83,7 +78,7 @@ export function ComponentsTab({
         width: "92px",
         align: "right",
         mono: true,
-        render: (c) => formatCoarse(c.x_nm, unit),
+        render: (c) => formatCoarse(c.x_nm),
         sort: (a, b) => a.x_nm - b.x_nm,
       },
       {
@@ -92,7 +87,7 @@ export function ComponentsTab({
         width: "92px",
         align: "right",
         mono: true,
-        render: (c) => formatCoarse(c.y_nm, unit),
+        render: (c) => formatCoarse(c.y_nm),
         sort: (a, b) => a.y_nm - b.y_nm,
       },
       {
@@ -120,7 +115,7 @@ export function ComponentsTab({
         sort: (a, b) => (a.pin_pitch_nm ?? 0) - (b.pin_pitch_nm ?? 0),
       },
     ],
-    [unit],
+    [],
   );
 
   return (
@@ -130,17 +125,6 @@ export function ComponentsTab({
       rowKey={(c) => c.refdes}
       defaultSort="refdes"
       searchPlaceholder="RefDes · 파트넘버 · 패키지 · 값"
-      toolbarExtra={
-        <Segmented
-          ariaLabel="좌표 단위"
-          value={unit}
-          onChange={onUnitChange}
-          options={[
-            { value: "mm", label: "mm" },
-            { value: "mil", label: "mil" },
-          ]}
-        />
-      }
       emptyLabel="이 리비전에는 부품 정보가 없습니다."
     />
   );

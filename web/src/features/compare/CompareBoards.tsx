@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ComponentChange, ComponentSnapshot, RevisionDetail } from "@/lib/cdm";
 import type { FamilyKey } from "@/lib/families";
-import { formatCoarse, toMm, type DisplayUnit } from "@/lib/units";
+import { formatCoarse, toMm } from "@/lib/units";
 import {
   BoardScene,
   css,
@@ -183,7 +183,6 @@ export function CompareBoards({
   detailB,
   labelA,
   labelB,
-  unit,
   height = 420,
 }: {
   view: CompareView;
@@ -198,7 +197,6 @@ export function CompareBoards({
   detailB: RevisionDetail | null;
   labelA: string;
   labelB: string;
-  unit: DisplayUnit;
   height?: number;
 }) {
   const sceneA = useRef<SceneHandle>(null);
@@ -328,8 +326,7 @@ export function CompareBoards({
     labels,
     alpha,
     hiddenFamilies: EMPTY_FAMILIES,
-    unit,
-    camera,
+      camera,
     onCameraChange: redraw,
     autoFit: false,
     onCursor: setCursor,
@@ -531,7 +528,7 @@ export function CompareBoards({
             {picked.hit?.netId != null && pickedDetail
               ? ` · ${pickedDetail.nets[picked.hit.netId]?.name ?? ""}`
               : ""}
-            {picked.hit?.width ? ` · ${formatCoarse(picked.hit.width, unit)}` : ""}
+            {picked.hit?.width ? ` · ${formatCoarse(picked.hit.width)}` : ""}
           </span>
         )}
         <span className={s.legendQuiet}>커서 {cursor}</span>

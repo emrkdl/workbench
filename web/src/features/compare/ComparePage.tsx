@@ -315,9 +315,9 @@ export function ComparePage() {
               onChange={(e) => setThresholdUm(THRESHOLDS_UM[Number(e.target.value)]!)}
               aria-label="이동 임계값"
             />
-            <span className={s.thresholdValue}>
-              {thresholdUm >= 1000 ? `${thresholdUm / 1000} mm` : `${thresholdUm} µm`}
-            </span>
+            {/* 눈금이 10 µm 에서 1 mm 까지 걸쳐 있는데 도중에 단위가 바뀌면, 손잡이를
+                끌면서 숫자가 250 에서 500 으로 갔다가 갑자기 1 이 된다. 한 자로만 읽는다. */}
+            <span className={s.thresholdValue}>{(thresholdUm / 1000).toFixed(3)} mm</span>
           </label>
         )}
         <RecentPairs
@@ -457,7 +457,6 @@ export function ComparePage() {
                     detailB={detailB.data}
                     labelA={labelA}
                     labelB={labelB}
-                    unit="mm"
                     height={460}
                   />
                   <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>

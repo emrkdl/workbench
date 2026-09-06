@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { RevisionDetail } from "@/lib/cdm";
-import { formatCoarse, formatFine, type DisplayUnit } from "@/lib/units";
+import { formatCoarse, formatFine } from "@/lib/units";
 import { conductorNumbers, ROLE_LABEL } from "../revision/layers";
 import type { Camera } from "./renderer";
 import { css as familyCss, familyOf, FAMILIES, type FamilyKey } from "@/lib/families";
@@ -32,12 +32,8 @@ export type { ViewMode, SideView } from "./BoardScene";
 
 export function ViewerTab({
   detail,
-  unit,
-  onUnitChange,
 }: {
   detail: RevisionDetail;
-  unit: DisplayUnit;
-  onUnitChange: (u: DisplayUnit) => void;
 }) {
   const sceneRef = useRef<SceneHandle>(null);
   const cameraRef = useRef<Camera>({ cx: 0, cy: 0, scale: 1e-5 });
@@ -270,21 +266,6 @@ export function ViewerTab({
         <button type="button" className={s.btn} onClick={() => gotoRefdes(refdesQuery)}>
           찾기
         </button>
-        <span className={s.sep} />
-        <button
-          type="button"
-          className={`${s.btn} ${unit === "mm" ? s.btnOn : ""}`}
-          onClick={() => onUnitChange("mm")}
-        >
-          mm
-        </button>
-        <button
-          type="button"
-          className={`${s.btn} ${unit === "mil" ? s.btnOn : ""}`}
-          onClick={() => onUnitChange("mil")}
-        >
-          mil
-        </button>
         <span className={s.spacer} />
         <span className={s.hintText}>휠 확대 · 끌어서 이동 · 클릭으로 선택</span>
         <button
@@ -385,7 +366,7 @@ export function ViewerTab({
                 <span className={s.viaSwatch} style={{ borderColor: VIA_KIND_RGB_CSS[k.kind] }} />
                 <span className={s.layerName}>
                   {VIA_KIND_LABEL[k.kind]}
-                  <span className={s.layerRole}> L{k.from}–L{k.to} · ⌀{formatFine(k.drill, unit)}</span>
+                  <span className={s.layerRole}> L{k.from}–L{k.to} · ⌀{formatFine(k.drill)}</span>
                 </span>
               </div>
             ))}
@@ -408,7 +389,6 @@ export function ViewerTab({
           hiddenFamilies={hiddenFamilies}
           highlightNet={highlightNet}
           selection={selection}
-          unit={unit}
           camera={cameraRef}
           measuring={measuring}
           measure={measure}
@@ -486,7 +466,7 @@ export function ViewerTab({
                   {selection.hit.width ? (
                     <>
                       <dt>선폭</dt>
-                      <dd>{formatFine(selection.hit.width, unit)}</dd>
+                      <dd>{formatFine(selection.hit.width)}</dd>
                     </>
                   ) : null}
                 </>
@@ -501,7 +481,7 @@ export function ViewerTab({
           커서 <b>{cursorText}</b>
         </span>
         <span>
-          배율 <b>1 px = {formatCoarse(Math.round(1 / cameraRef.current.scale), unit)}</b>
+          배율 <b>1 px = {formatCoarse(Math.round(1 / cameraRef.current.scale))}</b>
         </span>
         <span>
           {mode === "placement" ? (
@@ -521,7 +501,7 @@ export function ViewerTab({
         )}
         {measured !== null && (
           <span className={s.statusAccent}>
-            측정 <b>{formatCoarse(Math.round(measured), unit)}</b>
+            측정 <b>{formatCoarse(Math.round(measured))}</b>
           </span>
         )}
       </div>

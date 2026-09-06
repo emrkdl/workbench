@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { ErrorState, Loading } from "@/components/ui";
 import { isTabKey, revisionId, revisionPath, TABS, type TabKey } from "@/lib/routes";
 import { remember } from "@/lib/recent";
-import type { DisplayUnit } from "@/lib/units";
 import { OverviewTab } from "./OverviewTab";
 import { StackupTab } from "./StackupTab";
 import { ComponentsTab, NetsTab } from "./TableTabs";
@@ -19,7 +18,6 @@ const FULL_HEIGHT_TABS = new Set<TabKey>(["components", "nets", "viewer"]);
 export function RevisionPage() {
   const { boardId = "", rev = "", tab } = useParams();
   const navigate = useNavigate();
-  const [unit, setUnit] = useState<DisplayUnit>("mm");
 
   const id = revisionId(boardId, rev);
   const { data: detail, error, loading } = useAsync(() => fetchRevision(id), [id]);
@@ -97,9 +95,9 @@ export function RevisionPage() {
 
       <div className={`${s.body} ${FULL_HEIGHT_TABS.has(active) ? "" : s.scrollBody}`}>
         {active === "overview" && <OverviewTab detail={detail} />}
-        {active === "viewer" && <ViewerTab detail={detail} unit={unit} onUnitChange={setUnit} />}
+        {active === "viewer" && <ViewerTab detail={detail} />}
         {active === "stackup" && <StackupTab detail={detail} />}
-        {active === "components" && <ComponentsTab detail={detail} unit={unit} onUnitChange={setUnit} />}
+        {active === "components" && <ComponentsTab detail={detail} />}
         {active === "nets" && <NetsTab detail={detail} />}
         {active === "vias" && <ViasTab detail={detail} />}
         {active === "revisions" && <RevisionsTab detail={detail} />}
