@@ -288,6 +288,8 @@ export function ComparePage() {
   if (catalog.error) return <ErrorState error={catalog.error} />;
 
   const cs = changeset.data;
+  /** 외형이 바뀌었나. 바뀌었으면 치수가 before/after 로 들어 있다. */
+  const outlineChange = cs?.header_changes?.find((f) => f.path === "header.outline") ?? null;
   const st = cs?.stats;
 
   return (
@@ -401,25 +403,22 @@ export function ComparePage() {
                     <Stat label="부품 치환" value={formatCount(st.components_replaced)} hint="파트넘버 변경" />
                     <Stat label="넷 추가" value={formatCount(st.nets_added)} />
                     <Stat label="넷 삭제" value={formatCount(st.nets_removed)} />
+                    {/* 판 자체가 달라졌나. 외형이 바뀌면 기구가 통째로 다시 가고,
+                        적층이 바뀌면 임피던스와 값이 다시 간다 — 부품 몇 개 옮긴 것과는
+                        무게가 다른 변경이라 요약에 있어야 한다. */}
                     <Stat
-                      label="이름만 변경"
-                      value={formatCount(st.nets_renamed)}
-                      hint="회로는 그대로"
+                      label="보드 형상"
+                      value={outlineChange ? "바뀜" : "그대로"}
+                      tone={outlineChange ? "crit" : undefined}
+                      hint={outlineChange ? `${outlineChange.before} → ${outlineChange.after}` : undefined}
                     />
                     <Stat
-                      label="회로 변경"
-                      value={formatCount(st.nets_rewired)}
-                      tone={st.nets_rewired ? "crit" : undefined}
-                      hint={`핀 +${st.pins_added} / −${st.pins_removed}`}
+                      label="적층 변경"
+                      value={formatCount(st.layers_changed)}
+                      tone={st.layers_changed ? "crit" : undefined}
+                      hint={st.layers_changed ? "층 구성·사양" : undefined}
                     />
                   </StatGrid>
-                  {/* 두 칸이 왜 나뉘는지는 칸 이름이 이미 말한다. 적층이 달라진 것은
-                      다른 데서 알 길이 없으므로 그것만 남긴다. */}
-                  {st.layers_changed > 0 && (
-                    <p className={s.hint} style={{ marginTop: "var(--sp-4)" }}>
-                      적층도 {st.layers_changed}건 달라졌습니다.
-                    </p>
-                  )}
                   {!sameBoard && (
                     <p className={s.hint} style={{ marginTop: "var(--sp-3)" }}>
                       서로 다른 보드를 놓고 봅니다. 부품은 RefDes 로, 넷은 연결된 핀 집합으로 맞추므로 여기서 “변경”은
