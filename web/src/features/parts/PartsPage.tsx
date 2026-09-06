@@ -209,7 +209,6 @@ export function PartsPage() {
     <div className={s.page}>
       <header className={s.head}>
         <h1 className={s.title}>부품 역검색</h1>
-        <span className={s.sub}>파트넘버 하나로 그것을 쓰는 보드를 전부 찾습니다</span>
         <span className={s.spacer} />
         <div className={s.filters}>
           {FILTERS.map((f) => (
@@ -248,22 +247,10 @@ export function PartsPage() {
             <Panel title="단종 영향">
               <StatGrid cols={2}>
                 <Stat label="단종 부품" value={risk.eol} tone={risk.eol ? "crit" : undefined} />
-                <Stat label="2개 이상 보드" value={risk.eolShared} hint="영향 범위가 넓은 것" />
+                <Stat label="2개 이상 보드" value={risk.eolShared} />
                 <Stat label="누적 수량" value={formatCount(risk.eolQuantity)} />
                 <Stat label="신규 비권장" value={risk.nrnd} />
               </StatGrid>
-              <p className={s.note}>
-                왼쪽에서 부품을 고르면 그 부품이 들어간 보드·리비전과 RefDes 까지 나옵니다. 단종 공지를 받았을 때
-                제일 먼저 보는 화면입니다.
-              </p>
-            </Panel>
-
-            <Panel title="정규화" >
-              <p className={s.note}>
-                같은 부품이 <code>GRM188R71H104KA93D</code> 와 <code>GRM188R71H104KA93</code> 로 들어오면 다른 부품이
-                되고, 그 순간 역검색은 조용히 절반만 답합니다. 공백·하이픈·포장 접미사를 제거한 정규형으로 묶고,
-                제거 규칙은 코드가 아니라 데이터로 관리합니다.
-              </p>
             </Panel>
           </div>
         )}
