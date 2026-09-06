@@ -161,9 +161,6 @@ MISC = [
 #: (series, value) -> MPN. 여러 보드가 같은 부품을 실제로 공유하게 만드는 장치.
 _MPN_REGISTRY: dict[tuple[str, str], str] = {}
 
-#: 수명 상태. 전부 active 면 EOL 영향 분석 화면에 볼 것이 없으므로 일부를 단종·비권장으로 둔다.
-LIFECYCLE_WEIGHTS = [("active", 78), ("nrnd", 14), ("eol", 8)]
-
 
 def mpn_for(spec: PartSpec, value: str, rng: random.Random) -> str | None:
     if not spec.series:
@@ -1034,13 +1031,10 @@ def build_all(seed: int, out_dir: Path, golden_dir: Path) -> dict:
                 kind=ChangeSetKind.GENERATION, generated_at=cs.generated_at, stats=cs.stats,
             ))
 
-    # ── 부품 마스터와 수명 상태 ──
+    # ── 부품 마스터 ──
+    # 수명 상태(단종·비권장)는 채우지 않는다. 설계 파일에는 그 값이 없다 — 구매 시스템의
+    # 부품 마스터가 붙어야 알 수 있는 것이고, 없는 것을 지어내면 화면은 그것을 아는 척한다.
     part_rows = registry.parts()
-    life_rng = random.Random(seed ^ 0x5EED)
-    for part in part_rows:
-        part.lifecycle = life_rng.choices(
-            [k for k, _ in LIFECYCLE_WEIGHTS], weights=[w for _, w in LIFECYCLE_WEIGHTS]
-        )[0]
 
     # 파셋 집계
     def tally(values) -> dict[str, int]:

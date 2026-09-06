@@ -12,34 +12,19 @@ import s from "./parts.module.css";
 /**
  * 부품 역검색.
  *
- * "이 파트넘버를 쓰는 보드를 전부 찾아라." 단종 공지가 뜰 때마다 설계팀이 손으로 하던
- * 일이고, 여기서는 부품 마스터 조인 한 번이다. 화면을 열었을 때 아무것도 안 고른 상태의
- * 기본값이 **단종 영향 요약**인 것도 그래서다 — 대개 이 화면에 오는 이유가 그거다.
+ * "이 파트넘버를 쓰는 보드를 전부 찾아라." 설계팀이 손으로 하던 일이고, 여기서는 부품
+ * 마스터 조인 한 번이다.
+ *
+ * 수명 상태(단종·신규 비권장)는 다루지 않는다. 설계 파일에 없는 값이라 구매 시스템의
+ * 부품 마스터가 붙기 전에는 알 수 없고, 모르는 것을 화면이 아는 척하면 그 화면을 믿고
+ * 내린 판단이 틀린다. 그래서 아무것도 안 고른 기본 상태는 **부품 마스터가 어떻게 생겼나**
+ * — 몇 종이 몇 장에 걸쳐 쓰이는지, 어느 제조사에 얼마나 기대고 있는지 — 를 보여 준다.
  */
 
-const LIFECYCLE_LABEL: Record<string, string> = {
-  active: "양산",
-  nrnd: "신규 비권장",
-  eol: "단종",
-};
-
-const LIFECYCLE_CLASS: Record<string, string> = {
-  active: s.lifeActive,
-  nrnd: s.lifeNrnd,
-  eol: s.lifeEol,
-};
-
-function LifecycleTag({ value }: { value?: string | null }) {
-  const key = value ?? "active";
-  return <span className={`${s.life} ${LIFECYCLE_CLASS[key] ?? s.lifeActive}`}>{LIFECYCLE_LABEL[key] ?? key}</span>;
-}
-
-type Filter = "all" | "eol" | "nrnd" | "shared" | "single";
+type Filter = "all" | "shared" | "single";
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "전체" },
-  { value: "eol", label: "단종" },
-  { value: "nrnd", label: "신규 비권장" },
   { value: "shared", label: "2개 이상 보드" },
   { value: "single", label: "단독 사용" },
 ];
@@ -58,13 +43,11 @@ function PartDetailPanel({ partId }: { partId: string }) {
     list.push(u);
     byBoard.set(u.board_key, list);
   }
-  const released = usages.filter((u) => u.status === "released");
 
   return (
     <div className={s.detail}>
       <div className={s.detailHead}>
         <span className={s.detailMpn}>{part.mpn_display}</span>
-        <LifecycleTag value={part.lifecycle} />
       </div>
       <div className={s.detailMeta}>
         {part.manufacturer ?? "제조사 미상"} · 정규형 <code>{part.mpn_normalized}</code>
@@ -72,19 +55,9 @@ function PartDetailPanel({ partId }: { partId: string }) {
 
       <StatGrid cols={3}>
         <Stat label="사용 보드" value={part.board_count} />
+        <Stat label="쓰인 리비전" value={usages.length} />
         <Stat label="총 수량" value={formatCount(part.total_quantity)} />
-        <Stat
-          label="양산 리비전"
-          value={released.length}
-          tone={part.lifecycle === "eol" && released.length > 0 ? "crit" : undefined}
-        />
       </StatGrid>
-
-      {part.lifecycle === "eol" && released.length > 0 && (
-        <div className={s.alert}>
-          <b>단종 부품이 양산 보드에 들어 있습니다.</b> 아래 {released.length}개 양산 리비전이 대체품 검토 대상입니다.
-        </div>
-      )}
 
       <div className={s.usages}>
         {[...byBoard.entries()].map(([boardKey, list]) => (
@@ -132,10 +105,6 @@ export function PartsPage() {
 
   const rows = useMemo(() => {
     switch (filter) {
-      case "eol":
-        return parts.filter((p) => p.lifecycle === "eol");
-      case "nrnd":
-        return parts.filter((p) => p.lifecycle === "nrnd");
       case "shared":
         return parts.filter((p) => p.board_count > 1);
       case "single":
@@ -145,13 +114,31 @@ export function PartsPage() {
     }
   }, [parts, filter]);
 
-  const risk = useMemo(() => {
-    const eol = parts.filter((p) => p.lifecycle === "eol");
+  /**
+   * 부품 마스터의 생김새.
+   *
+   * 두 가지만 본다. 하나는 **얼마나 돌려쓰는가** — 한 장에만 들어간 부품이 절반을
+   * 넘으면 같은 기능을 보드마다 다른 부품으로 풀고 있다는 뜻이고, 그만큼 구매·재고가
+   * 늘어난다. 다른 하나는 **어디에 기대고 있는가** — 종수와 수량은 대개 반대로 간다.
+   * 종수는 적은데 수량이 몰린 제조사가 끊기면 그 순간 모든 보드가 멈춘다.
+   */
+  const shape = useMemo(() => {
+    const makers = new Map<string, { parts: number; quantity: number }>();
+    for (const p of parts) {
+      const key = p.manufacturer ?? "제조사 미상";
+      const acc = makers.get(key) ?? { parts: 0, quantity: 0 };
+      acc.parts += 1;
+      acc.quantity += p.total_quantity;
+      makers.set(key, acc);
+    }
+    const quantity = parts.reduce((sum, p) => sum + p.total_quantity, 0);
     return {
-      eol: eol.length,
-      eolShared: eol.filter((p) => p.board_count > 1).length,
-      eolQuantity: eol.reduce((sum, p) => sum + p.total_quantity, 0),
-      nrnd: parts.filter((p) => p.lifecycle === "nrnd").length,
+      shared: parts.filter((p) => p.board_count > 1).length,
+      single: parts.filter((p) => p.board_count === 1).length,
+      quantity,
+      makers: [...makers.entries()]
+        .map(([name, v]) => ({ name, ...v }))
+        .sort((a, b) => b.quantity - a.quantity),
     };
   }, [parts]);
 
@@ -160,7 +147,7 @@ export function PartsPage() {
       {
         key: "mpn",
         header: "파트넘버",
-        width: "minmax(160px, 1fr)",
+        width: "minmax(160px, 240px)",
         mono: true,
         strong: true,
         render: (p) => p.mpn_display,
@@ -174,13 +161,6 @@ export function PartsPage() {
         render: (p) => p.manufacturer ?? "—",
         sort: (a, b) => (a.manufacturer ?? "").localeCompare(b.manufacturer ?? ""),
         search: (p) => p.manufacturer ?? "",
-      },
-      {
-        key: "life",
-        header: "수명",
-        width: "104px",
-        render: (p) => <LifecycleTag value={p.lifecycle} />,
-        sort: (a, b) => (a.lifecycle ?? "").localeCompare(b.lifecycle ?? ""),
       },
       {
         key: "boards",
@@ -198,6 +178,9 @@ export function PartsPage() {
         render: (p) => formatCount(p.total_quantity),
         sort: (a, b) => a.total_quantity - b.total_quantity,
       },
+      /* 남는 폭을 받아 두는 빈 칸. 어느 칸에 1fr 을 주든 그 뒤가 통째로 오른쪽 끝까지
+         밀려나는데, 맨 끝에서 받으면 칸들이 왼쪽에서부터 나란히 선다. */
+      { key: "pad", header: "", width: "minmax(0, 1fr)", render: () => null },
     ],
     [],
   );
@@ -244,13 +227,33 @@ export function PartsPage() {
           <PartDetailPanel partId={selected} />
         ) : (
           <div className={s.summary}>
-            <Panel title="단종 영향">
+            <Panel title="부품 마스터">
               <StatGrid cols={2}>
-                <Stat label="단종 부품" value={risk.eol} tone={risk.eol ? "crit" : undefined} />
-                <Stat label="2개 이상 보드" value={risk.eolShared} />
-                <Stat label="누적 수량" value={formatCount(risk.eolQuantity)} />
-                <Stat label="신규 비권장" value={risk.nrnd} />
+                <Stat label="전체 부품" value={formatCount(parts.length)} hint="MPN 정규화 후" />
+                <Stat label="누적 수량" value={formatCount(shape.quantity)} />
+                <Stat
+                  label="2개 이상 보드"
+                  value={formatCount(shape.shared)}
+                  tone="accent"
+                  hint={parts.length ? `${Math.round((shape.shared / parts.length) * 100)}%` : undefined}
+                />
+                <Stat label="단독 사용" value={formatCount(shape.single)} hint="표준화 후보" />
               </StatGrid>
+            </Panel>
+
+            <Panel title="제조사">
+              <div className={s.makers}>
+                {shape.makers.map((m) => (
+                  <div key={m.name} className={s.maker}>
+                    <span className={s.makerName}>{m.name}</span>
+                    <span className={s.makerBar} aria-hidden="true">
+                      <i style={{ width: `${(m.quantity / (shape.makers[0]?.quantity || 1)) * 100}%` }} />
+                    </span>
+                    <span className={s.makerNum}>{formatCount(m.parts)}종</span>
+                    <span className={s.makerNum}>{formatCount(m.quantity)}개</span>
+                  </div>
+                ))}
+              </div>
             </Panel>
           </div>
         )}

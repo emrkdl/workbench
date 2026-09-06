@@ -68,24 +68,43 @@
   padding: var(--sp-4);
 }
 
-/* ── 수명 상태 ─────────────────────────────── */
-.life {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: var(--r-sm);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  border: 1px solid currentColor;
+/* ── 제조사 ────────────────────────────────── */
+.makers {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.maker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+.makerName {
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.lifeActive {
-  color: var(--ok);
+/* 막대는 수량 쪽을 그린다. 종수는 숫자로 충분하지만 수량은 자릿수가 커서 서로 몇 배인지
+   숫자만으로는 잡히지 않는다. */
+.makerBar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
 }
-.lifeNrnd {
-  color: var(--warn);
+.makerBar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
 }
-.lifeEol {
-  color: var(--crit);
+.makerNum {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 52px;
 }
 
 /* ── 상세 ──────────────────────────────────── */
@@ -116,19 +135,6 @@
   font-family: var(--font-mono);
   font-size: 0.92em;
   color: var(--accent-ink);
-}
-
-.alert {
-  border-left: 2px solid var(--crit);
-  background: var(--crit-wash);
-  padding: 9px var(--sp-3);
-  border-radius: 0 var(--r) var(--r) 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-  line-height: 1.6;
-}
-.alert b {
-  color: var(--crit);
 }
 
 .usages {

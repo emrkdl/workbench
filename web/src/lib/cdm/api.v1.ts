@@ -455,7 +455,7 @@ export interface ChangeSetIndex {
 }
 
 /**
- * 부품 역검색 결과의 한 행. 단종 공지가 뜰 때마다 설계팀이 수작업으로 하던 일을 조인 한 번으로 대체한다.
+ * 부품 역검색 결과의 한 행. 이 파트넘버가 어느 보드 어느 리비전의 어느 RefDes 로 들어갔는지, 설계팀이 수작업으로 훑던 일을 조인 한 번으로 대체한다.
  */
 export interface PartUsage {
   board_key: string;
@@ -508,7 +508,10 @@ export interface Part {
   /** 원본 표기. */
   mpn_display: string;
   description?: string | null;
-  /** active, nrnd, eol 등. */
+  /**
+   * active, nrnd, eol 등. 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 인제스트가 채우지 않은 값을 화면이
+   * 보여 주면 아는 척하는 화면이 된다.
+   */
   lifecycle?: string | null;
   /** 이 부품을 쓰는 보드 수. */
   board_count: number;
