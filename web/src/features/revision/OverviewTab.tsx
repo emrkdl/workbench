@@ -142,18 +142,6 @@ function LayerStack({ stackup }: { stackup: StackupLayer[] }) {
 export function OverviewTab({ detail }: { detail: RevisionDetail }) {
   const { revision, design_rules: rules } = detail;
   const sm = revision.summary;
-  /**
-   * 유전체 재질. 동박층은 뺀다 — 재질을 묻는 사람이 알고 싶은 것은 절연층이 무엇이냐다.
-   *
-   * 표준 FR-4 로 짠 판과 저손실 재질(Megaflex·Nelco)로 짠 판은 값도 납기도 다르고,
-   * 고속 판인지 아닌지가 여기서 갈린다.
-   */
-  const materials = [
-    ...new Set(
-      detail.stackup.filter((l) => !isConductor(l) && l.material).map((l) => l.material as string),
-    ),
-  ].join(" · ");
-
   /** 어떤 비아를 뚫었나. 마이크로·베리드가 섞이면 HDI 공정이 붙고 값이 뛴다. */
   const viaKinds = VIA_ORDER.filter((k) => (sm.via_by_kind[k] ?? 0) > 0)
     .map((k) => `${VIA_LABEL[k]} ${formatCount(sm.via_by_kind[k])}`)
@@ -288,7 +276,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
               <Field label="동박 두께">{copperWeights}</Field>
               <Field label="최소 선폭">{formatFine(rules.min_trace_width_nm)}</Field>
               <Field label="최소 간격">{formatFine(rules.min_clearance_nm)}</Field>
-              <Field label="재질">{materials}</Field>
               <Field label="비아 구성">{viaKinds}</Field>
             </Fields>
           </Panel>
@@ -299,19 +286,19 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
             <FamilyBreakdown components={detail.components} />
           </Panel>
           <Panel title="배선">
-            <Fields>
+            <Fields tight>
               <Field label="총 배선 길이">{formatRouteLength(sm.total_route_length_nm)}</Field>
+              <Field label="총 비아 수">{formatCount(sm.via_total)}</Field>
+              {/* 한 넷이 층을 몇 번 갈아탔나. 총수는 판이 크면 따라 커지지만 이 값은 판
+                  크기와 무관해서, 배선이 얼마나 얽혀 돌았는지를 판끼리 견줄 수 있다. */}
+              <Field label="넷당 비아">{(sm.via_total / Math.max(sm.net_count, 1)).toFixed(1)}개</Field>
+              {/* 한 넷이 평균 얼마나 멀리 도는가. 넷이 적어도 길게 돌아가는 판이 있고
+                  그 반대도 있어서, 총 길이만으로는 어느 쪽인지 알 수 없다. */}
+              <Field label="넷당 길이">
+                {formatRouteLength(sm.total_route_length_nm / Math.max(sm.net_count, 1))}
+              </Field>
               <Field label="차동쌍">{sm.diff_pair_count}쌍</Field>
               <Field label="전원 넷">{sm.power_net_count}개</Field>
-              <Field label="미배선">
-                {sm.unrouted_count > 0 ? (
-                  <span style={{ color: "var(--crit)", fontWeight: 600 }}>{sm.unrouted_count}개</span>
-                ) : (
-                  "없음"
-                )}
-              </Field>
-              <Field label="비아 총수">{formatCount(sm.via_total)}</Field>
-              <Field label="홀 총수">{formatCount(sm.hole_count)}</Field>
             </Fields>
             {viaSlices.length > 1 && (
               <div style={{ marginTop: "var(--sp-4)" }}>
