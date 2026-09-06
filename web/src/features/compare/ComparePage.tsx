@@ -447,7 +447,7 @@ export function ComparePage() {
                 </Panel>
 
                 <Panel
-                  title="보드 맞대어 보기"
+                  title="비교 뷰어"
                   action={
                     /* 확장은 패널 전체를 화면 가득 펼치는 일이라 패널 머리에 둔다. 나란히·
                        겹쳐보기·라벨은 판을 어떻게 그릴지에 대한 것이라 판 위 도구 막대로
