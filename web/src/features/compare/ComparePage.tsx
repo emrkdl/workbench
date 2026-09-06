@@ -488,34 +488,6 @@ export function ComparePage() {
                   )}
                 </Panel>
 
-                <div className={s.twoUp}>
-                  <Panel title="사양 변경">
-                    {(cs.header_changes?.length ?? 0) + (cs.rule_changes?.length ?? 0) === 0 ? (
-                      <p className={s.hint}>보드 사양과 설계 룰은 동일합니다.</p>
-                    ) : (
-                      <FieldDiffList fields={[...(cs.header_changes ?? []), ...(cs.rule_changes ?? [])]} />
-                    )}
-                  </Panel>
-                  <Panel title="적층 변경">
-                    {(cs.stackup_changes?.length ?? 0) === 0 ? (
-                      <p className={s.hint}>적층 구조는 동일합니다.</p>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-3)" }}>
-                        {cs.stackup_changes!.map((c) => (
-                          <div key={`${c.index}-${c.kind}`}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                              <span className="mono" style={{ fontWeight: 600 }}>
-                                {c.layer_name ?? `#${c.index}`}
-                              </span>
-                              <KindBadge kind={c.kind} />
-                            </div>
-                            {c.fields?.length ? <FieldDiffList fields={c.fields} /> : null}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Panel>
-                </div>
               </div>
             )}
 
