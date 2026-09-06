@@ -15,6 +15,9 @@ type Tab = "summary" | "components" | "nets" | "stackup";
 
 const THRESHOLDS_UM = [10, 25, 50, 100, 250, 500, 1000];
 
+/** 늘었나 줄었나. 0 은 부호 없이 그냥 0 이다 — "+0" 은 변한 것처럼 읽힌다. */
+const signed = (n: number) => (n === 0 ? "0" : `${n > 0 ? "+" : "−"}${formatCount(Math.abs(n))}`);
+
 /* ── 표 ────────────────────────────────────── */
 
 function componentColumns(unitSuffix: string): Column<ComponentChange>[] {
@@ -288,8 +291,16 @@ export function ComparePage() {
   if (catalog.error) return <ErrorState error={catalog.error} />;
 
   const cs = changeset.data;
-  /** 외형이 바뀌었나. 바뀌었으면 치수가 before/after 로 들어 있다. */
-  const outlineChange = cs?.header_changes?.find((f) => f.path === "header.outline") ?? null;
+  /**
+   * 판 자체가 얼마나 달라졌나 — 두 리비전의 요약을 그대로 빼서 잰다.
+   *
+   * "바뀜/그대로" 같은 말 대신 부호 붙은 수로 적는다. 옆 칸들이 전부 수인데 여기만
+   * 글이면 눈이 한 번 멈추고, 무엇보다 얼마나 바뀌었는지를 말하지 못한다.
+   */
+  const sumA = detailA.data?.revision.summary ?? null;
+  const sumB = detailB.data?.revision.summary ?? null;
+  const viaDelta = sumA && sumB ? sumB.via_total - sumA.via_total : null;
+  const areaDelta = sumA && sumB ? sumB.area_mm2 - sumA.area_mm2 : null;
   const st = cs?.stats;
 
   return (
@@ -403,20 +414,27 @@ export function ComparePage() {
                     <Stat label="부품 치환" value={formatCount(st.components_replaced)} hint="파트넘버 변경" />
                     <Stat label="넷 추가" value={formatCount(st.nets_added)} />
                     <Stat label="넷 삭제" value={formatCount(st.nets_removed)} />
-                    {/* 판 자체가 달라졌나. 외형이 바뀌면 기구가 통째로 다시 가고,
-                        적층이 바뀌면 임피던스와 값이 다시 간다 — 부품 몇 개 옮긴 것과는
-                        무게가 다른 변경이라 요약에 있어야 한다. */}
+                    {/* 판 자체가 얼마나 달라졌나. 부품 몇 개 옮긴 것과는 무게가 다른
+                        변경이라 요약에 있어야 한다 — 비아가 늘면 드릴 값이 오르고,
+                        외형이 바뀌면 기구가 통째로 다시 간다. */}
                     <Stat
-                      label="보드 형상"
-                      value={outlineChange ? "바뀜" : "그대로"}
-                      tone={outlineChange ? "crit" : undefined}
-                      hint={outlineChange ? `${outlineChange.before} → ${outlineChange.after}` : undefined}
+                      label="비아"
+                      value={viaDelta === null ? "—" : signed(viaDelta)}
+                      hint={
+                        sumA && sumB
+                          ? `${formatCount(sumA.via_total)} → ${formatCount(sumB.via_total)}`
+                          : undefined
+                      }
                     />
                     <Stat
-                      label="적층 변경"
-                      value={formatCount(st.layers_changed)}
-                      tone={st.layers_changed ? "crit" : undefined}
-                      hint={st.layers_changed ? "층 구성·사양" : undefined}
+                      label="보드 형상"
+                      value={areaDelta === null ? "—" : signed(Math.round(areaDelta))}
+                      unit="mm²"
+                      hint={
+                        sumA && sumB
+                          ? `${formatCount(Math.round(sumA.area_mm2))} → ${formatCount(Math.round(sumB.area_mm2))}`
+                          : undefined
+                      }
                     />
                   </StatGrid>
                   {!sameBoard && (
