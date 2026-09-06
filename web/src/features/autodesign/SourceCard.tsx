@@ -299,12 +299,6 @@ export function SourceCard({
               ) : (
                 <p className={s.hint}>고른 모델이 없습니다. 위에서 폼팩터와 모델을 차례로 고르세요.</p>
               )}
-
-              <p className={s.hint}>
-                고른 보드에서 <b>같은 파트넘버 부품의 상대 위치와 방향</b>, 그리고 층 배분과
-                비아 규격을 뽑아 참고합니다. 잘 돌던 블록을 물려주려는 것이지 판 전체를
-                베끼는 것이 아닙니다.
-              </p>
             </>
           ) : (
             <p className={s.hint}>
