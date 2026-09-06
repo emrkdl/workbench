@@ -1,5 +1,5 @@
 import type { ComponentRow, LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
-import { bodySize, css as familyCss, FAMILIES, familyOf, type FamilyKey } from "@/lib/families";
+import { bodySize, FAMILIES, familyOf, type FamilyKey } from "@/lib/families";
 import { Field, Fields, Panel, Stat, StatGrid } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import {
@@ -54,11 +54,10 @@ function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
   }
 
   const rows = FAMILIES.filter((f) => (stat.get(f.key)?.count ?? 0) > 0)
-    .map((f) => ({ key: f.key, label: f.label, color: familyCss(f.rgb), ...stat.get(f.key)! }))
+    .map((f) => ({ key: f.key, label: f.label, ...stat.get(f.key)! }))
     .sort((a, b) => b.area - a.area);
 
   const total = rows.reduce((sum, r) => sum + r.area, 0) || 1;
-  const max = rows[0]?.area ?? 1;
 
   return (
     <div className={s.famList}>
@@ -66,18 +65,12 @@ function FamilyBreakdown({ components }: { components: ComponentRow[] }) {
           넓이로 12% 인데 개수로 907 인 것을 설명 없이 두면 둘 중 하나를 오해한다. */}
       <div className={`${s.famRow} ${s.famHead}`}>
         <span />
-        <span />
         <em>면적</em>
         <em>개수</em>
       </div>
       {rows.map((r) => (
         <div key={r.key} className={s.famRow}>
           <span>{r.label}</span>
-          <span className={s.famTrack}>
-            {/* 가장 넓은 계열을 꽉 찬 길이로 두고 나머지를 그에 견준다. 전체 대비로 재면
-                가장 큰 것이 4 분의 1 뿐이라 막대가 다 짧아 차이가 안 보인다. */}
-            <i style={{ width: `${Math.max((r.area / max) * 100, 1.5)}%`, background: r.color }} />
-          </span>
           <b className="tnum">{((r.area / total) * 100).toFixed(1)}%</b>
           <em>{formatCount(r.count)}</em>
         </div>
