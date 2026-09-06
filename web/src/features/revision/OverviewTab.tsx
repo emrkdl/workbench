@@ -170,12 +170,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
     { label: "Bottom", value: sm.component_bottom_count, color: "var(--info)" },
   ].filter((x) => x.value > 0);
 
-  const viaSlices = Object.entries(sm.via_by_kind).map(([kind, count], i) => ({
-    label: { through: "관통", blind: "블라인드", buried: "베리드", micro: "마이크로" }[kind] ?? kind,
-    value: count,
-    color: ["var(--ink-3)", "var(--accent)", "var(--info)", "var(--warn)"][i] ?? "var(--line-2)",
-  }));
-
   return (
     <div className={s.overview}>
       <div className={s.col}>
@@ -288,7 +282,15 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           <Panel title="배선">
             <Fields tight>
               <Field label="총 배선 길이">{formatRouteLength(sm.total_route_length_nm)}</Field>
-              <Field label="총 비아 수">{formatCount(sm.via_total)}</Field>
+              {/* 배선에 쓸 수 있는 층이 몇인가. 10층 판이라도 신호층이 넷뿐이면 나머지는
+                  플레인이라 배선은 그 넷 위에서만 돈다 — 배선을 이야기할 때의 층수는
+                  이쪽이다. */}
+              <Field label="신호층">{sm.signal_layer_count}층</Field>
+              {/* 한 층이 얼마나 나르고 있나. 판 크기와 층수를 함께 지운 값이라 좁은 판에
+                  욱여넣었는지 넓은 판에 여유 있게 폈는지가 갈린다. */}
+              <Field label="층당 배선">
+                {formatRouteLength(sm.total_route_length_nm / Math.max(sm.signal_layer_count, 1))}
+              </Field>
               {/* 한 넷이 층을 몇 번 갈아탔나. 총수는 판이 크면 따라 커지지만 이 값은 판
                   크기와 무관해서, 배선이 얼마나 얽혀 돌았는지를 판끼리 견줄 수 있다. */}
               <Field label="넷당 비아">{(sm.via_total / Math.max(sm.net_count, 1)).toFixed(1)}개</Field>
@@ -300,11 +302,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
               <Field label="차동쌍">{sm.diff_pair_count}쌍</Field>
               <Field label="전원 넷">{sm.power_net_count}개</Field>
             </Fields>
-            {viaSlices.length > 1 && (
-              <div style={{ marginTop: "var(--sp-4)" }}>
-                <Bar slices={viaSlices} />
-              </div>
-            )}
           </Panel>
         </div>
 
