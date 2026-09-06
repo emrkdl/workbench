@@ -523,9 +523,8 @@
 }
 
 /* ── 부품 구성 ─────────────────────────────
-   글자만 남긴다. 막대를 얇게 줄여도 색면 열한 줄이 눈을 끌어, 정작 옆 패널의 숫자들보다
-   먼저 읽혔다. 여기서 알고 싶은 것은 "무엇이 판을 차지하나" 한 가지이고 그 답은 숫자
-   한 줄이면 된다. */
+   막대를 이름과 같은 줄에 둔다. 길이를 눈으로 재는 직관은 그대로 두고 자리는 절반이
+   되며, 색을 범례와 맞춰 볼 일도 없다 — 막대가 제 이름 옆에 있다. */
 .famList {
   display: flex;
   flex-direction: column;
@@ -533,9 +532,9 @@
 }
 .famRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 48px 44px;
-  align-items: baseline;
-  gap: var(--sp-3);
+  grid-template-columns: 92px minmax(0, 1fr) 46px 42px;
+  align-items: center;
+  gap: var(--sp-2);
   font-size: var(--fs-sm);
 }
 .famRow > span:first-child {
@@ -543,6 +542,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 실처럼 얇게 둔다. 이 줄에서 눈이 먼저 잡아야 하는 것은 숫자이고 막대는 그 크기를
+   가늠하는 보조선이다. 두꺼우면 열한 줄이 색면으로 덮여 정작 이름과 숫자가 뒤로 밀리고,
+   옆 패널의 글자들보다 이쪽이 먼저 읽힌다. */
+.famTrack {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.famTrack i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  opacity: 0.7;
 }
 .famRow b {
   font-family: var(--font-mono);
