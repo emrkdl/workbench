@@ -230,7 +230,6 @@ export function InsightsPage() {
                   <Link key={p.id} to={`/parts?part=${encodeURIComponent(p.id)}`} className={s.topPart}>
                     <span className={s.rank}>{i + 1}</span>
                     <span className={s.mpn}>{p.mpn_display}</span>
-                    <span className={s.maker}>{p.manufacturer ?? "—"}</span>
                     <span className={s.bar} aria-hidden="true">
                       <i style={{ width: `${(p.board_count / (d.top_parts[0]?.board_count || 1)) * 100}%` }} />
                     </span>

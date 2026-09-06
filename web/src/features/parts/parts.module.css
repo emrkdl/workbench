@@ -68,43 +68,39 @@
   padding: var(--sp-4);
 }
 
-/* ── 제조사 ────────────────────────────────── */
-.makers {
+/* ── 쓰인 보드 수 분포 ─────────────────────── */
+.spread {
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
-.maker {
+.spreadRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px auto auto;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-2);
   font-size: var(--fs-sm);
 }
-.makerName {
+.spreadLabel {
   color: var(--ink-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 막대는 수량 쪽을 그린다. 종수는 숫자로 충분하지만 수량은 자릿수가 커서 서로 몇 배인지
-   숫자만으로는 잡히지 않는다. */
-.makerBar {
+.spreadBar {
   height: 4px;
   border-radius: 2px;
   background: var(--surface-3);
   overflow: hidden;
 }
-.makerBar i {
+.spreadBar i {
   display: block;
   height: 100%;
   background: var(--accent);
 }
-.makerNum {
+.spreadNum {
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
   text-align: right;
-  min-width: 52px;
+  min-width: 44px;
 }
 
 /* ── 상세 ──────────────────────────────────── */

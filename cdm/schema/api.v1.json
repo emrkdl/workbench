@@ -267,7 +267,7 @@
       "properties": {
         "refdes": { "type": "string" },
         "part_number": { "type": ["string", "null"] },
-        "manufacturer": { "type": ["string", "null"] },
+        "manufacturer": { "type": ["string", "null"], "description": "설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 파트넘버는 설계가 들고 있지만 그것이 누구 것인지는 들고 있지 않다." },
         "value": { "type": ["string", "null"] },
         "package": { "type": "string" },
         "x_nm": { "type": "integer" },
@@ -629,7 +629,7 @@
       "required": ["id", "mpn_normalized", "mpn_display", "board_count", "total_quantity"],
       "properties": {
         "id": { "type": "string" },
-        "manufacturer": { "type": ["string", "null"] },
+        "manufacturer": { "type": ["string", "null"], "description": "설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 파트넘버는 설계가 들고 있지만 그것이 누구 것인지는 들고 있지 않다." },
         "mpn_normalized": { "type": "string", "description": "공백·하이픈·포장 접미사를 제거한 정규형." },
         "mpn_display": { "type": "string", "description": "원본 표기." },
         "description": { "type": ["string", "null"] },

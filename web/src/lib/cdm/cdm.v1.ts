@@ -167,7 +167,7 @@ export interface Component {
   refdes: string;
   /** 제조사 파트넘버(MPN). 부품 역검색과 EOL 영향 분석의 핵심 필드. */
   part_number?: string | null;
-  /** 제조사. */
+  /** 제조사. 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. */
   manufacturer?: string | null;
   /** 100nF, 10k 등 수동 소자 값. */
   value?: string | null;

@@ -174,7 +174,7 @@
       "properties": {
         "refdes": { "type": "string", "description": "R12, U3 등. 리비전 내에서 유일해야 하며 중복 시 적재를 거부한다." },
         "part_number": { "type": ["string", "null"], "description": "제조사 파트넘버(MPN). 부품 역검색과 EOL 영향 분석의 핵심 필드." },
-        "manufacturer": { "type": ["string", "null"], "description": "제조사." },
+        "manufacturer": { "type": ["string", "null"], "description": "제조사. 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다." },
         "value": { "type": ["string", "null"], "description": "100nF, 10k 등 수동 소자 값." },
         "package": { "type": "string", "description": "0402, QFN48, BGA256 등 패키지 타입." },
         "x_nm": { "type": "integer", "description": "부품 원점 X." },

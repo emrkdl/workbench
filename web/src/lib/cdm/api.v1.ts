@@ -170,6 +170,7 @@ export interface Revision {
 export interface ComponentRow {
   refdes: string;
   part_number?: string | null;
+  /** 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 파트넘버는 설계가 들고 있지만 그것이 누구 것인지는 들고 있지 않다. */
   manufacturer?: string | null;
   value?: string | null;
   package: string;
@@ -502,6 +503,7 @@ export interface RuleTrendPoint {
  */
 export interface Part {
   id: string;
+  /** 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 파트넘버는 설계가 들고 있지만 그것이 누구 것인지는 들고 있지 않다. */
   manufacturer?: string | null;
   /** 공백·하이픈·포장 접미사를 제거한 정규형. */
   mpn_normalized: string;

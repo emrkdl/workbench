@@ -102,60 +102,59 @@ class PartSpec:
     pitch_um: int | None = None
     series: str = ""
     values: tuple[str, ...] = ()
-    maker: str = ""
 
 
 
 PASSIVES = [
-    PartSpec("C", "0201", 2, series="DC021", values=("100nF", "10nF", "1nF"), maker="Delta Passives"),
-    PartSpec("C", "0402", 2, series="DC042", values=("100nF", "1uF", "10nF", "22pF", "4.7uF"), maker="Delta Passives"),
-    PartSpec("C", "0603", 2, series="DC063", values=("10uF", "1uF", "22uF", "100nF"), maker="Delta Passives"),
-    PartSpec("C", "0805", 2, series="DC085", values=("47uF", "22uF"), maker="Delta Passives"),
-    PartSpec("R", "0402", 2, series="DR042", values=("10k", "1k", "100k", "0R", "4.7k", "49R9", "22R"), maker="Delta Passives"),
-    PartSpec("R", "0603", 2, series="DR063", values=("10k", "100R", "1M", "0R"), maker="Delta Passives"),
-    PartSpec("L", "0805", 2, series="SL085", values=("2u2H", "4u7H", "10uH"), maker="Sable Electronics"),
-    PartSpec("FB", "0603", 2, series="SB063", values=("600R", "120R"), maker="Sable Electronics"),
+    PartSpec("C", "0201", 2, series="DC021", values=("100nF", "10nF", "1nF")),
+    PartSpec("C", "0402", 2, series="DC042", values=("100nF", "1uF", "10nF", "22pF", "4.7uF")),
+    PartSpec("C", "0603", 2, series="DC063", values=("10uF", "1uF", "22uF", "100nF")),
+    PartSpec("C", "0805", 2, series="DC085", values=("47uF", "22uF")),
+    PartSpec("R", "0402", 2, series="DR042", values=("10k", "1k", "100k", "0R", "4.7k", "49R9", "22R")),
+    PartSpec("R", "0603", 2, series="DR063", values=("10k", "100R", "1M", "0R")),
+    PartSpec("L", "0805", 2, series="SL085", values=("2u2H", "4u7H", "10uH")),
+    PartSpec("FB", "0603", 2, series="SB063", values=("600R", "120R")),
 ]
 
 DISCRETES = [
-    PartSpec("D", "SOD-123", 2, series="KD123", values=("SCHOTTKY", "TVS"), maker="Kestrel Components"),
-    PartSpec("D", "SOD-323", 2, series="KD323", values=("ESD",), maker="Kestrel Components"),
-    PartSpec("Q", "SOT-23", 3, series="KQ023", values=("NMOS", "PMOS"), maker="Kestrel Components"),
-    PartSpec("Q", "SOT-223", 4, series="KQ223", values=("NMOS-PWR",), maker="Kestrel Components"),
-    PartSpec("LED", "0603", 2, series="KL063", values=("GREEN", "RED"), maker="Kestrel Components"),
+    PartSpec("D", "SOD-123", 2, series="KD123", values=("SCHOTTKY", "TVS")),
+    PartSpec("D", "SOD-323", 2, series="KD323", values=("ESD",)),
+    PartSpec("Q", "SOT-23", 3, series="KQ023", values=("NMOS", "PMOS")),
+    PartSpec("Q", "SOT-223", 4, series="KQ223", values=("NMOS-PWR",)),
+    PartSpec("LED", "0603", 2, series="KL063", values=("GREEN", "RED")),
 ]
 
 SMALL_ICS = [
-    PartSpec("U", "SOIC-8", 8, 1270, series="AS08", maker="Arcadia Semi"),
-    PartSpec("U", "TSSOP-20", 20, 650, series="AS20", maker="Arcadia Semi"),
-    PartSpec("U", "QFN-24", 24, 500, series="AQ24", maker="Arcadia Semi"),
-    PartSpec("U", "QFN-32", 32, 500, series="AQ32", maker="Arcadia Semi"),
-    PartSpec("U", "QFN-48", 48, 400, series="AQ48", maker="Arcadia Semi"),
-    PartSpec("U", "LQFP-64", 64, 500, series="AL64", maker="Arcadia Semi"),
-    PartSpec("U", "LQFP-100", 100, 500, series="AL10", maker="Arcadia Semi"),
+    PartSpec("U", "SOIC-8", 8, 1270, series="AS08"),
+    PartSpec("U", "TSSOP-20", 20, 650, series="AS20"),
+    PartSpec("U", "QFN-24", 24, 500, series="AQ24"),
+    PartSpec("U", "QFN-32", 32, 500, series="AQ32"),
+    PartSpec("U", "QFN-48", 48, 400, series="AQ48"),
+    PartSpec("U", "LQFP-64", 64, 500, series="AL64"),
+    PartSpec("U", "LQFP-100", 100, 500, series="AL10"),
 ]
 #: 실제 보드의 IC 구성은 작은 쪽으로 크게 치우친다. 균등하게 뽑으면 14mm 짜리 LQFP 가
 #: 보드 면적을 먼저 다 먹고 수동 소자가 들어갈 자리가 없어진다.
 SMALL_IC_WEIGHTS = [20, 18, 20, 16, 12, 8, 6]
 
 BIG_ICS = [
-    PartSpec("U", "WLCSP-36", 36, 400, series="NW36", maker="Norsk Micro"),
-    PartSpec("U", "LFBGA-196", 196, 650, series="NB19", maker="Norsk Micro"),
-    PartSpec("U", "BGA-256", 256, 800, series="NB25", maker="Norsk Micro"),
-    PartSpec("U", "BGA-484", 484, 800, series="NB48", maker="Norsk Micro"),
-    PartSpec("U", "BGA-676", 676, 650, series="NB67", maker="Norsk Micro"),
+    PartSpec("U", "WLCSP-36", 36, 400, series="NW36"),
+    PartSpec("U", "LFBGA-196", 196, 650, series="NB19"),
+    PartSpec("U", "BGA-256", 256, 800, series="NB25"),
+    PartSpec("U", "BGA-484", 484, 800, series="NB48"),
+    PartSpec("U", "BGA-676", 676, 650, series="NB67"),
 ]
 
 CONNECTORS = [
-    PartSpec("J", "CONN-FPC-40", 40, 500, series="HC40", maker="Hyperion Devices"),
-    PartSpec("J", "CONN-B2B-60", 60, 400, series="HC60", maker="Hyperion Devices"),
-    PartSpec("J", "CONN-USB-C", 24, 800, series="HCUC", maker="Hyperion Devices"),
-    PartSpec("J", "CONN-HDR-10", 10, 2540, series="HC10", maker="Hyperion Devices"),
+    PartSpec("J", "CONN-FPC-40", 40, 500, series="HC40"),
+    PartSpec("J", "CONN-B2B-60", 60, 400, series="HC60"),
+    PartSpec("J", "CONN-USB-C", 24, 800, series="HCUC"),
+    PartSpec("J", "CONN-HDR-10", 10, 2540, series="HC10"),
 ]
 
 MISC = [
-    PartSpec("Y", "XTAL-3225", 4, series="SX32", values=("25M", "24M", "40M"), maker="Sable Electronics"),
-    PartSpec("TP", "TP-1", 1, series="", maker=""),
+    PartSpec("Y", "XTAL-3225", 4, series="SX32", values=("25M", "24M", "40M")),
+    PartSpec("TP", "TP-1", 1, series=""),
 ]
 
 #: (series, value) -> MPN. 여러 보드가 같은 부품을 실제로 공유하게 만드는 장치.
@@ -468,7 +467,9 @@ def place_components(
         out.append(Component(
             refdes=next_ref(spec.prefix),
             part_number=part_number,
-            manufacturer=spec.maker or None,
+            # 제조사는 설계 파일에 없다. 파트넘버는 있어도 그것이 누구 것인지는 구매
+            # 시스템의 부품 마스터가 붙어야 알 수 있다.
+            manufacturer=None,
             value=value,
             package=spec.package,
             x_nm=px, y_nm=py,
@@ -803,7 +804,7 @@ def derive_revision(parent: Design, rev_label: str, rng: random.Random, when: da
         bw, bh = body_size(spec.package)
         d.components.append(Component(
             refdes=refdes, part_number=mpn_for(spec, value or spec.package, rng),
-            manufacturer=spec.maker or None, value=value, package=spec.package,
+            manufacturer=None, value=value, package=spec.package,
             x_nm=x, y_nm=y, rotation_mdeg=rng.choice([0, 90_000, 180_000, 270_000]),
             side=Side.TOP if rng.random() < 0.8 else Side.BOTTOM,
             body_w_nm=bw, body_h_nm=bh,

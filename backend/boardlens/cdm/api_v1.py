@@ -187,7 +187,7 @@ class ComponentRow(BaseModel):
     side: str = Field(description="top 또는 bottom.")
     pin_count: int
     part_number: str | None = None
-    manufacturer: str | None = None
+    manufacturer: str | None = Field(default=None, description="설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 파트넘버는 설계가 들고 있지만 그것이 누구 것인지는 들고 있지 않다.")
     value: str | None = None
     pin_pitch_nm: int | None = None
     body_w_nm: int | None = Field(default=None, description="몸통 가로. 배치도가 그리는 사각형의 크기.")
@@ -561,7 +561,7 @@ class Part(BaseModel):
     mpn_display: str = Field(description="원본 표기.")
     board_count: int = Field(description="이 부품을 쓰는 보드 수.")
     total_quantity: int
-    manufacturer: str | None = None
+    manufacturer: str | None = Field(default=None, description="설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 파트넘버는 설계가 들고 있지만 그것이 누구 것인지는 들고 있지 않다.")
     description: str | None = None
     lifecycle: str | None = Field(default=None, description="active, nrnd, eol 등. 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다. 인제스트가 채우지 않은 값을 화면이 보여 주면 아는 척하는 화면이 된다.")
 

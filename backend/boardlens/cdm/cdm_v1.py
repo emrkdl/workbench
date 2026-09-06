@@ -189,7 +189,7 @@ class Component(BaseModel):
     side: Side
     pins: list[Pin] = Field(description="이 부품의 핀 목록.")
     part_number: str | None = Field(default=None, description="제조사 파트넘버(MPN). 부품 역검색과 EOL 영향 분석의 핵심 필드.")
-    manufacturer: str | None = Field(default=None, description="제조사.")
+    manufacturer: str | None = Field(default=None, description="제조사. 설계 파일에는 없는 값이라 구매 시스템의 부품 마스터가 붙기 전까지는 비어 있다.")
     value: str | None = Field(default=None, description="100nF, 10k 등 수동 소자 값.")
     body_w_nm: int | None = Field(default=None, description="부품 몸통 가로 크기(회전 전). 배치도를 그리려면 핀 좌표가 아니라 몸통 외형이 필요하고, 코트야드 간섭·배치 밀도 계산도 이 값을 쓴다. 파일에 없으면 핀 범위로 추정한다.")
     body_h_nm: int | None = Field(default=None, description="부품 몸통 세로 크기(회전 전).")

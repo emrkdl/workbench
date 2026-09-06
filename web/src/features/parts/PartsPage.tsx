@@ -15,10 +15,12 @@ import s from "./parts.module.css";
  * "이 파트넘버를 쓰는 보드를 전부 찾아라." 설계팀이 손으로 하던 일이고, 여기서는 부품
  * 마스터 조인 한 번이다.
  *
- * 수명 상태(단종·신규 비권장)는 다루지 않는다. 설계 파일에 없는 값이라 구매 시스템의
- * 부품 마스터가 붙기 전에는 알 수 없고, 모르는 것을 화면이 아는 척하면 그 화면을 믿고
- * 내린 판단이 틀린다. 그래서 아무것도 안 고른 기본 상태는 **부품 마스터가 어떻게 생겼나**
- * — 몇 종이 몇 장에 걸쳐 쓰이는지, 어느 제조사에 얼마나 기대고 있는지 — 를 보여 준다.
+ * 설계 파일이 부품에 대해 아는 것은 파트넘버와 그것이 어디에 몇 개 들어갔는지까지다.
+ * 수명 상태(단종·신규 비권장)도 제조사도 없다 — 구매 시스템의 부품 마스터가 붙어야
+ * 알 수 있는 것들이고, 모르는 것을 화면이 아는 척하면 그 화면을 믿고 내린 판단이 틀린다.
+ *
+ * 그래서 아무것도 안 고른 기본 상태는 **아는 것으로 답할 수 있는 질문** — 이 부품들을
+ * 얼마나 돌려쓰고 있나 — 을 보여 준다.
  */
 
 type Filter = "all" | "shared" | "single";
@@ -50,7 +52,7 @@ function PartDetailPanel({ partId }: { partId: string }) {
         <span className={s.detailMpn}>{part.mpn_display}</span>
       </div>
       <div className={s.detailMeta}>
-        {part.manufacturer ?? "제조사 미상"} · 정규형 <code>{part.mpn_normalized}</code>
+        정규형 <code>{part.mpn_normalized}</code>
       </div>
 
       <StatGrid cols={3}>
@@ -115,30 +117,31 @@ export function PartsPage() {
   }, [parts, filter]);
 
   /**
-   * 부품 마스터의 생김새.
+   * 얼마나 돌려쓰고 있나.
    *
-   * 두 가지만 본다. 하나는 **얼마나 돌려쓰는가** — 한 장에만 들어간 부품이 절반을
-   * 넘으면 같은 기능을 보드마다 다른 부품으로 풀고 있다는 뜻이고, 그만큼 구매·재고가
-   * 늘어난다. 다른 하나는 **어디에 기대고 있는가** — 종수와 수량은 대개 반대로 간다.
-   * 종수는 적은데 수량이 몰린 제조사가 끊기면 그 순간 모든 보드가 멈춘다.
+   * 한 장에만 들어간 부품이 절반을 넘으면 같은 기능을 보드마다 다른 부품으로 풀고
+   * 있다는 뜻이고, 그만큼 구매·재고·단종 대응이 늘어난다. 반대편 끝 — 거의 모든 보드에
+   * 들어가는 한 줌 — 은 사실상 사내 표준 부품이고, 그것 하나가 끊기면 전부가 멈춘다.
+   * 양쪽 끝이 다 보여야 어느 쪽을 손볼지 정할 수 있어서 분포로 그린다.
    */
   const shape = useMemo(() => {
-    const makers = new Map<string, { parts: number; quantity: number }>();
-    for (const p of parts) {
-      const key = p.manufacturer ?? "제조사 미상";
-      const acc = makers.get(key) ?? { parts: 0, quantity: 0 };
-      acc.parts += 1;
-      acc.quantity += p.total_quantity;
-      makers.set(key, acc);
-    }
-    const quantity = parts.reduce((sum, p) => sum + p.total_quantity, 0);
+    const spread: [string, number, number][] = [
+      ["1장", 1, 1],
+      ["2–3장", 2, 3],
+      ["4–9장", 4, 9],
+      ["10–24장", 10, 24],
+      ["25장 이상", 25, Infinity],
+    ];
+    const counted = spread.map(([label, lo, hi]) => ({
+      label,
+      count: parts.filter((p) => p.board_count >= lo && p.board_count <= hi).length,
+    }));
+    const peak = Math.max(...counted.map((b) => b.count), 1);
     return {
       shared: parts.filter((p) => p.board_count > 1).length,
       single: parts.filter((p) => p.board_count === 1).length,
-      quantity,
-      makers: [...makers.entries()]
-        .map(([name, v]) => ({ name, ...v }))
-        .sort((a, b) => b.quantity - a.quantity),
+      quantity: parts.reduce((sum, p) => sum + p.total_quantity, 0),
+      spread: counted.map((b) => ({ ...b, ratio: b.count / peak })),
     };
   }, [parts]);
 
@@ -153,14 +156,6 @@ export function PartsPage() {
         render: (p) => p.mpn_display,
         sort: (a, b) => a.mpn_display.localeCompare(b.mpn_display),
         search: (p) => `${p.mpn_display} ${p.mpn_normalized}`,
-      },
-      {
-        key: "maker",
-        header: "제조사",
-        width: "minmax(130px, 180px)",
-        render: (p) => p.manufacturer ?? "—",
-        sort: (a, b) => (a.manufacturer ?? "").localeCompare(b.manufacturer ?? ""),
-        search: (p) => p.manufacturer ?? "",
       },
       {
         key: "boards",
@@ -215,7 +210,7 @@ export function PartsPage() {
           rowKey={(p) => p.id}
           defaultSort="boards"
           defaultDesc
-          searchPlaceholder="파트넘버 · 제조사"
+          searchPlaceholder="파트넘버"
           selectedKey={selected ?? undefined}
           onRowClick={(p) => setParams({ part: p.id })}
           emptyLabel="조건에 맞는 부품이 없습니다."
@@ -241,16 +236,15 @@ export function PartsPage() {
               </StatGrid>
             </Panel>
 
-            <Panel title="제조사">
-              <div className={s.makers}>
-                {shape.makers.map((m) => (
-                  <div key={m.name} className={s.maker}>
-                    <span className={s.makerName}>{m.name}</span>
-                    <span className={s.makerBar} aria-hidden="true">
-                      <i style={{ width: `${(m.quantity / (shape.makers[0]?.quantity || 1)) * 100}%` }} />
+            <Panel title="쓰인 보드 수">
+              <div className={s.spread}>
+                {shape.spread.map((b) => (
+                  <div key={b.label} className={s.spreadRow}>
+                    <span className={s.spreadLabel}>{b.label}</span>
+                    <span className={s.spreadBar} aria-hidden="true">
+                      <i style={{ width: `${b.ratio * 100}%` }} />
                     </span>
-                    <span className={s.makerNum}>{formatCount(m.parts)}종</span>
-                    <span className={s.makerNum}>{formatCount(m.quantity)}개</span>
+                    <span className={s.spreadNum}>{formatCount(b.count)}종</span>
                   </div>
                 ))}
               </div>

@@ -59,14 +59,6 @@ export function ComponentsTab({
         search: (c) => c.package,
       },
       {
-        key: "maker",
-        header: "제조사",
-        width: "minmax(130px, 200px)",
-        render: (c) => c.manufacturer ?? "—",
-        sort: (a, b) => (a.manufacturer ?? "").localeCompare(b.manufacturer ?? ""),
-        search: (c) => c.manufacturer ?? "",
-      },
-      {
         key: "side",
         header: "면",
         width: "70px",
