@@ -305,34 +305,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           </Panel>
         </div>
 
-        {/* 제조 탭이 없어지면서 갈 곳을 잃은 DRC 지적 목록. 요약의 지적 건수 옆에
-            "무엇이 걸렸나"가 없으면 그 숫자로 할 수 있는 일이 없다. */}
-        {(detail.drc_findings?.length ?? 0) > 0 && (
-          <Panel
-            title="DRC 지적"
-            action={
-              <span style={{ fontSize: "var(--fs-xs)", color: "var(--ink-4)" }}>
-                CAD 툴이 낸 결과를 표시만 합니다 — 재실행하지 않습니다
-              </span>
-            }
-            flush
-          >
-            <div className={s.records}>
-              {detail.drc_findings!.map((f, i) => (
-                <div className={s.record} key={i}>
-                  <SeverityTag severity={f.severity} />
-                  <span className={s.recordMsg}>
-                    <b style={{ color: "var(--ink)" }}>{f.rule}</b> — {f.message}
-                    {f.refdes && <span className="mono" style={{ color: "var(--ink-4)" }}> · {f.refdes}</span>}
-                    {f.net_name && <span className="mono" style={{ color: "var(--ink-4)" }}> · {f.net_name}</span>}
-                  </span>
-                  <span className={s.recordMeta}>{f.layer_index ? `L${f.layer_index}` : ""}</span>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        )}
-
         {(detail.warnings?.length ?? 0) > 0 && (
           <Panel title="인제스트 경고" flush>
             <div className={s.records}>
