@@ -282,17 +282,14 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           <Panel title="배선">
             <Fields tight>
               <Field label="총 배선 길이">{formatRouteLength(sm.total_route_length_nm)}</Field>
-              {/* 배선에 쓸 수 있는 층이 몇인가. 10층 판이라도 신호층이 넷뿐이면 나머지는
-                  플레인이라 배선은 그 넷 위에서만 돈다 — 배선을 이야기할 때의 층수는
-                  이쪽이다. */}
-              <Field label="신호층">{sm.signal_layer_count}층</Field>
-              {/* 한 층이 얼마나 나르고 있나. 판 크기와 층수를 함께 지운 값이라 좁은 판에
-                  욱여넣었는지 넓은 판에 여유 있게 폈는지가 갈린다. */}
-              <Field label="층당 배선">
-                {formatRouteLength(sm.total_route_length_nm / Math.max(sm.signal_layer_count, 1))}
+              {/* 판 넓이로 나눈 값이라 크기가 지워진다. 총수는 큰 판이면 그냥 커지지만
+                  밀도는 얼마나 빽빽하게 뚫었는지를 말하고, 그것이 드릴 값과 배선 혼잡을
+                  가른다. 서른 장에서 16 부터 75 까지 갈린다. */}
+              <Field label="비아 밀도">
+                {(sm.via_total / Math.max(sm.area_mm2 / 100, 0.01)).toFixed(1)}개/cm²
               </Field>
-              {/* 한 넷이 층을 몇 번 갈아탔나. 총수는 판이 크면 따라 커지지만 이 값은 판
-                  크기와 무관해서, 배선이 얼마나 얽혀 돌았는지를 판끼리 견줄 수 있다. */}
+              {/* 한 넷이 층을 몇 번 갈아탔나. 이것도 판 크기와 무관해서 배선이 얼마나
+                  얽혀 돌았는지를 판끼리 견줄 수 있다. */}
               <Field label="넷당 비아">{(sm.via_total / Math.max(sm.net_count, 1)).toFixed(1)}개</Field>
               {/* 한 넷이 평균 얼마나 멀리 도는가. 넷이 적어도 길게 돌아가는 판이 있고
                   그 반대도 있어서, 총 길이만으로는 어느 쪽인지 알 수 없다. */}
