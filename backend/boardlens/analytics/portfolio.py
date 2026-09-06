@@ -1,7 +1,7 @@
 """포트폴리오 통계.
 
 보드 하나를 볼 때는 안 보이고 수백 장이 쌓여야 보이는 것들 — 세대가 지나며 설계 룰이
-얼마나 미세화됐는지, 부품 표준화가 되고 있는지, 복잡도가 어디에 몰려 있는지.
+얼마나 미세화됐는지, 부품 표준화가 되고 있는지, 판이 얼마나 빽빽해졌는지.
 
 리비전 요약(RevisionSummary)만 읽는다. 원본 테이블을 건드리지 않으므로 보드가 수천 장이
 되어도 이 집계는 값싸게 유지된다.
@@ -30,12 +30,14 @@ AREA_BUCKETS: list[tuple[str, float, float]] = [
     ("200 cm² 이상", 20_000, float("inf")),
 ]
 
-COMPLEXITY_BUCKETS: list[tuple[str, float, float]] = [
-    ("0–20", 0, 20),
-    ("20–35", 20, 35),
-    ("35–50", 35, 50),
-    ("50–65", 50, 65),
-    ("65 이상", 65, float("inf")),
+# 실장률 — 부품 몸통이 기판을 덮은 비율. 구간은 10%씩 고르게 자른다. 몰린 구간만
+# 잘게 쪼개면 막대 높이가 구간 너비를 반영하지 않아 분포가 실제보다 평평해 보인다.
+MOUNT_BUCKETS: list[tuple[str, float, float]] = [
+    ("~30%", 0, 30),
+    ("30–40%", 30, 40),
+    ("40–50%", 40, 50),
+    ("50–60%", 50, 60),
+    ("60% 이상", 60, float("inf")),
 ]
 
 
@@ -102,7 +104,7 @@ def build(
         by_year=by_year,
         layer_histogram=dict(sorted(Counter(str(r.summary.layer_count) for r in revisions).items(), key=lambda kv: int(kv[0]))),
         area_buckets=_bucketize([r.summary.area_mm2 for r in revisions], AREA_BUCKETS),
-        complexity_buckets=_bucketize([r.summary.complexity_score for r in revisions], COMPLEXITY_BUCKETS),
+        mount_buckets=_bucketize([r.summary.mount_ratio_pct for r in revisions], MOUNT_BUCKETS),
         rule_trend=rule_trend,
         top_parts=top_parts,
     )

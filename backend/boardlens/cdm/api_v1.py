@@ -584,7 +584,7 @@ class PortfolioStats(BaseModel):
     by_year: list[YearCount]
     layer_histogram: dict[str, int]
     area_buckets: list[Bucket]
-    complexity_buckets: list[Bucket]
+    mount_buckets: list[Bucket] = Field(description="실장률 구간별 리비전 수. 부품 몸통이 기판을 덮은 비율이라 '자리가 얼마나 남았나'를 포트폴리오 단위로 본다.")
     rule_trend: list[RuleTrendPoint]
     top_parts: list[Part]
 

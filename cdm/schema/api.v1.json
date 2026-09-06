@@ -580,7 +580,7 @@
       "required": [
         "generated_at", "board_count", "revision_count", "component_total", "net_total",
         "part_count", "reused_part_count", "reuse_ratio",
-        "by_year", "layer_histogram", "area_buckets", "complexity_buckets", "rule_trend", "top_parts"
+        "by_year", "layer_histogram", "area_buckets", "mount_buckets", "rule_trend", "top_parts"
       ],
       "properties": {
         "generated_at": { "type": "string" },
@@ -594,7 +594,7 @@
         "by_year": { "type": "array", "items": { "$ref": "#/$defs/YearCount" } },
         "layer_histogram": { "type": "object", "additionalProperties": { "type": "integer" } },
         "area_buckets": { "type": "array", "items": { "$ref": "#/$defs/Bucket" } },
-        "complexity_buckets": { "type": "array", "items": { "$ref": "#/$defs/Bucket" } },
+        "mount_buckets": { "type": "array", "items": { "$ref": "#/$defs/Bucket" }, "description": "실장률 구간별 리비전 수. 부품 몸통이 기판을 덮은 비율이라 \"자리가 얼마나 남았나\"를 포트폴리오 단위로 본다." },
         "rule_trend": { "type": "array", "items": { "$ref": "#/$defs/RuleTrendPoint" } },
         "top_parts": { "type": "array", "items": { "$ref": "#/$defs/Part" } }
       }

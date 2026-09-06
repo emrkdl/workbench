@@ -1,23 +1,52 @@
+/* 카탈로그와 같은 뼈대다 — 왼쪽에 필터, 오른쪽에 결과. 두 화면이 같은 보드 목록을
+   다르게 읽는 것이라 골격까지 같아야 오가는 사람이 다시 익히지 않는다. */
 .page {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: var(--facet-w) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
 .head {
+  grid-column: 1 / -1;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--sp-3);
   flex-wrap: wrap;
   padding: var(--sp-4) var(--sp-5);
   border-bottom: 1px solid var(--line);
   background: var(--surface);
-  flex: none;
 }
 .title {
   font-size: var(--fs-lg);
   font-weight: 600;
   letter-spacing: -0.015em;
+}
+.resultCount {
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.resultCount b {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.headSpacer {
+  flex: 1;
+}
+.search {
+  width: 260px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  font-size: var(--fs-base);
+}
+
+/* 걸러낸 목록이 아니라 전체에서 낸 값이라고 적어 두는 자리. */
+.scope {
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
 }
 .body {
   overflow-y: auto;

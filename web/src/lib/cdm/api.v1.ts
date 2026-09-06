@@ -533,7 +533,8 @@ export interface PortfolioStats {
   by_year: YearCount[];
   layer_histogram: Record<string, number>;
   area_buckets: Bucket[];
-  complexity_buckets: Bucket[];
+  /** 실장률 구간별 리비전 수. 부품 몸통이 기판을 덮은 비율이라 "자리가 얼마나 남았나"를 포트폴리오 단위로 본다. */
+  mount_buckets: Bucket[];
   rule_trend: RuleTrendPoint[];
   top_parts: Part[];
 }
