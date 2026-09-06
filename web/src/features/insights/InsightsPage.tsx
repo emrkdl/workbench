@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchCatalog, fetchInsights } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
 import { ErrorState, Loading, Panel, Stat, StatGrid } from "@/components/ui";
-import { formatCount, toUm } from "@/lib/units";
+import { formatCount, toMm } from "@/lib/units";
 import { revisionPath } from "@/lib/routes";
 import { BarChart, LineChart, type Series } from "./charts";
 import { AXES, DEFAULT_WEIGHTS, findSimilar, type Weights } from "./similar";
@@ -38,8 +38,8 @@ export function InsightsPage() {
 
   const ruleYears = d.rule_trend.map((t) => String(t.year));
   const traceSeries: Series[] = [
-    { key: "trace", label: "최소 선폭", color: S1, values: d.rule_trend.map((t) => toUm(t.min_trace_width_nm)), format: (v) => `${v.toFixed(0)} µm` },
-    { key: "drill", label: "최소 드릴", color: S2, values: d.rule_trend.map((t) => toUm(t.min_drill_nm)), format: (v) => `${v.toFixed(0)} µm` },
+    { key: "trace", label: "최소 선폭", color: S1, values: d.rule_trend.map((t) => toMm(t.min_trace_width_nm)), format: (v) => `${v.toFixed(3)} mm` },
+    { key: "drill", label: "최소 드릴", color: S2, values: d.rule_trend.map((t) => toMm(t.min_drill_nm)), format: (v) => `${v.toFixed(3)} mm` },
   ];
   const pitchPoints = d.rule_trend.filter((t) => t.min_bga_pitch_nm);
   const pitchSeries: Series[] = [
@@ -47,8 +47,8 @@ export function InsightsPage() {
       key: "pitch",
       label: "BGA 최소 피치",
       color: S1,
-      values: pitchPoints.map((t) => toUm(t.min_bga_pitch_nm!)),
-      format: (v) => `${v.toFixed(0)} µm`,
+      values: pitchPoints.map((t) => toMm(t.min_bga_pitch_nm!)),
+      format: (v) => `${v.toFixed(3)} mm`,
     },
   ];
 

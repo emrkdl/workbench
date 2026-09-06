@@ -315,8 +315,8 @@ export function ComparePage() {
               onChange={(e) => setThresholdUm(THRESHOLDS_UM[Number(e.target.value)]!)}
               aria-label="이동 임계값"
             />
-            {/* 눈금이 10 µm 에서 1 mm 까지 걸쳐 있는데 도중에 단위가 바뀌면, 손잡이를
-                끌면서 숫자가 250 에서 500 으로 갔다가 갑자기 1 이 된다. 한 자로만 읽는다. */}
+            {/* 손잡이를 끄는 동안 숫자가 한 자로만 이어져야 한다 — 도중에 단위가 바뀌면
+                250 에서 500 으로 갔다가 갑자기 1 이 되어 눈금을 다시 읽게 된다. */}
             <span className={s.thresholdValue}>{(thresholdUm / 1000).toFixed(3)} mm</span>
           </label>
         )}
@@ -396,7 +396,7 @@ export function ComparePage() {
                     <Stat
                       label="부품 이동"
                       value={formatCount(compCounts.moved ?? 0)}
-                      hint={`${thresholdUm >= 1000 ? `${thresholdUm / 1000} mm` : `${thresholdUm} µm`} 이상`}
+                      hint={`${(thresholdUm / 1000).toFixed(3)} mm 이상`}
                     />
                     <Stat label="부품 치환" value={formatCount(st.components_replaced)} hint="파트넘버 변경" />
                     <Stat label="넷 추가" value={formatCount(st.nets_added)} />

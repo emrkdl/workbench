@@ -238,7 +238,7 @@ export function FacetPanel({ filters, facets, onChange }: Props) {
                 aria-pressed={on}
                 onClick={() => onChange({ ...filters, traceMaxUm: on ? null : um })}
               >
-                ≤ {um} µm
+                ≤ {(um / 1000).toFixed(3)} mm
               </button>
             );
           })}

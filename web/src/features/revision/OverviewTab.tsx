@@ -156,7 +156,7 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
     ),
   ]
     .sort((a, b) => a - b)
-    .map((v) => `${v} µm`)
+    .map((v) => `${(v / 1000).toFixed(3)} mm`)
     .join(" · ");
 
   /** 가장 나중 리비전. 지금 보고 있는 것이 옛 리비전일 수 있으므로 따로 찾는다. */
@@ -294,7 +294,7 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
                   밀도는 얼마나 빽빽하게 뚫었는지를 말하고, 그것이 드릴 값과 배선 혼잡을
                   가른다. 서른 장에서 16 부터 75 까지 갈린다. */}
               <Field label="비아 밀도">
-                {(sm.via_total / Math.max(sm.area_mm2 / 100, 0.01)).toFixed(1)}개/cm²
+                {(sm.via_total / Math.max(sm.area_mm2, 0.01)).toFixed(2)}개/mm²
               </Field>
             </Fields>
           </Panel>

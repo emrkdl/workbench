@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import type { ComponentRow, NetRow, RevisionDetail } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Tag } from "@/components/ui";
-import { formatCoarse, formatCount, formatRouteLength, toDeg } from "@/lib/units";
+import { formatCoarse, formatCount, formatFine, formatRouteLength, toDeg } from "@/lib/units";
 import { revisionPath } from "@/lib/routes";
 
 /**
@@ -112,7 +112,7 @@ export function ComponentsTab({
         header: "피치",
         width: "80px",
         align: "right",
-        render: (c) => (c.pin_pitch_nm ? `${Math.round(c.pin_pitch_nm / 1000)} µm` : "—"),
+        render: (c) => (c.pin_pitch_nm ? formatFine(c.pin_pitch_nm) : "—"),
         sort: (a, b) => (a.pin_pitch_nm ?? 0) - (b.pin_pitch_nm ?? 0),
       },
     ],
@@ -211,7 +211,7 @@ export function NetsTab({ detail }: { detail: RevisionDetail }) {
         header: "선폭",
         width: "80px",
         align: "right",
-        render: (n) => (n.width_nm ? `${Math.round(n.width_nm / 1000)} µm` : "—"),
+        render: (n) => (n.width_nm ? formatFine(n.width_nm) : "—"),
         sort: (a, b) => (a.width_nm ?? 0) - (b.width_nm ?? 0),
       },
       {

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { RevisionDetail, StackupLayer } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { Panel } from "@/components/ui";
-import { formatFine, toUm } from "@/lib/units";
+import { formatFine, toMm } from "@/lib/units";
 import { conductorNumbers, isConductor, ROLE_COLOR, ROLE_LABEL, ROLE_ON_DARK } from "./layers";
 import s from "./revision.module.css";
 
@@ -45,7 +45,7 @@ function CrossSection({
           >
             <span className={s.sectionName}>{isConductor(l) ? `L${numbers.get(l.index)}` : l.name}</span>
             {height >= 18 && <span>{ROLE_LABEL[l.role]}</span>}
-            <span className={s.sectionMeta}>{toUm(l.thickness_nm).toFixed(0)} µm</span>
+            <span className={s.sectionMeta}>{toMm(l.thickness_nm).toFixed(3)} mm</span>
           </div>
         );
       })}
@@ -127,7 +127,7 @@ export function StackupTab({ detail }: { detail: RevisionDetail }) {
         header: "동박",
         width: "76px",
         align: "right",
-        render: (l) => (l.copper_weight_um ? `${l.copper_weight_um} µm` : "—"),
+        render: (l) => (l.copper_weight_um ? `${(l.copper_weight_um / 1000).toFixed(3)} mm` : "—"),
       },
       {
         key: "ratio",
