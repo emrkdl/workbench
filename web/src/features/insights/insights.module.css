@@ -19,11 +19,6 @@
   font-weight: 600;
   letter-spacing: -0.015em;
 }
-.sub {
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-
 .body {
   overflow-y: auto;
   min-height: 0;

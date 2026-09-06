@@ -56,9 +56,6 @@ export function InsightsPage() {
     <div className={s.page}>
       <header className={s.head}>
         <h1 className={s.title}>인사이트</h1>
-        <span className={s.sub}>
-          보드 하나를 볼 때는 안 보이고 수십 장이 쌓여야 보이는 것들. 집계 {d.generated_at.slice(0, 10)}
-        </span>
       </header>
 
       <div className={s.body}>
@@ -75,10 +72,6 @@ export function InsightsPage() {
             />
             <Stat label="누적 부품" value={formatCount(d.component_total)} hint={`넷 ${formatCount(d.net_total)}`} />
           </StatGrid>
-          <p className={s.note}>
-            재사용률은 설계 표준화 수준의 대리 지표입니다. 낮으면 같은 기능을 보드마다 다른 부품으로 풀고 있다는
-            뜻이고, 그만큼 구매·재고·단종 대응 비용이 늘어납니다.
-          </p>
         </Panel>
 
         <div className={s.grid2}>
@@ -121,9 +114,6 @@ export function InsightsPage() {
         <div className={s.grid2}>
           <Panel title="설계 룰 추세">
             <LineChart labels={ruleYears} series={traceSeries} caption="연도별 최소 선폭과 최소 드릴의 중앙값" />
-            <p className={s.note}>
-              연도별 <b>중앙값</b>입니다. 평균으로 보면 전원 보드 한 장이 섞였을 때 추세가 통째로 끌려갑니다.
-            </p>
           </Panel>
           <Panel title="BGA 최소 피치 추세">
             {pitchPoints.length ? (
@@ -135,10 +125,6 @@ export function InsightsPage() {
             ) : (
               <p className={s.note}>BGA 를 쓴 리비전이 없습니다.</p>
             )}
-            <p className={s.note}>
-              선폭·드릴과 크기가 한 자릿수 달라 차트를 나눴습니다. 축 하나에 겹쳐 그리면 둘 중 하나는 바닥에 붙어
-              추세가 보이지 않습니다.
-            </p>
           </Panel>
         </div>
 
@@ -196,11 +182,6 @@ export function InsightsPage() {
               ))}
             </div>
           </div>
-
-          <p className={s.note}>
-            무엇을 &lsquo;비슷하다&rsquo;고 볼지는 설계자마다 다릅니다. 학습 모델이 아니라 가중 거리로 둔 이유이고,
-            그래서 가중치를 직접 만질 수 있습니다.
-          </p>
 
           <div className={s.similarList}>
             {similar.map((x) => (
