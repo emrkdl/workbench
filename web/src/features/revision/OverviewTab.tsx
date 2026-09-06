@@ -1,6 +1,6 @@
 import type { ComponentRow, LayerRole, RevisionDetail, StackupLayer } from "@/lib/cdm";
 import { bodySize, css as familyCss, FAMILIES, familyOf, type FamilyKey } from "@/lib/families";
-import { Bar, Field, Fields, Panel, SeverityTag, Stat, StatGrid } from "@/components/ui";
+import { Field, Fields, Panel, Stat, StatGrid } from "@/components/ui";
 import { BoardFigure } from "@/components/BoardFigure";
 import {
   formatArea,
@@ -165,11 +165,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
     null,
   );
 
-  const sideSlices = [
-    { label: "Top", value: sm.component_top_count, color: "var(--accent)" },
-    { label: "Bottom", value: sm.component_bottom_count, color: "var(--info)" },
-  ].filter((x) => x.value > 0);
-
   return (
     <div className={s.overview}>
       <div className={s.col}>
@@ -305,21 +300,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
           </Panel>
         </div>
 
-        {(detail.warnings?.length ?? 0) > 0 && (
-          <Panel title="인제스트 경고" flush>
-            <div className={s.records}>
-              {detail.warnings!.map((w, i) => (
-                <div className={s.record} key={i}>
-                  <SeverityTag severity={w.severity} />
-                  <span className={s.recordMsg}>
-                    {w.message} <span className="mono" style={{ color: "var(--ink-4)" }}>({w.code})</span>
-                  </span>
-                  <span className={s.recordMeta}>{w.count}건</span>
-                </div>
-              ))}
-            </div>
-          </Panel>
-        )}
       </div>
 
       <div className={s.col}>
@@ -342,7 +322,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
             label="전체"
             value={sm.mount_ratio_pct.toFixed(1)}
             unit="%"
-            hint="부품 몸통이 기판을 덮는 비율"
           />
           {/* 막대의 전체 길이가 기판 면적이다. 두 조각의 합이 실장률이고 남는 자리가 빈 면적 —
               분모가 양면 다 같은 기판이라 TOP 과 BOTTOM 을 그대로 이어 붙일 수 있다. */}
@@ -369,14 +348,7 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
               BOTTOM <b className="tnum">{sm.mount_ratio_bottom_pct.toFixed(1)}%</b>
               <em>{formatCount(sm.component_bottom_count)}개</em>
             </span>
-            <span className={s.mountFree}>
-              빈 자리 <b className="tnum">{Math.max(100 - sm.mount_ratio_pct, 0).toFixed(1)}%</b>
-            </span>
           </div>
-        </Panel>
-
-        <Panel title="부품 배치 면">
-          <Bar slices={sideSlices} />
         </Panel>
 
         <Panel title="층 구성">
