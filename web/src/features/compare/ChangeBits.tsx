@@ -31,19 +31,24 @@ export const KindBadge = ({ kind }: { kind: ChangeKind }) => (
   <span className={`${s.kind} ${KIND_CLASS[kind]}`}>{KIND_LABEL[kind]}</span>
 );
 
-/** 변경 종류 필터. 0건인 종류는 눌러도 소용없으므로 비활성으로 둔다. */
-export function KindFilter({
+/**
+ * 변경 종류 필터. 0건인 종류는 눌러도 소용없으므로 아예 내보내지 않는다.
+ *
+ * 열쇠 종류를 밖에서 정한다 — 부품은 CDM 의 ChangeKind 를 다 쓰지만 넷은 그중 네 갈래만
+ * 쓴다. 두 표가 같은 생김새의 필터를 쓰되 세는 것은 다르다.
+ */
+export function KindFilter<K extends ChangeKind>({
   counts,
   selected,
   onChange,
   total,
 }: {
-  counts: Partial<Record<ChangeKind, number>>;
-  selected: ChangeKind | null;
-  onChange: (kind: ChangeKind | null) => void;
+  counts: Partial<Record<K, number>>;
+  selected: K | null;
+  onChange: (kind: K | null) => void;
   total: number;
 }) {
-  const kinds = (Object.keys(counts) as ChangeKind[]).filter((k) => counts[k]);
+  const kinds = (Object.keys(counts) as K[]).filter((k) => counts[k]);
   return (
     <div className={s.filters}>
       <button

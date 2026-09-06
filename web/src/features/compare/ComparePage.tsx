@@ -15,6 +15,27 @@ type Tab = "summary" | "components" | "nets" | "stackup";
 
 const THRESHOLDS_UM = [10, 25, 50, 100, 250, 500, 1000];
 
+/**
+ * 넷이 어떻게 달라졌나.
+ *
+ * CDM 은 넷의 변경을 added·removed·renamed·rewired 넷으로만 나눈다. 그중 rewired 는
+ * "회로가 달라졌다" 는 말이라 너무 넓다 — 핀 하나가 붙은 것과 열 개가 갈린 것이 같은
+ * 이름으로 묶인다. 부품 쪽이 추가·삭제·이동·회전으로 갈라 부르는 만큼은 나눠야 한다.
+ *
+ * 그래서 붙은 핀과 떨어진 핀을 보고 다시 가른다. 이름은 부품 표에서 쓰는 말을 그대로
+ * 쓴다 — 두 표를 오가며 같은 낱말을 다시 배우지 않아도 된다.
+ */
+type NetKind = Extract<ChangeKind, "added" | "removed" | "renamed" | "replaced">;
+
+function netKindOf(n: NetChange): NetKind {
+  if (n.kind === "added" || n.kind === "removed" || n.kind === "renamed") return n.kind;
+  const added = n.pins_added?.length ?? 0;
+  const removed = n.pins_removed?.length ?? 0;
+  if (added && !removed) return "added";
+  if (removed && !added) return "removed";
+  return "replaced";
+}
+
 const VIA_KIND_LABEL: Record<string, string> = {
   through: "관통",
   blind: "블라인드",
@@ -169,8 +190,8 @@ function netColumns(): Column<NetChange>[] {
       key: "kind",
       header: "변경",
       width: "104px",
-      render: (n) => <KindBadge kind={n.kind} />,
-      sort: (a, b) => a.kind.localeCompare(b.kind),
+      render: (n) => <KindBadge kind={netKindOf(n)} />,
+      sort: (a, b) => netKindOf(a).localeCompare(netKindOf(b)),
     },
     {
       key: "pins",
@@ -227,7 +248,7 @@ export function ComparePage() {
   }, { replace: true });
   const [thresholdUm, setThresholdUm] = useState(10);
   const [compKind, setCompKind] = useState<ChangeKind | null>(null);
-  const [netKind, setNetKind] = useState<ChangeKind | null>(null);
+  const [netKind, setNetKind] = useState<NetKind | null>(null);
   // 기본은 나란히 보기. 겹쳐보기는 미세한 이동을 확인할 때 쓰는 옵션이다.
   // 탭과 마찬가지로 URL 에 둔다 — "이 겹쳐보기 좀 봐 주세요"를 링크로 보낼 수 있어야 한다.
   const boardView = (params.get("boards") ?? "side") as CompareView;
@@ -318,13 +339,16 @@ export function ComparePage() {
   }, [components]);
 
   const netCounts = useMemo(() => {
-    const out: Partial<Record<ChangeKind, number>> = {};
-    for (const n of nets) out[n.kind] = (out[n.kind] ?? 0) + 1;
+    const out: Partial<Record<NetKind, number>> = {};
+    for (const n of nets) {
+      const k = netKindOf(n);
+      out[k] = (out[k] ?? 0) + 1;
+    }
     return out;
   }, [nets]);
 
   const shownComponents = compKind ? components.filter((c) => c.kind === compKind) : components;
-  const shownNets = netKind ? nets.filter((n) => n.kind === netKind) : nets;
+  const shownNets = netKind ? nets.filter((n) => netKindOf(n) === netKind) : nets;
   const compCols = useMemo(() => componentColumns("mm"), []);
   const netCols = useMemo(netColumns, []);
 
@@ -573,7 +597,14 @@ export function ComparePage() {
                   defaultSort="pins"
                   defaultDesc
                   searchPlaceholder="넷 이름"
-                  toolbarExtra={<KindFilter counts={netCounts} selected={netKind} onChange={setNetKind} total={nets.length} />}
+                  toolbarExtra={
+                    <KindFilter
+                      counts={netCounts}
+                      selected={netKind}
+                      onChange={setNetKind}
+                      total={nets.length}
+                    />
+                  }
                   emptyLabel="이 조건에서 달라진 넷이 없습니다."
                 />
               </div>
