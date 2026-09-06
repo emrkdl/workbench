@@ -196,10 +196,7 @@ function netColumns(): Column<NetChange>[] {
     {
       key: "pins",
       header: "핀 변화",
-      /* 남는 폭은 여기서 받되 내용을 오른쪽에 붙인다. 빈 자리가 왼쪽에 한 번만 생기고,
-         핀 셋(변화·증감·길이)은 서로 닿은 채로 선다. */
-      width: "minmax(200px, 1fr)",
-      align: "right",
+      width: "minmax(200px, 272px)",
       render: (n) => <PinList added={n.pins_added} removed={n.pins_removed} />,
       sort: (a, b) =>
         (a.pins_added?.length ?? 0) + (a.pins_removed?.length ?? 0) -
@@ -222,7 +219,6 @@ function netColumns(): Column<NetChange>[] {
     {
       key: "length",
       header: "배선 길이 변화",
-      /* 마지막 칸을 넓히면 오른쪽 무리 전체가 그만큼 왼쪽으로 당겨진다. */
       width: "168px",
       align: "right",
       render: (n) => {
@@ -232,6 +228,9 @@ function netColumns(): Column<NetChange>[] {
       },
       sort: (a, b) => (a.length_delta_nm ?? 0) - (b.length_delta_nm ?? 0),
     },
+    /* 남는 폭을 받아 두는 빈 칸. 어느 칸에 1fr 을 주든 그 뒤의 칸들이 통째로 오른쪽
+       끝까지 밀려나는데, 맨 끝에서 받으면 칸들이 왼쪽에서부터 나란히 붙어 선다. */
+    { key: "pad", header: "", width: "minmax(0, 1fr)", render: () => null },
   ];
 }
 
