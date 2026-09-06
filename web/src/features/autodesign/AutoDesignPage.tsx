@@ -121,7 +121,7 @@ export function AutoDesignPage() {
     // 파서가 붙기 전까지는 둘 중 하나면 된다 — 올린 파일이거나, 대신 볼 판이거나.
     // 파일만 요구하면 열지도 못할 파일을 올려야 화면을 볼 수 있는 꼴이 된다.
     if (!spec.source.files.length && !spec.previewRevisionId)
-      out.push("설계 파일을 올리거나, 맨 위에서 ‘대신 볼 판’ 을 고르세요.");
+      out.push("HKP 파일을 추가해 주세요.");
     if (spec.reference.enabled && spec.reference.revisionIds.length === 0)
       out.push("과거 설계를 참조하기로 했는데 참조할 보드를 고르지 않았습니다.");
     if (!spec.modes.place && !spec.modes.route) out.push("배치와 배선 중 적어도 하나는 맡겨야 합니다.");
@@ -375,12 +375,6 @@ export function AutoDesignPage() {
               {job.status === "stopped" && (
                 <p className={s.stoppedNote}>중간에 멈췄습니다. 결과는 남지 않습니다.</p>
               )}
-
-              <p className={s.hint}>
-                배치·배선 엔진은 아직 붙지 않아 지금 실행은 <b>예행</b>입니다 — 시간만 흐르고
-                판은 달라지지 않습니다. 엔진이 붙으면 진행률의 출처만 바뀌고 이 화면은
-                그대로입니다.
-              </p>
             </Panel>
 
             {/* 넘길 값은 조건 탭의 것이다. 결과를 보는 자리에 요청서 원문까지 두면

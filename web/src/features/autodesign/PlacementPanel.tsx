@@ -188,12 +188,7 @@ export function PlacementPanel({
   if (!detail) {
     return (
       <Panel title="자동 배치">
-        <p className={s.hint}>
-          올린 HKP 는 <b>파서가 붙기 전까지 열어 볼 수 없어</b> 부품 목록이 나오지 않습니다.
-          화면 맨 위의 <b>대신 볼 판</b>에서 이미 들어와 있는 리비전을 고르면 그 판의 부품
-          목록으로 배치 조건을 짜 보고 결과 화면까지 확인할 수 있습니다 — 파서가 붙으면
-          이 자리는 사라집니다.
-        </p>
+        <p className={s.hint}>HKP 파일을 추가하면 활성화됩니다.</p>
       </Panel>
     );
   }
