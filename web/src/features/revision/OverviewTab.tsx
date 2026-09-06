@@ -353,10 +353,6 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
 
         <Panel title="층 구성">
           <LayerStack stackup={detail.stackup} />
-          <p className={s.stackNote}>
-            층별로 어떤 넷이 얼마나 지나가는지는 아직 세어 두지 않았습니다. 지금 말할 수
-            있는 것은 쌓인 순서와 층의 역할까지입니다.
-          </p>
         </Panel>
       </div>
     </div>

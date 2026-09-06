@@ -473,12 +473,6 @@
   font-size: 10px;
   font-weight: 600;
 }
-.stackNote {
-  margin-top: var(--sp-3);
-  font-size: var(--fs-xs);
-  line-height: 1.6;
-  color: var(--ink-4);
-}
 
 /* ── 식별 ──────────────────────────────────
    왼쪽은 이번 리비전에서 무엇을 고쳤나, 오른쪽은 이 판이 무엇인가. 고친 내용을 먼저
