@@ -280,24 +280,27 @@ export function OverviewTab({ detail }: { detail: RevisionDetail }) {
             <FamilyBreakdown components={detail.components} />
           </Panel>
           <Panel title="배선">
+            {/* 총량에서 시작해 한 넷의 몫으로 내려가고, 무엇을 나르는 넷인지로 옮겼다가,
+                마지막에 판 전체를 다시 넓이로 본다. 큰 데서 작은 데로 갔다가 다시 큰
+                데로 — 읽는 눈이 한 방향으로 흐른다. */}
             <Fields tight>
               <Field label="총 배선 길이">{formatRouteLength(sm.total_route_length_nm)}</Field>
+              {/* 한 넷이 평균 얼마나 멀리 도는가. 넷이 적어도 길게 돌아가는 판이 있고
+                  그 반대도 있어서, 총 길이만으로는 어느 쪽인지 알 수 없다. */}
+              <Field label="넷당 길이">
+                {formatRouteLength(sm.total_route_length_nm / Math.max(sm.net_count, 1))}
+              </Field>
+              {/* 한 넷이 층을 몇 번 갈아탔나. 판 크기와 무관해서 배선이 얼마나 얽혀
+                  돌았는지를 판끼리 견줄 수 있다. */}
+              <Field label="넷당 비아">{(sm.via_total / Math.max(sm.net_count, 1)).toFixed(1)}개</Field>
+              <Field label="차동쌍">{sm.diff_pair_count}쌍</Field>
+              <Field label="전원 넷">{sm.power_net_count}개</Field>
               {/* 판 넓이로 나눈 값이라 크기가 지워진다. 총수는 큰 판이면 그냥 커지지만
                   밀도는 얼마나 빽빽하게 뚫었는지를 말하고, 그것이 드릴 값과 배선 혼잡을
                   가른다. 서른 장에서 16 부터 75 까지 갈린다. */}
               <Field label="비아 밀도">
                 {(sm.via_total / Math.max(sm.area_mm2 / 100, 0.01)).toFixed(1)}개/cm²
               </Field>
-              {/* 한 넷이 층을 몇 번 갈아탔나. 이것도 판 크기와 무관해서 배선이 얼마나
-                  얽혀 돌았는지를 판끼리 견줄 수 있다. */}
-              <Field label="넷당 비아">{(sm.via_total / Math.max(sm.net_count, 1)).toFixed(1)}개</Field>
-              {/* 한 넷이 평균 얼마나 멀리 도는가. 넷이 적어도 길게 돌아가는 판이 있고
-                  그 반대도 있어서, 총 길이만으로는 어느 쪽인지 알 수 없다. */}
-              <Field label="넷당 길이">
-                {formatRouteLength(sm.total_route_length_nm / Math.max(sm.net_count, 1))}
-              </Field>
-              <Field label="차동쌍">{sm.diff_pair_count}쌍</Field>
-              <Field label="전원 넷">{sm.power_net_count}개</Field>
             </Fields>
           </Panel>
         </div>
