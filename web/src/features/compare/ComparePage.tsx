@@ -5,7 +5,7 @@ import { useAsync } from "@/lib/useAsync";
 import type { ChangeKind, ComponentChange, NetChange, RevisionDetail } from "@/lib/cdm";
 import { DataTable, type Column } from "@/components/DataTable";
 import { EmptyState, ErrorState, Loading, Panel, Stat, StatGrid } from "@/components/ui";
-import { formatCoarse, formatCount, formatRouteLength, toDeg, toMm, NM_PER_UM } from "@/lib/units";
+import { formatCoarse, formatCount, formatFine, formatRouteLength, toDeg, toMm, NM_PER_UM } from "@/lib/units";
 import { CompareBoards, type CompareView } from "./CompareBoards";
 import { FieldDiffList, KindBadge, KindFilter, PinList } from "./ChangeBits";
 import { PairPicker, RecentPairs, useRecentPairs } from "./PairPicker";
@@ -14,6 +14,46 @@ import s from "./compare.module.css";
 type Tab = "summary" | "components" | "nets" | "stackup";
 
 const THRESHOLDS_UM = [10, 25, 50, 100, 250, 500, 1000];
+
+const VIA_KIND_LABEL: Record<string, string> = {
+  through: "관통",
+  blind: "블라인드",
+  buried: "베리드",
+  micro: "마이크로",
+};
+
+/**
+ * 비아 스택 비교.
+ *
+ * 판이 어떤 비아를 쓸 수 있느냐는 층 구조 다음으로 큰 갈림이다. 관통만 뚫던 판에
+ * 마이크로가 들어오면 HDI 공정이 붙고 값과 납기가 통째로 달라진다.
+ *
+ * 같은 종류라도 층 구간이 다르면 다른 스택이다 — L1–L10 관통과 L1–L4 관통은 뚫는
+ * 깊이도 종횡비도 다르다. 그래서 종류와 구간을 함께 열쇠로 삼는다.
+ */
+function viaRows(a: RevisionDetail | null, b: RevisionDetail | null) {
+  const key = (v: { kind: string; from_layer: number; to_layer: number }) =>
+    `${v.kind}:${v.from_layer}-${v.to_layer}`;
+  const mapA = new Map((a?.vias ?? []).map((v) => [key(v), v]));
+  const mapB = new Map((b?.vias ?? []).map((v) => [key(v), v]));
+
+  return [...new Set([...mapA.keys(), ...mapB.keys()])]
+    .map((k) => {
+      const va = mapA.get(k) ?? null;
+      const vb = mapB.get(k) ?? null;
+      const spec = vb ?? va!;
+      return {
+        key: k,
+        kind: VIA_KIND_LABEL[spec.kind] ?? spec.kind,
+        span: `L${spec.from_layer}–L${spec.to_layer}`,
+        drill: spec.drill_nm,
+        countA: va?.count ?? 0,
+        countB: vb?.count ?? 0,
+        change: !va ? ("added" as const) : !vb ? ("removed" as const) : null,
+      };
+    })
+    .sort((x, y) => y.countB + y.countA - (x.countB + x.countA));
+}
 
 /** 늘었나 줄었나. 0 은 부호 없이 그냥 0 이다 — "+0" 은 변한 것처럼 읽힌다. */
 const signed = (n: number) => (n === 0 ? "0" : `${n > 0 ? "+" : "−"}${formatCount(Math.abs(n))}`);
@@ -300,6 +340,9 @@ export function ComparePage() {
   const sumA = detailA.data?.revision.summary ?? null;
   const sumB = detailB.data?.revision.summary ?? null;
   const viaDelta = sumA && sumB ? sumB.via_total - sumA.via_total : null;
+  /* 훅이 아니다 — 이 줄 위에 이른 반환이 있어서 useMemo 를 두면 렌더마다 훅 수가 달라진다.
+     비아 스택은 서넛뿐이라 메모할 값도 아니다. */
+  const vias = viaRows(detailA.data, detailB.data);
   const areaDelta = sumA && sumB ? sumB.area_mm2 - sumA.area_mm2 : null;
   const st = cs?.stats;
 
@@ -385,7 +428,7 @@ export function ComparePage() {
                   ["summary", "요약", null],
                   ["components", "부품", components.length],
                   ["nets", "넷", nets.length],
-                  ["stackup", "적층 · 사양", (cs.stackup_changes?.length ?? 0) + (cs.header_changes?.length ?? 0) + (cs.rule_changes?.length ?? 0)],
+                  ["stackup", "적층 · 비아", (cs.stackup_changes?.length ?? 0) + vias.filter((v) => v.change || v.countA !== v.countB).length],
                 ] as const
               ).map(([key, label, count]) => (
                 <button
@@ -525,20 +568,6 @@ export function ComparePage() {
 
             {tab === "stackup" && (
               <div className={s.scroll}>
-                <Panel title="보드 사양">
-                  {(cs.header_changes?.length ?? 0) === 0 ? (
-                    <p className={s.hint}>변경 없음</p>
-                  ) : (
-                    <FieldDiffList fields={cs.header_changes!} />
-                  )}
-                </Panel>
-                <Panel title="설계 룰">
-                  {(cs.rule_changes?.length ?? 0) === 0 ? (
-                    <p className={s.hint}>변경 없음</p>
-                  ) : (
-                    <FieldDiffList fields={cs.rule_changes!} />
-                  )}
-                </Panel>
                 <Panel title={`적층 (${cs.stackup_changes?.length ?? 0}건)`}>
                   {(cs.stackup_changes?.length ?? 0) === 0 ? (
                     <p className={s.hint}>변경 없음</p>
@@ -553,6 +582,47 @@ export function ComparePage() {
                             <KindBadge kind={c.kind} />
                           </div>
                           {c.fields?.length ? <FieldDiffList fields={c.fields} /> : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Panel>
+
+                <Panel title="비아">
+                  {/* 어떤 비아를 쓸 수 있느냐가 층 구조 다음으로 큰 갈림이다. 관통만
+                      뚫던 판에 마이크로가 들어오면 HDI 공정이 붙고 값과 납기가 통째로
+                      달라진다. 종류마다 몇 개 뚫었는지의 증감까지 함께 본다. */}
+                  <dl className={s.viaType}>
+                    <dt>비아 타입</dt>
+                    <dd>
+                      <span className="mono">—</span> → <span className="mono">—</span>
+                      <span className={s.viaTypeNote}>All stack · B Type 등 · 설계 데이터에서 읽어 올 값</span>
+                    </dd>
+                  </dl>
+
+                  {vias.length === 0 ? (
+                    <p className={s.hint}>비아 정보가 없습니다.</p>
+                  ) : (
+                    <div className={s.viaList}>
+                      <div className={`${s.viaRow} ${s.viaHead}`}>
+                        <span>종류</span>
+                        <span>구간</span>
+                        <span>드릴</span>
+                        <span>A</span>
+                        <span>B</span>
+                        <span>증감</span>
+                      </div>
+                      {vias.map((v) => (
+                        <div key={v.key} className={s.viaRow}>
+                          <span>
+                            {v.kind}
+                            {v.change && <KindBadge kind={v.change} />}
+                          </span>
+                          <span className="mono">{v.span}</span>
+                          <span className="mono">{formatFine(v.drill)}</span>
+                          <span className="mono">{formatCount(v.countA)}</span>
+                          <span className="mono">{formatCount(v.countB)}</span>
+                          <b className="mono">{signed(v.countB - v.countA)}</b>
                         </div>
                       ))}
                     </div>

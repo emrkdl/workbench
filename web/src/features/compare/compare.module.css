@@ -566,3 +566,70 @@
   width: 86px;
   accent-color: var(--accent);
 }
+
+/* ── 비아 비교 ─────────────────────────────
+   어떤 비아를 쓸 수 있느냐가 층 구조 다음으로 큰 갈림이다. 종류와 구간이 같아야 같은
+   스택이고, 하나라도 다르면 뚫는 깊이도 종횡비도 다른 물건이다. */
+.viaType {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--sp-2);
+  align-items: baseline;
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.viaType dt {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.viaType dd {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  color: var(--ink);
+  min-width: 0;
+}
+.viaTypeNote {
+  font-size: var(--fs-xs);
+  color: var(--ink-4);
+}
+
+.viaList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.viaRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px 82px 72px 72px 72px;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+.viaRow > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+}
+.viaRow > span:not(:first-child),
+.viaRow > b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.viaRow b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.viaHead {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  padding-bottom: 2px;
+}
+.viaHead > span {
+  color: var(--ink-4);
+}
