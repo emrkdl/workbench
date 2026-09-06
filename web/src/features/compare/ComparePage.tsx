@@ -139,29 +139,36 @@ function componentColumns(unitSuffix: string): Column<ComponentChange>[] {
 
 function netColumns(): Column<NetChange>[] {
   return [
-    { key: "kind", header: "변경", width: "104px", render: (n) => <KindBadge kind={n.kind} />, sort: (a, b) => a.kind.localeCompare(b.kind) },
     {
-      key: "a",
-      header: "A 넷",
-      width: "minmax(160px, 1fr)",
+      /* 행의 정체는 넷 이름이다. 배지가 먼저 서 있으면 "무엇이" 보다 "어떻게" 를 먼저
+         읽게 되고, 목록을 훑을 때 눈이 이름을 찾아 한 칸 건너뛰어야 한다.
+
+         A·B 두 칸으로 갈라 두었던 것도 하나로 합친다. 한 넷의 이름이 두 자리에 나뉘어
+         있으면 같은 줄에서 무엇이 무엇으로 바뀐 것인지 눈으로 이어야 한다. */
+      key: "name",
+      header: "넷",
+      width: "minmax(200px, 1fr)",
       mono: true,
       strong: true,
-      render: (n) => n.name_a ?? "—",
-      sort: (a, b) => (a.name_a ?? "").localeCompare(b.name_a ?? "", undefined, { numeric: true }),
-      search: (n) => n.name_a ?? "",
+      render: (n) =>
+        n.name_a && n.name_b && n.name_a !== n.name_b ? (
+          <span>
+            {n.name_a} <span style={{ color: "var(--ink-4)" }}>→</span>{" "}
+            <span style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{n.name_b}</span>
+          </span>
+        ) : (
+          (n.name_b ?? n.name_a ?? "—")
+        ),
+      sort: (a, b) =>
+        (a.name_b ?? a.name_a ?? "").localeCompare(b.name_b ?? b.name_a ?? "", undefined, { numeric: true }),
+      search: (n) => `${n.name_a ?? ""} ${n.name_b ?? ""}`,
     },
     {
-      key: "b",
-      header: "B 넷",
-      width: "minmax(160px, 1fr)",
-      mono: true,
-      render: (n) =>
-        n.name_b && n.name_b !== n.name_a ? (
-          <span style={{ color: "var(--accent-ink)", fontWeight: 600 }}>{n.name_b}</span>
-        ) : (
-          n.name_b ?? "—"
-        ),
-      search: (n) => n.name_b ?? "",
+      key: "kind",
+      header: "무엇이 바뀌었나",
+      width: "128px",
+      render: (n) => <KindBadge kind={n.kind} />,
+      sort: (a, b) => a.kind.localeCompare(b.kind),
     },
     {
       key: "pins",
