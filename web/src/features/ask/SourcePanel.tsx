@@ -15,7 +15,7 @@ const SOURCES: [Source, string][] = [
 const BLURB: Record<Source, string> = {
   docs: "설계 지침에 쌓인 글에서 근거를 찾아 답합니다.",
   design: "DB에 저장된 HKP 디자인 데이터를 기준으로 답합니다.",
-  live: "설계 툴에 지금 열려 있는 판에 직접 붙어, 그 판의 데이터를 읽어 답합니다.",
+  live: "Xpedition Live 데이터에 연결하여 답합니다.",
 };
 
 /**
