@@ -31,10 +31,6 @@
   font-weight: 600;
   letter-spacing: -0.015em;
 }
-.lede {
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
 .spacer {
   flex: 1;
 }
@@ -546,14 +542,6 @@ a.cite:hover b {
   font-size: var(--fs-xs);
   line-height: 1.5;
   color: var(--warn);
-}
-.note {
-  padding: var(--sp-3);
-  border: 1px dashed var(--line-2);
-  border-radius: var(--r);
-  font-size: var(--fs-xs);
-  line-height: 1.65;
-  color: var(--ink-3);
 }
 
 /* 세 갈래. 이름만 담는다 — 설명을 한 줄씩 달면 320px 안에서 세 칸이 다 좁아지고,

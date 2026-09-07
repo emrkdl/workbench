@@ -228,7 +228,6 @@ export function AskPage() {
     <div className={s.page}>
       <header className={s.head}>
         <h1 className={s.title}>설계 문답</h1>
-        <span className={s.lede}>쌓인 설계에 대해 묻고 근거와 함께 답을 받습니다</span>
         <span className={s.spacer} />
         <button type="button" className={s.linkBtn} onClick={save} disabled={messages.length === 0}>
           내보내기
@@ -289,11 +288,6 @@ export function AskPage() {
             <div className={s.talksSlot}>
               <TalksPanel talks={talks} currentId={chat.talkId} onOpen={open} onDrop={dropTalk} />
             </div>
-            <p className={s.note}>
-              답변 엔진은 아직 붙지 않았습니다. <b>설계 데이터</b> 쪽 답은 이미 들어와 있는
-              요약값을 실제로 읽어 온 것이고, <b>문서·룰</b> 과 <b>라이브 디자인</b> 쪽은 읽을
-              것이 없어 답하지 못한다고만 말합니다. 없는 근거를 지어내지 않습니다.
-            </p>
           </div>
         </aside>
       </div>
