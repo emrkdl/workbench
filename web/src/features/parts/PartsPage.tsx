@@ -157,6 +157,27 @@ export function PartsPage() {
         sort: (a, b) => a.mpn_display.localeCompare(b.mpn_display),
         search: (p) => `${p.mpn_display} ${p.mpn_normalized}`,
       },
+      /* 셀·사이즈·기능은 설계 파일이 들고 있는 값이지만 아직 부품 마스터로 끌어올리지
+         않았다. 자리만 잡아 두고, 연결되면 이 세 칸이 채워진다. */
+      {
+        key: "size",
+        header: "사이즈",
+        width: "110px",
+        render: () => "—",
+      },
+      {
+        key: "cell",
+        header: "셀명",
+        width: "150px",
+        mono: true,
+        render: () => "—",
+      },
+      {
+        key: "function",
+        header: "기능",
+        width: "120px",
+        render: () => "—",
+      },
       {
         key: "boards",
         header: "사용 보드",
