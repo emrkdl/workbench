@@ -148,7 +148,7 @@ export function SourcePanel({
               <dd>{formatCount(board.summary.via_total)}개</dd>
             </dl>
           ) : (
-            <p className={s.warn}>고른 판이 없으면 읽을 값이 없습니다.</p>
+            <p className={s.warn}>저장된 설계 데이터를 먼저 선택해 주세요.</p>
           )}
         </div>
       )}
