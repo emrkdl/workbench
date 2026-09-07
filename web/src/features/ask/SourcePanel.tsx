@@ -202,29 +202,15 @@ export function SourcePanel({
               )}
             </>
           ) : (
-            <>
-              {/* 아직 붙지 않았다. 자리만 잡아 두되 붙은 척하지 않는다 — 연결됐다고 적힌
-                  화면에서 답을 받으면, 그 답이 지금 내 판을 읽고 나온 것이라고 믿는다. */}
-              <div className={s.liveRow}>
-                <span className={s.liveDot} aria-hidden="true" />
-                <b>연결되지 않음</b>
-                <button type="button" className={s.liveBtn} onClick={onConnect}>
-                  연결
-                </button>
-              </div>
-              <dl className={s.facts}>
-                <dt>연결 방식</dt>
-                <dd>MCP</dd>
-                <dt>설계 툴</dt>
-                <dd>—</dd>
-                <dt>열린 판</dt>
-                <dd>—</dd>
-              </dl>
-              <p className={s.hint}>
-                설계 툴이 MCP 서버로 지금 열려 있는 판들을 내주면, 그중 하나를 골라 읽습니다.
-                <b> 아직 붙지 않았습니다</b> — 지금 누르면 화면 확인용 예행 연결이 붙습니다.
-              </p>
-            </>
+            /* 아직 붙지 않았다. 자리만 잡아 두되 붙은 척하지 않는다 — 연결됐다고 적힌
+               화면에서 답을 받으면, 그 답이 지금 내 판을 읽고 나온 것이라고 믿는다. */
+            <div className={s.liveRow}>
+              <span className={s.liveDot} aria-hidden="true" />
+              <b>연결되지 않음</b>
+              <button type="button" className={s.liveBtn} onClick={onConnect}>
+                연결
+              </button>
+            </div>
           )}
         </div>
       )}
