@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { RevisionDetail } from "@/lib/cdm";
-import { Bar, EmptyState, Panel, Stat, StatGrid, Tag } from "@/components/ui";
+import { EmptyState, Panel, Stat, StatGrid, Tag } from "@/components/ui";
 import { formatBytes, formatCount, formatFine } from "@/lib/units";
 import { comparePath, revisionPath } from "@/lib/routes";
 import s from "./revision.module.css";
@@ -25,6 +25,36 @@ const DRILL_LABEL: Record<string, string> = {
   tooling: "툴링",
   component: "부품",
 };
+
+/**
+ * 종류별 비아 수.
+ *
+ * 하나의 띠를 쪼개 색으로 나누면 어느 조각이 무엇인지 범례를 보고 되짚어야 하고, 관통이
+ * 9할을 먹는 흔한 판에서는 나머지가 실오라기가 되어 서로 견줄 수도 없다. 종류마다 제
+ * 막대를 주면 이름이 막대 옆에 있고, 가장 많은 것을 기준으로 눈금이 잡혀 두 번째가
+ * 얼마나 되는지가 그대로 보인다.
+ */
+function ViaKindBars({ byKind, kinds }: { byKind: Record<string, number>; kinds: string[] }) {
+  const peak = Math.max(...kinds.map((k) => byKind[k] ?? 0), 1);
+  const total = kinds.reduce((sum, k) => sum + (byKind[k] ?? 0), 0) || 1;
+  return (
+    <div className={s.viaKinds}>
+      {kinds.map((k) => {
+        const n = byKind[k] ?? 0;
+        return (
+          <div className={s.viaKind} key={k}>
+            <span className={s.viaKindLabel}>{VIA_LABEL[k] ?? k}</span>
+            <span className={s.viaKindBar} aria-hidden="true">
+              <i style={{ width: `${(n / peak) * 100}%`, background: VIA_COLOR[k] ?? "var(--ink-4)" }} />
+            </span>
+            <span className={s.viaKindNum}>{formatCount(n)}</span>
+            <span className={s.viaKindPct}>{Math.round((n / total) * 100)}%</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * 비아 탭.
@@ -55,17 +85,7 @@ export function ViasTab({ detail }: { detail: RevisionDetail }) {
             hint="두께 ÷ 드릴 지름"
           />
         </StatGrid>
-        {kinds.length > 0 && (
-          <div style={{ marginTop: "var(--sp-4)" }}>
-            <Bar
-              slices={kinds.map((k) => ({
-                label: VIA_LABEL[k] ?? k,
-                value: byKind[k] ?? 0,
-                color: VIA_COLOR[k] ?? "var(--ink-4)",
-              }))}
-            />
-          </div>
-        )}
+        {kinds.length > 0 && <ViaKindBars byKind={byKind} kinds={kinds} />}
       </Panel>
 
       <Panel title="비아 규격" flush>

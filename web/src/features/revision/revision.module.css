@@ -581,3 +581,45 @@
   color: var(--ink-4);
   text-align: right;
 }
+
+/* ── 종류별 비아 수 ────────────────────────── */
+.viaKinds {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: var(--sp-4);
+  /* 화면 폭을 다 쓰면 막대가 1미터짜리가 되어 이름과 숫자가 양 끝으로 갈라진다.
+     짝지어 읽는 셋이라 한 눈에 들어오는 폭에서 멈춘다. */
+  max-width: 560px;
+}
+.viaKind {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) auto 38px;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-sm);
+}
+.viaKindLabel {
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.viaKindBar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.viaKindBar i {
+  display: block;
+  height: 100%;
+}
+.viaKindNum {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.viaKindPct {
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
