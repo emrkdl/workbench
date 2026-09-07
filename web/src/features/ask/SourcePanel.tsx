@@ -66,7 +66,7 @@ export function SourcePanel({
   };
 
   return (
-    <Panel title="무엇을 보고 답할까">
+    <Panel title="답변 근거">
       <div className={s.srcSeg} role="group" aria-label="답변 근거">
         {SOURCES.map(([id, label]) => (
           <button
@@ -170,7 +170,7 @@ export function SourcePanel({
                   그중 하나를 향해 묻는다. 옮겨 가는 데 다시 붙을 이유가 없다. */}
               <div className={s.liveList}>
                 <div className={s.scopeHead}>
-                  <span className={s.fieldLabel}>열린 판</span>
+                  <span className={s.fieldLabel}>Xpedition Live Design</span>
                   <span className={s.scopeCount}>{live.designs.length}</span>
                 </div>
                 {live.designs.map((d) => {
@@ -194,21 +194,12 @@ export function SourcePanel({
 
               {board && (
                 <dl className={s.facts}>
-                  <dt>층</dt>
-                  <dd>
-                    {board.summary.layer_count}층 (신호 {board.summary.signal_layer_count})
-                  </dd>
                   <dt>부품</dt>
                   <dd>{formatCount(board.summary.component_count)}개</dd>
                   <dt>넷</dt>
                   <dd>{formatCount(board.summary.net_count)}개</dd>
                 </dl>
               )}
-
-              <p className={s.hint}>
-                <b>예행 연결입니다.</b> MCP 가 붙기 전이라 값은 설계 툴이 아니라 이미 들어와
-                있는 판에서 읽습니다 — 열린 판 목록과 오가는 흐름을 확인하기 위한 자리입니다.
-              </p>
             </>
           ) : (
             <>
@@ -256,7 +247,7 @@ export function SourcePanel({
         <Have
           on={live.tool !== null}
           label="라이브 디자인"
-          note={live.tool ? `${live.tool} · 열린 판 ${live.designs.length}` : "MCP 아직 붙지 않음"}
+          note={live.tool ? `${live.tool} · Data ${live.designs.length}` : "MCP 아직 붙지 않음"}
         />
         <Have on={false} label="답변 엔진" note="아직 붙지 않음" />
       </div>

@@ -125,7 +125,7 @@ export function AskPage() {
     const open = boards.slice(0, 2);
     if (!open.length) return;
     setLive({
-      tool: "Xpedition · 예행",
+      tool: "Xpedition",
       designs: open.map((b) => ({ id: b.id, name: b.board_key, boardId: b.id })),
       activeId: open[0].id,
     });
