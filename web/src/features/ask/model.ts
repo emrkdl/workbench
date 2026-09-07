@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { GUIDE_TABS, type GuideTabKey } from "@/lib/routes";
 
 /**
  * 설계 문답 — 무엇을 주고받는가.
@@ -25,20 +26,31 @@ export type Source = "docs" | "design" | "live";
 /**
  * 문서 쪽에서 찾아볼 곳.
  *
- * 이름은 현장에서 그 문서를 부르는 말을 그대로 쓴다. 옮겨 적은 우리말이 더 고와도,
- * 사람이 "SI Rule 봤어?"라고 말하는데 화면에 "설계 룰"이라고 적혀 있으면 같은 것을
- * 가리키는지 매번 한 번씩 더 생각해야 한다.
+ * 설계 지침 페이지의 탭을 그대로 쓴다. 챗봇이 "뒤졌다"고 말하는 곳과 사람이 열어 보는
+ * 곳이 다른 이름이면 둘이 같은 것을 가리키는지 매번 한 번씩 더 생각해야 한다. 목록을
+ * 한 벌만 두어 한쪽이 늘거나 이름이 바뀌면 다른 쪽도 같이 따라간다.
+ *
+ * 이름은 현장에서 그 문서를 부르는 말 그대로다 — 옮겨 적은 우리말이 더 고와도, 사람이
+ * "SI Rule 봤어?"라고 말하는데 화면에 "설계 룰"이라고 적혀 있으면 한 번 더 짚어야 한다.
  *
  * 예전에 여기 있던 "설계 사례"는 뺐다 — 그것은 문서가 아니라 저장된 판이고, 이제
  * 설계 데이터라는 제 갈래가 따로 있다.
  */
-export const SCOPES = [
-  ["si", "SI Rule", "선폭·간격·임피던스처럼 신호가 요구하는 값"],
-  ["stackup", "PCB Stackup", "층 배분과 두께, 재질 선택"],
-  ["manual", "Layout Manual", "부품 배치와 배선의 사내 관례"],
-] as const;
+export type ScopeId = GuideTabKey;
 
-export type ScopeId = (typeof SCOPES)[number][0];
+/** 무엇이 적힌 문서인지. 화면에는 두지 않고 손끝(툴팁)에만 남긴다. */
+const SCOPE_DESC: Record<ScopeId, string> = {
+  manual: "부품 배치와 배선의 사내 관례",
+  stackup: "층 배분과 두께, 재질 선택",
+  si: "선폭·간격·임피던스처럼 신호가 요구하는 값",
+  pi: "전원 분배와 디커플링에 요구되는 값",
+  clearance: "부품 사이와 보드 가장자리에서 지켜야 할 간격",
+  dfm: "제조가 요구하는 최소값과 금지 형상",
+};
+
+export const SCOPES: readonly (readonly [ScopeId, string, string])[] = GUIDE_TABS.map(
+  (t) => [t.key, t.label, SCOPE_DESC[t.key]] as const,
+);
 
 /* ── 라이브 디자인 ─────────────────────────────
    설계 툴에는 판이 한 장만 떠 있지 않다. 개정 중인 판과 참고로 띄워 둔 지난 판을 함께

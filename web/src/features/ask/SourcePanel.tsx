@@ -13,7 +13,7 @@ const SOURCES: [Source, string][] = [
 ];
 
 const BLURB: Record<Source, string> = {
-  docs: "SI Rule·Stackup·Layout Manual 처럼 쌓인 글에서 근거를 찾아 답합니다.",
+  docs: "설계 지침에 쌓인 글에서 근거를 찾아 답합니다.",
   design: "이미 저장돼 들어와 있는 판의 실제 값(층·부품·넷·비아)을 읽어 답합니다.",
   live: "설계 툴에 지금 열려 있는 판에 직접 붙어, 그 판의 데이터를 읽어 답합니다.",
 };
