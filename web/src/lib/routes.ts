@@ -62,11 +62,11 @@ export const autoPath = (tab?: AutoTabKey) => `/auto${tab && tab !== "spec" ? `/
  * 부르게 된다.
  */
 export const GUIDE_TABS = [
-  { key: "clearance", label: "부품 클리어런스" },
+  { key: "manual", label: "매뉴얼" },
   { key: "stackup", label: "Stack up" },
   { key: "si", label: "SI Rule" },
   { key: "pi", label: "PI Spec" },
-  { key: "manual", label: "매뉴얼" },
+  { key: "clearance", label: "부품 클리어런스" },
   { key: "dfm", label: "DFM Rule" },
 ] as const;
 

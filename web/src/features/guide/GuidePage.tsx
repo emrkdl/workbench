@@ -13,7 +13,7 @@ import s from "./guide.module.css";
  */
 export function GuidePage() {
   const { tab } = useParams();
-  const active: GuideTabKey = isGuideTab(tab) ? tab : "clearance";
+  const active: GuideTabKey = isGuideTab(tab) ? tab : "manual";
   const html = DOCS[active];
 
   return (
