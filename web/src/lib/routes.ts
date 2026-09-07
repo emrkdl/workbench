@@ -57,15 +57,17 @@ export const autoPath = (tab?: AutoTabKey) => `/auto${tab && tab !== "spec" ? `/
 /**
  * 설계 지침의 탭.
  *
- * 설계 문답이 "찾아볼 곳"으로 늘어놓는 갈래와 일부러 같게 맞췄다. 챗봇이 뒤진다고
- * 말하는 것과 사람이 열어 보는 것이 다른 이름이면, 둘이 같은 것을 가리키는지 알 수 없다.
+ * 갈래마다 문서가 따로 있으므로 탭 하나가 문서 하나를 받는다. 이름은 사내에서 그 문서를
+ * 부르는 이름 그대로다 — 화면에서만 통하는 이름을 새로 지으면 같은 것을 두 이름으로
+ * 부르게 된다.
  */
 export const GUIDE_TABS = [
-  { key: "rules", label: "설계 룰" },
-  { key: "stackup", label: "적층" },
-  { key: "layout", label: "레이아웃" },
+  { key: "clearance", label: "부품 클리어런스" },
+  { key: "stackup", label: "Stack up" },
+  { key: "si", label: "SI Rule" },
+  { key: "pi", label: "PI Spec" },
   { key: "manual", label: "매뉴얼" },
-  { key: "glossary", label: "용어집" },
+  { key: "dfm", label: "DFM Rule" },
 ] as const;
 
 export type GuideTabKey = (typeof GUIDE_TABS)[number]["key"];

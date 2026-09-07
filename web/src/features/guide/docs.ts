@@ -18,9 +18,10 @@ import type { GuideTabKey } from "@/lib/routes";
  * 문서라 그렇게 두지만, 바깥에서 받은 HTML 을 이 자리에 그대로 흘려 넣지는 말 것.
  */
 export const DOCS: Record<GuideTabKey, string | null> = {
-  rules: null,
+  clearance: null,
   stackup: null,
-  layout: null,
+  si: null,
+  pi: null,
   manual: null,
-  glossary: null,
+  dfm: null,
 };
