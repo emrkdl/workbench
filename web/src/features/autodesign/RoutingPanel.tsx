@@ -2,16 +2,14 @@ import { useMemo } from "react";
 import type { RevisionDetail } from "@/lib/cdm";
 import { Panel } from "@/components/ui";
 import { conductorNumbers } from "../revision/layers";
-import { formatFine } from "@/lib/units";
-import type { RoutingEffort, RoutingOrder, RoutingSpec } from "./spec";
+import type { RoutingOrder, RoutingSpec } from "./spec";
 import s from "./autodesign.module.css";
 
 /**
  * 자동 배선 조건.
  *
- * 배선 엔진에 필요한 것은 "다 이어 줘"가 아니라 **어디까지 허락하느냐**다. 어느 층을 써도
- * 되는지, 넷 하나에 비아를 몇 개까지 허용하는지 — 이 답이 곧 제조 단가이고, 엔진은 그걸
- * 스스로 정할 수 없다.
+ * 배선 엔진에 필요한 것은 "다 이어 줘"가 아니라 **어디까지 허락하느냐**다. 어느 넷을,
+ * 어느 층에, 어떤 순서로 — 이 답이 곧 제조 단가이고, 엔진은 그걸 스스로 정할 수 없다.
  *
  * 비아 종류는 여기서 묻지 않는다. 설계 파일의 적층과 비아 규격이 이미 무엇을 쓸 수 있는지
  * 말하고 있어서, 화면에서 다시 고르게 하면 두 값이 어긋날 자리를 만든다.
@@ -23,12 +21,6 @@ const ORDERS: [RoutingOrder, string, string][] = [
   ["auto", "엔진에 맡김", "혼잡도를 보고 스스로 정한다"],
   ["power_first", "전원 먼저", "굵은 선이 자리를 먼저 잡는다"],
   ["critical_first", "고속 먼저", "차동쌍·클럭이 최단 경로를 가진다"],
-];
-
-const EFFORTS: [RoutingEffort, string, string][] = [
-  ["fast", "빠르게", "한 번 훑는다. 완주율이 낮다"],
-  ["balanced", "보통", "막힌 넷만 다시 푼다"],
-  ["thorough", "끝까지", "밀어내기를 반복한다. 오래 걸린다"],
 ];
 
 export function RoutingPanel({
@@ -137,85 +129,23 @@ export function RoutingPanel({
         })}
       </div>
 
-      <div className={s.row}>
-        <label className={s.numField}>
-          넷 하나당 최대 비아
-          <input
-            type="number"
-            min={0}
-            max={64}
-            placeholder="제한 없음"
-            value={spec.maxViasPerNet ?? ""}
-            onChange={(e) =>
-              onChange({ ...spec, maxViasPerNet: e.target.value === "" ? null : Number(e.target.value) })
-            }
-          />
-          개
-        </label>
-        <label className={s.check}>
-          <input
-            type="checkbox"
-            checked={spec.diffPairs}
-            onChange={() => onChange({ ...spec, diffPairs: !spec.diffPairs })}
-          />
-          차동쌍을 짝으로 배선
-        </label>
-        <label className={s.check}>
-          <input
-            type="checkbox"
-            checked={spec.lengthMatch}
-            onChange={() => onChange({ ...spec, lengthMatch: !spec.lengthMatch })}
-          />
-          길이 맞춤(사행 배선) 허용
-        </label>
-      </div>
-
-      <div className={s.twoUp}>
-        <div>
-          <span className={s.fieldLabel}>배선 순서</span>
-          <div className={s.optionList}>
-            {ORDERS.map(([key, label, why]) => (
-              <label key={key} className={`${s.optionRow} ${spec.order === key ? s.optionRowOn : ""}`}>
-                <input
-                  type="radio"
-                  name="routing-order"
-                  checked={spec.order === key}
-                  onChange={() => onChange({ ...spec, order: key })}
-                />
-                <span className={s.optionLabel}>{label}</span>
-                <span className={s.optionWhy}>{why}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className={s.fieldLabel}>얼마나 물고 늘어질까</span>
-          <div className={s.optionList}>
-            {EFFORTS.map(([key, label, why]) => (
-              <label key={key} className={`${s.optionRow} ${spec.effort === key ? s.optionRowOn : ""}`}>
-                <input
-                  type="radio"
-                  name="routing-effort"
-                  checked={spec.effort === key}
-                  onChange={() => onChange({ ...spec, effort: key })}
-                />
-                <span className={s.optionLabel}>{label}</span>
-                <span className={s.optionWhy}>{why}</span>
-              </label>
-            ))}
-          </div>
+      <div>
+        <span className={s.fieldLabel}>배선 순서</span>
+        <div className={s.optionList}>
+          {ORDERS.map(([key, label, why]) => (
+            <label key={key} className={`${s.optionRow} ${spec.order === key ? s.optionRowOn : ""}`}>
+              <input
+                type="radio"
+                name="routing-order"
+                checked={spec.order === key}
+                onChange={() => onChange({ ...spec, order: key })}
+              />
+              <span className={s.optionLabel}>{label}</span>
+              <span className={s.optionWhy}>{why}</span>
+            </label>
+          ))}
         </div>
       </div>
-
-      {detail && (
-        <p className={s.hint}>
-          선폭·간격은 이 리비전의 설계 룰을 그대로 씁니다 — 최소 선폭{" "}
-          <b>{formatFine(detail.design_rules.min_trace_width_nm)}</b>, 최소 간격{" "}
-          <b>{formatFine(detail.design_rules.min_clearance_nm)}</b>, 최소 드릴{" "}
-          <b>{formatFine(detail.design_rules.min_drill_nm)}</b>. 룰을 바꾸려면 설계 파일 쪽에서
-          바꿔야 합니다 — 여기서 덮어쓰면 화면의 값과 실제 보드가 어긋납니다.
-        </p>
-      )}
     </Panel>
   );
 }

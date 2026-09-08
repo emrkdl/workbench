@@ -44,7 +44,6 @@ export function PlacementPanel({
   const [family, setFamily] = useState<FamilyKey | null>(null);
   /** 판을 눌렀을 때 그 자리를 받을 부품. 비어 있으면 고른 것 전부가 받는다. */
   const [focus, setFocus] = useState<string | null>(null);
-  const density = DENSITIES.find(([k]) => k === spec.density);
 
 
 
@@ -234,13 +233,6 @@ export function PlacementPanel({
           </span>
         </span>
       </div>
-
-      {/* 고른 등급이 무엇을 뜻하는지 한 줄. 등급 이름만으로는 "극밀도"가 얼마나 빽빽한지 모른다. */}
-      {density && (
-        <p className={s.densityNote}>
-          <b>{density[1]}</b> — {density[2]} <span>부품 간 {density[3]}</span>
-        </p>
-      )}
 
       {/* ── 부품 고르기 ── */}
       <div className={s.subHead}>

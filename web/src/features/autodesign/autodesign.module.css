@@ -756,21 +756,6 @@
   align-items: center;
   gap: var(--sp-2);
 }
-.densityNote {
-  margin-top: 8px;
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-.densityNote b {
-  color: var(--ink);
-}
-.densityNote span {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-4);
-  margin-left: 6px;
-}
-
 /* 실행 중 — 진행률·남은 시간·단계. 중지는 되돌릴 수 없는 동작이라 색으로 구분한다. */
 .stop {
   border-color: var(--crit);

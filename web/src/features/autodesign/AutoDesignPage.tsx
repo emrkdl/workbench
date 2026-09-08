@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchCatalog, fetchRevision } from "@/lib/api";
 import { useAsync } from "@/lib/useAsync";
+import { conductorNumbers } from "../revision/layers";
 import { ErrorState, Loading, Panel } from "@/components/ui";
 import { AUTO_TABS, autoPath, isAutoTab, type AutoTabKey } from "@/lib/routes";
 import { SourceCard } from "./SourceCard";
@@ -106,6 +107,21 @@ export function AutoDesignPage() {
 
   // 결과 탭에서 다 된 결과를 보고 있으면 그것이 곧 "봤다"이다. 보고 나서도 점이 켜져
   // 있으면 그 점은 아무것도 말하지 않게 된다.
+  /**
+   * 판이 정해지면 쓸 층은 전부 켠 채로 시작한다.
+   *
+   * 배선을 어느 층에 깔지는 대개 "다 써도 된다"가 기본이고, 막고 싶은 층이 있을 때만
+   * 하나씩 끈다. 빈 채로 두면 켜는 일부터 해야 하고, 무엇이 있는지도 모르는 채로
+   * 고르라고 하는 셈이 된다.
+   */
+  useEffect(() => {
+    const signal = (detail.data?.stackup ?? [])
+      .filter((l) => l.role === "signal" || l.role === "mixed")
+      .map((l) => conductorNumbers(detail.data!.stackup).get(l.index) ?? l.index);
+    if (!signal.length) return;
+    setSpec((prev) => ({ ...prev, routing: { ...prev.routing, layers: signal } }));
+  }, [detail.data]);
+
   useEffect(() => {
     if (active === "result" && job.status === "done") seeResult();
   }, [active, job.status]);

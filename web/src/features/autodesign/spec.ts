@@ -69,10 +69,10 @@ export const PLACEHOLDER_MODEL = "TTN-MAIN-A3";
  * 엔진이 그 등급에서 끌어낸다. 옆에 적은 값은 참고이지 입력이 아니다.
  */
 export const DENSITIES = [
-  ["normal", "노멀", "일반 기기. 검사와 리워크에 손이 들어갈 만큼 띄운다", "≈0.200 mm"],
-  ["hdi", "초고밀도", "스마트폰급. 마이크로비아를 전제로 붙여 놓는다", "≈0.130 mm"],
-  ["extreme", "극밀도", "빈 자리를 남기지 않는다. 리워크는 사실상 포기", "≈0.080 mm"],
-  ["wearable", "웨어러블", "판이 작고 양면을 다 쓴다. 두께와 굽힘을 함께 본다", "≈0.100 mm"],
+  ["normal", "노멀"],
+  ["hdi", "초고밀도"],
+  ["extreme", "극밀도"],
+  ["wearable", "웨어러블"],
 ] as const;
 
 export type Density = (typeof DENSITIES)[number][0];
@@ -117,7 +117,6 @@ export const FORM_FACTORS: Record<string, string> = {
 
 export const formFactorOf = (boardKey: string) => boardKey.split("-")[1] ?? "";
 
-export type RoutingEffort = "fast" | "balanced" | "thorough";
 export type RoutingOrder = "auto" | "power_first" | "critical_first";
 
 export interface RoutingSpec {
@@ -125,12 +124,8 @@ export interface RoutingSpec {
   netClasses: string[];
   /** 배선에 쓸 도체층 번호. 비우면 엔진이 정한다. */
   layers: number[];
-  maxViasPerNet: number | null;
   keepRouted: boolean;
-  diffPairs: boolean;
-  lengthMatch: boolean;
   order: RoutingOrder;
-  effort: RoutingEffort;
 }
 
 export interface AutoDesignSpec {
@@ -161,12 +156,8 @@ export const EMPTY_SPEC: AutoDesignSpec = {
     scope: "all",
     netClasses: [],
     layers: [],
-    maxViasPerNet: null,
     keepRouted: true,
-    diffPairs: true,
-    lengthMatch: false,
     order: "auto",
-    effort: "balanced",
   },
 };
 
@@ -199,12 +190,8 @@ export function toRequest(spec: AutoDesignSpec) {
           scope: routing.scope,
           net_classes: routing.scope === "classes" ? routing.netClasses : "all",
           layers: routing.layers.length ? routing.layers : "auto",
-          max_vias_per_net: routing.maxViasPerNet,
           keep_routed: routing.keepRouted,
-          diff_pairs: routing.diffPairs,
-          length_match: routing.lengthMatch,
           order: routing.order,
-          effort: routing.effort,
         }
       : null,
   };
