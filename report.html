@@ -1,0 +1,678 @@
+<title>BoardForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@500;600&display=swap">
+
+<style>
+  /* ── 토큰 ───────────────────────────────────────────────
+     흰 바탕 하나로 간다. 인쇄해서 돌려 볼 문서라 밝은 세계에 못박고,
+     색은 이 주제의 재료에서 가져온다 — 동박(copper). */
+  :root {
+    color-scheme: light;
+
+    --ground: #ffffff;
+    --panel: #f5f6f8;
+    --line: #dde1e6;
+    --line-2: #c8ced6;
+
+    --ink: #14181e;
+    --ink-2: #39424e;
+    --ink-3: #6c7783;
+    --ink-4: #98a1ac;
+
+    --copper: #9c5424;
+    --copper-ink: #7d4219;
+    --copper-wash: #f9efe7;
+    --copper-line: #e4cdb9;
+
+    --done: #2f6d4f;
+
+    --serif: "Noto Serif KR", "Nanum Myeongjo", Georgia, serif;
+    --sans: "IBM Plex Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "D2Coding", ui-monospace, monospace;
+
+    --page: 46px;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink-2);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 var(--page);
+  }
+
+  /* ── 장(章) ─────────────────────────────────────────────
+     네 장이 한 두루마리로 이어진다. 장 사이는 선 하나로만 가른다. */
+  .leaf {
+    padding: 72px 0 84px;
+    border-top: 1px solid var(--line);
+  }
+
+  .folio {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--ink-4);
+    text-transform: uppercase;
+  }
+  .folio b {
+    color: var(--copper-ink);
+    font-weight: 500;
+  }
+  .folio i {
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    font-style: normal;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--serif);
+    color: var(--ink);
+    text-wrap: balance;
+    font-weight: 600;
+    margin: 0;
+  }
+  h2 {
+    font-size: 27px;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 17px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  p {
+    margin: 0;
+    max-width: 64ch;
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .stack-lg {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .lede {
+    font-size: 16.5px;
+    color: var(--ink-2);
+  }
+  strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    color: var(--copper-ink);
+    background: var(--copper-wash);
+    border: 1px solid var(--copper-line);
+    border-radius: 3px;
+    padding: 0 5px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── 표제 ───────────────────────────────────────────────
+     이름과 한 줄. 표제에 표를 얹으면 표지가 아니라 요약이 된다. */
+  .cover {
+    padding: 132px 0 116px;
+  }
+  .title {
+    font-size: 64px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .title span {
+    display: block;
+    font-family: var(--sans);
+    font-size: 19px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.65;
+    color: var(--ink-3);
+    margin-top: 26px;
+    max-width: 44ch;
+  }
+  .rule {
+    height: 3px;
+    width: 64px;
+    background: var(--copper);
+    margin-top: 38px;
+  }
+
+  /* ── 수치 띠 ───────────────────────────────────────────── */
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .fig {
+    background: var(--ground);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .fig b {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .fig b em {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+    margin-left: 3px;
+  }
+  .fig span {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  /* ── 다이어그램 ────────────────────────────────────────── */
+  figure {
+    margin: 0;
+  }
+  figure svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    color: var(--ink-3);
+  }
+  figcaption {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ink-3);
+    max-width: 60ch;
+  }
+  .diagram {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 28px 26px 22px;
+  }
+
+  /* ── 화면 목록 ─────────────────────────────────────────── */
+  .screens {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .screen {
+    background: var(--ground);
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 3px 12px;
+    align-items: baseline;
+  }
+  .screen b {
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .screen em {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 11px;
+    color: var(--ink-4);
+    grid-column: 2;
+  }
+  .screen p {
+    grid-column: 1 / -1;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-3);
+  }
+
+  /* ── 단계 표 ───────────────────────────────────────────── */
+  .phases {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .phases th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    padding: 0 12px 8px 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .phases td {
+    padding: 11px 12px 11px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: baseline;
+    color: var(--ink-2);
+  }
+  .phases td:first-child {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-4);
+    width: 44px;
+  }
+  .phases td:nth-child(2) {
+    color: var(--ink);
+  }
+  .phases td:last-child {
+    width: 96px;
+    text-align: right;
+  }
+  .phases tr:last-child td {
+    border-bottom: 0;
+  }
+  .mark {
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--done);
+  }
+
+  /* ── 두 칸 ─────────────────────────────────────────────── */
+  .split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 34px;
+  }
+
+  /* ── 원칙 목록 ─────────────────────────────────────────── */
+  .rules {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--line);
+  }
+  .rule-item {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    gap: 20px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .rule-item h3 {
+    margin: 0;
+    font-size: 15.5px;
+  }
+  .rule-item p {
+    font-size: 14px;
+    color: var(--ink-2);
+  }
+
+  /* ── 다음 ──────────────────────────────────────────────── */
+  .next {
+    background: var(--panel);
+    border-left: 3px solid var(--copper);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .next ol {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 14.5px;
+  }
+  .next li::marker {
+    color: var(--copper);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .foot {
+    padding: 26px 0 60px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink-4);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 720px) {
+    :root {
+      --page: 22px;
+    }
+    .title {
+      font-size: 42px;
+    }
+    .figures,
+    .screens,
+    .split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .rule-item {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+  }
+
+  @media print {
+    .leaf,
+    .cover {
+      break-after: page;
+      border-top: 0;
+    }
+  }
+</style>
+
+<main class="sheet">
+  <!-- ── 1. 표제 ─────────────────────────────────────────── -->
+  <header class="cover">
+    <h1 class="title">
+      BoardForge
+      <span>흩어져 있던 PCB 설계 데이터를 한곳에 모아, 웹에서 열어 보고,
+        리비전 사이의 변경을 자동으로 비교하는 사내 시스템.</span>
+    </h1>
+    <div class="rule"></div>
+  </header>
+
+  <!-- ── 2. 무엇을 만들었나 ──────────────────────────────── -->
+  <section class="leaf stack-lg">
+    <div class="folio"><b>02</b> <span>무엇을 만들었나</span> <i></i> <span>4장 중 2장</span></div>
+
+    <div class="stack">
+      <h2>설계 파일 한 장이 화면에 닿기까지</h2>
+      <p class="lede">
+        가운데에 <strong>공통 설계 모델(CDM)</strong>. 설계 파일을 읽어 이 모양으로 바꾸고,
+        그 뒤로는 어느 화면도 원본 파일을 다시 열지 않음. 서버 코드와 화면 코드는 이 모델
+        정의에서 자동 생성 — 손으로 두 번 적으면 어긋나므로.
+      </p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 800 210" role="img"
+          aria-label="HKP 파일이 파서를 거쳐 공통 설계 모델이 되고, DB 와 REST API 에 적재되어 웹 화면 여덟 개에 닿는다. 모델 정의에서 서버 모델과 화면 타입이 자동 생성된다.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <g font-family="IBM Plex Sans KR, sans-serif" font-size="13" fill="#14181e">
+            <rect x="1" y="34" width="118" height="46" rx="2" fill="#ffffff" stroke="#c8ced6"></rect>
+            <text x="60" y="62" text-anchor="middle">HKP 파일</text>
+
+            <rect x="171" y="34" width="118" height="46" rx="2" fill="#ffffff" stroke="#c8ced6"></rect>
+            <text x="230" y="62" text-anchor="middle">HKP 파서</text>
+
+            <rect x="341" y="26" width="118" height="62" rx="2" fill="#14181e" stroke="#14181e"></rect>
+            <text x="400" y="52" text-anchor="middle" fill="#ffffff" font-weight="600">공통 설계 모델</text>
+            <text x="400" y="70" text-anchor="middle" font-size="10.5" fill="#98a1ac">길이·각도 정수</text>
+
+            <rect x="511" y="34" width="118" height="46" rx="2" fill="#ffffff" stroke="#c8ced6"></rect>
+            <text x="570" y="62" text-anchor="middle">DB · 서버</text>
+
+            <rect x="681" y="34" width="118" height="46" rx="2" fill="#ffffff" stroke="#c8ced6"></rect>
+            <text x="740" y="62" text-anchor="middle">웹 화면 8개</text>
+          </g>
+
+          <g stroke="#6c7783" stroke-width="1.4" marker-end="url(#ar)" fill="none">
+            <path d="M120 57 H165"></path>
+            <path d="M290 57 H335"></path>
+            <path d="M460 57 H505"></path>
+            <path d="M630 57 H675"></path>
+          </g>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="10" fill="#6c7783" text-anchor="middle">
+            <text x="142" y="48">읽기</text>
+            <text x="312" y="48">정규화</text>
+            <text x="482" y="48">적재</text>
+            <text x="655" y="48">조회</text>
+          </g>
+
+          <g stroke="#9c5424" stroke-width="1.4" marker-end="url(#ar)" fill="none">
+            <path d="M400 90 V126 H180 V150"></path>
+            <path d="M400 90 V126 H620 V150"></path>
+          </g>
+          <g font-family="IBM Plex Sans KR, sans-serif" font-size="12.5" fill="#14181e">
+            <rect x="86" y="152" width="188" height="42" rx="2" fill="#ffffff" stroke="#c8ced6"></rect>
+            <text x="180" y="171" text-anchor="middle">서버 모델</text>
+            <text x="180" y="187" text-anchor="middle" font-size="10.5" fill="#6c7783">Python</text>
+
+            <rect x="526" y="152" width="188" height="42" rx="2" fill="#ffffff" stroke="#c8ced6"></rect>
+            <text x="620" y="171" text-anchor="middle">화면 타입</text>
+            <text x="620" y="187" text-anchor="middle" font-size="10.5" fill="#6c7783">TypeScript</text>
+          </g>
+          <text x="400" y="141" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="#9c5424">자동 생성</text>
+        </svg>
+        <figcaption>
+          읽기부터 화면까지 한 줄로 연결. 중간의 모든 길이는 나노미터 정수로 통일하고,
+          mm 로 바꾸는 것은 화면에 찍기 직전 한 번만.
+        </figcaption>
+      </figure>
+    </div>
+
+    <div class="stack">
+      <h3>화면 여덟 개</h3>
+      <div class="screens">
+        <div class="screen">
+          <b>카탈로그</b><em>보드 목록</em>
+          <p>보드 30장을 표와 카드로. 층수·제품군·연도·면적·부품 수·최소 선폭으로 추리기.</p>
+        </div>
+        <div class="screen">
+          <b>리비전 상세</b><em>8탭</em>
+          <p>요약 · 뷰어 · 적층 · 부품 · 넷 · 비아 · 리비전 · 파일. 판 한 장을 여덟 각도로.</p>
+        </div>
+        <div class="screen">
+          <b>2D 뷰어</b><em>브라우저 렌더링</em>
+          <p>부품 배치도와 동박(패드·배선·플레인)을 전용 이진 형식으로. 수만 개도 끊김 없이.</p>
+        </div>
+        <div class="screen">
+          <b>비교</b><em>4탭</em>
+          <p>두 판을 나란히. 부품·넷·적층·비아의 변경을 추가/삭제/이동/이름 변경으로 구분.</p>
+        </div>
+        <div class="screen">
+          <b>인사이트</b><em>필터 연동</em>
+          <p>카탈로그와 같은 필터를 옆에. 추려낸 보드만 그 자리에서 집계.</p>
+        </div>
+        <div class="screen">
+          <b>부품 역검색</b><em>602종</em>
+          <p>파트넘버 하나로 그 부품이 들어간 보드 · 리비전 · RefDes 까지 한 번에.</p>
+        </div>
+        <div class="screen">
+          <b>자동 레이아웃</b><em>엔진 연결 예정</em>
+          <p>사내 배치·라우팅 엔진에 넘길 조건을 짜고 결과를 뷰어로 확인.</p>
+        </div>
+        <div class="screen">
+          <b>설계 문답 · 지침</b><em>연결 예정</em>
+          <p>무엇을 근거로 답할지 고르는 문답 화면과, 사내 지침을 모아 두는 문서함.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. 어디까지 왔나 ────────────────────────────────── -->
+  <section class="leaf stack-lg">
+    <div class="folio"><b>03</b> <span>어디까지 왔나</span> <i></i> <span>4장 중 3장</span></div>
+
+    <div class="stack">
+      <h2>설계 파일을 넣으면 화면까지, 처음부터 끝까지 동작</h2>
+      <p class="lede">
+        여섯 단계 모두 완료. 파일을 읽는 파서부터 화면·비교·배포까지 한 줄로 이어져 있고,
+        지금 적재된 규모는 아래와 같음.
+      </p>
+
+      <div class="figures">
+        <div class="fig">
+          <b>30<em>보드</em></b>
+          <span>리비전 67장</span>
+        </div>
+        <div class="fig">
+          <b>60,121<em>부품</em></b>
+          <span>넷 56,820</span>
+        </div>
+        <div class="fig">
+          <b>602<em>종</em></b>
+          <span>파트넘버 정리 후 고유 부품</span>
+        </div>
+        <div class="fig">
+          <b>484<em>쌍</em></b>
+          <span>미리 계산해 둔 리비전 비교</span>
+        </div>
+      </div>
+
+      <table class="phases">
+        <thead>
+          <tr>
+            <th>단계</th>
+            <th>내용</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>공통 설계 모델 정의 + 서버·화면 코드 자동 생성</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>HKP 파서 — 설계 파일을 읽어 공통 모델로</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>카탈로그 · 리비전 상세 8탭</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2D 뷰어 — 배치도와 동박</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>변경 비교 엔진 + 비교 화면 4탭</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>인사이트 · 부품 역검색</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>DB · 적재 · 서버 · 권한 · 기록 · 폐쇄망 배포</td>
+            <td><span class="mark">완료</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="split">
+      <div class="stack">
+        <h3>무엇으로 확인하나</h3>
+        <p>
+          서버는 파서 결과 대조 · 적재 · 응답 형식 · 권한을 시험 17건으로 지킴. 화면은 타입 검사와
+          배포용 빌드를 변경마다 통과. 두 곳이 같은 약속을 지키는지는 응답 형식 시험이 담당.
+        </p>
+      </div>
+      <div class="stack">
+        <h3>폐쇄망 전제</h3>
+        <p>
+          동작 중에 바깥 인터넷을 보지 않음. 글꼴도 스크립트도 전부 안에. 배포는 묶음 파일 하나를
+          반입해 서버에서 올리면 끝.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. 원칙과 다음 ──────────────────────────────────── -->
+  <section class="leaf stack-lg">
+    <div class="folio"><b>04</b> <span>원칙과 다음</span> <i></i> <span>4장 중 4장</span></div>
+
+    <div class="stack">
+      <h2>화면은 설계 파일이 아는 것까지만</h2>
+      <p class="lede">
+        이 화면을 믿고 판단이 내려짐. 그래서 모르는 값을 그럴듯하게 채우지 않는 것이
+        기능 하나 더 붙이는 것보다 우선.
+      </p>
+
+      <div class="rules">
+        <div class="rule-item">
+          <h3>없는 값은 비워 둠</h3>
+          <p>
+            부품 수명(단종 여부)과 제조사는 설계 파일에 없는 값 — 구매 시스템이 붙어야 아는 것.
+            화면과 표에서 전부 제거하고 자리만 남김. 연결되면 그때 채워짐.
+          </p>
+        </div>
+        <div class="rule-item">
+          <h3>단위는 하나로</h3>
+          <p>
+            내부는 나노미터 정수, 화면 표기는 mm 하나로 통일. 소수로 다루면 안 움직인 부품이
+            비교에서 "이동함"으로 잡히고, mil 과 µm 을 섞으면 읽는 사람이 매번 환산.
+          </p>
+        </div>
+        <div class="rule-item">
+          <h3>색을 다시 배우지 않게</h3>
+          <p>
+            부품 색은 사내 배치 도구, 배선 색과 비아 표시는 사내 라우팅 엔진을 그대로 따름.
+            같은 보드를 두 도구에서 보는 사람이 색을 다시 익힐 이유가 없음.
+          </p>
+        </div>
+        <div class="rule-item">
+          <h3>설명글보다 화면</h3>
+          <p>
+            화면마다 붙어 있던 해설 문단을 제거. 제목과 값이 이미 말하는 것을 되풀이하고 있었고,
+            길이가 제각각이라 눈이 걸림.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="next">
+      <h3>다음</h3>
+      <ol>
+        <li>
+          <strong>구매 시스템 부품 정보 연결.</strong> 수명·제조사와, 부품 역검색에 자리만 잡아 둔
+          사이즈 · 타입 · 셀명 · 기능 네 칸이 채워짐.
+        </li>
+        <li>
+          <strong>배치 · 라우팅 엔진 연결.</strong> 자동 레이아웃은 조건을 짜서 넘기는 데까지 완성.
+          엔진이 붙으면 진행률의 출처만 바뀜.
+        </li>
+        <li>
+          <strong>지침 문서 반입과 설계 툴 연결.</strong> 여섯 탭에 사내 문서를 걸고, 설계 툴에
+          열려 있는 판을 문답에 연결.
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>BOARDFORGE · PCB DESIGN WORKBENCH</span>
+    <span>2026-09-09 기준</span>
+  </footer>
+</main>
